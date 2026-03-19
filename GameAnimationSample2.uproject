@@ -3,6 +3,13 @@
 	"EngineAssociation": "5.6",
 	"Category": "Samples",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "GameAnimationSample2",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Edit(d:\\UEProject\\GameAnimationSample2\\**)",
+      "Write(d:\\UEProject\\GameAnimationSample2\\**)"
+    ]
+  }
+}
