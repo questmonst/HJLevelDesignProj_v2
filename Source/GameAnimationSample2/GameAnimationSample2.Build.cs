@@ -16,6 +16,7 @@ public class GameAnimationSample2 : ModuleRules
 			Path.Combine(ModuleDirectory, "Weapons"),
 			Path.Combine(ModuleDirectory, "Core"),
 			Path.Combine(ModuleDirectory, "Environment"),
+			Path.Combine(ModuleDirectory, "Characters/NPC/Enemies"),
 		});
 
 		PublicDependencyModuleNames.AddRange(new string[]
@@ -26,7 +27,8 @@ public class GameAnimationSample2 : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",
-			"NavigationSystem"
+			"NavigationSystem",
+			"MotionWarping"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

@@ -15,6 +15,8 @@ class UInputMappingContext;
 class UInputAction;
 class USplineComponent;
 class USplineMeshComponent;
+class UTraversalComponent;
+class UMotionWarpingComponent;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API APlayerCharacter : public ACharacterBase
@@ -37,6 +39,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Camera")
 	UCameraComponent* CameraComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal")
+	UTraversalComponent* TraversalComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal")
+	UMotionWarpingComponent* MotionWarpingComponent;
+
 	// --- Input ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Input")
@@ -49,6 +57,9 @@ protected:
 	void HandleLook(const FInputActionValue& Value);
 	void StartCrouch();
 	void StopCrouch();
+
+	/** 트래버설 감지 후 가능하면 트래버설, 불가능하면 일반 점프 */
+	virtual void Jump() override;
 
 	// --- Movement ---
 
@@ -142,6 +153,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
 	FName WeaponAttachSocket;
 
+	/** 수납 시 붙일 소켓 (등, 허리 등) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
+	FName WeaponHolsterSocket;
+
+	/** 무기 교체 딜레이 (초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
+	float WeaponSwapDelay = 0.3f;
+
+	bool  bIsSwapping        = false;
+	int32 PendingWeaponIndex = -1;
+
+	FTimerHandle SwapTimerHandle;
+
+	void FinishEquipWeapon();
+
 public:
 	// --- Movement ---
 
@@ -182,4 +208,58 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Character|Weapon")
 	AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+
+	// --- Gravity ---
+
+	/**
+	 * 중력 방향을 변경합니다.
+	 * 레벨 블루프린트에서 Sequencer 특정 타이밍에 호출.
+	 * @param NewDirection  새 중력 방향 벡터 (정규화 불필요, 내부에서 처리)
+	 *                      예) (0,0,-1) = 기본, (0,0,1) = 천장이 바닥, (1,0,0) = 오른쪽 벽이 바닥
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Character|Gravity")
+	void SetGravityDirection(FVector NewDirection);
+
+	/** 중력을 기본값 (0, 0, -1) 으로 복원합니다. */
+	UFUNCTION(BlueprintCallable, Category = "Character|Gravity")
+	void ResetGravity();
+
+	// ────────────────────────────────────────────────
+	// Fall / Landing (AnimBP 연동)
+	// ────────────────────────────────────────────────
+
+	/** 현재 공중에서 낙하 중인지 (점프 상승 포함) — AnimBP에서 읽기 */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall")
+	bool bIsFalling = false;
+
+	/** 낙하 속도 (cm/s, 양수). 상승 중이면 0. AnimBP 블렌딩에 사용 */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall")
+	float CurrentFallSpeed = 0.f;
+
+	/** 이 속도(cm/s) 이상으로 착지하면 하드 랜딩 판정 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall")
+	float HardLandingSpeedThreshold = 600.f;
+
+	/** 하드 랜딩 직후 true. ResetHardLanding() 호출 전까지 유지. */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall")
+	bool bIsHardLanding = false;
+
+	/**
+	 * 착지 이벤트. BP에서 오버라이드하여 랜딩 몽타주 재생.
+	 * @param bHardLanding  하드 랜딩이면 true (HardLandingSpeedThreshold 이상 속도)
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Character|Fall")
+	void OnLanding(bool bHardLanding);
+	virtual void OnLanding_Implementation(bool bHardLanding);
+
+	/**
+	 * 하드 랜딩 애니메이션이 끝난 뒤 AnimNotify에서 호출.
+	 * bIsHardLanding 플래그를 리셋한다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Character|Fall")
+	void ResetHardLanding();
+
+protected:
+	/** ACharacter 기본 착지 콜백 — 내부에서 OnLanding 발동 */
+	virtual void Landed(const FHitResult& Hit) override;
 };

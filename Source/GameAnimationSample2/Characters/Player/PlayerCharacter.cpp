@@ -3,6 +3,7 @@
 #include "PlayerCharacter.h"
 #include "WeaponBase.h"
 #include "GrenadeBase.h"
+#include "TraversalComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -12,6 +13,7 @@
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "MotionWarpingComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -38,6 +40,10 @@ APlayerCharacter::APlayerCharacter()
 	bUseControllerRotationYaw                              = false;
 	GetCharacterMovement()->bOrientRotationToMovement      = true;
 	GetCharacterMovement()->MaxWalkSpeed                   = WalkSpeed;
+
+	// Traversal
+	TraversalComponent    = CreateDefaultSubobject<UTraversalComponent>(TEXT("TraversalComponent"));
+	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarpingComponent"));
 
 	// Trajectory Spline
 	TrajectorySpline = CreateDefaultSubobject<USplineComponent>(TEXT("TrajectorySpline"));
@@ -81,6 +87,13 @@ void APlayerCharacter::BeginPlay()
 		AWeaponBase* Weapon = GetWorld()->SpawnActor<AWeaponBase>(DefaultWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
 		PickupWeapon(Weapon);
 	}
+}
+
+void APlayerCharacter::Jump()
+{
+	// 트래버설 가능하면 트래버설 시작 (점프 소비)
+	if (TraversalComponent && TraversalComponent->TryTraversal()) return;
+	Super::Jump();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -146,11 +159,25 @@ const UInputAction* APlayerCharacter::FindActionInIMC(const FString& NameContain
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
 	if (bIsPreparingThrow)
 	{
 		UpdateTrajectory();
 	}
 	UpdateCoverPeek(DeltaTime);
+
+	// ── 낙하 상태 추적 (AnimBP에서 bIsFalling, CurrentFallSpeed 읽음) ──
+	bIsFalling = GetCharacterMovement()->IsFalling();
+	if (bIsFalling)
+	{
+		const float ZVel = GetVelocity().Z;
+		// 상승 중(ZVel > 0)이면 FallSpeed는 0, 하강 중이면 양수 값으로 노출
+		CurrentFallSpeed = (ZVel < 0.f) ? -ZVel : 0.f;
+	}
+	else
+	{
+		CurrentFallSpeed = 0.f;
+	}
 }
 
 void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
@@ -349,17 +376,23 @@ bool APlayerCharacter::PickupWeapon(AWeaponBase* Weapon)
 
 	WeaponInventory.Add(Weapon);
 	Weapon->SetOwner(this);
-	Weapon->AttachToComponent(GetMesh(),
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		WeaponAttachSocket);
 
+	// 첫 무기면 바로 장착, 아니면 홀스터 소켓에 수납
 	if (WeaponInventory.Num() == 1)
 	{
-		EquipWeapon(0);
+		Weapon->AttachToComponent(GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			WeaponAttachSocket);
+		CurrentWeaponIndex = 0;
+		CurrentWeapon      = Weapon;
 	}
 	else
 	{
-		Weapon->SetActorHiddenInGame(true);
+		const FName HolsterSocket = WeaponHolsterSocket.IsNone() ? WeaponAttachSocket : WeaponHolsterSocket;
+		Weapon->AttachToComponent(GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			HolsterSocket);
+		Weapon->SetActorHiddenInGame(WeaponHolsterSocket.IsNone());
 	}
 
 	return true;
@@ -369,16 +402,39 @@ void APlayerCharacter::EquipWeapon(int32 Index)
 {
 	if (!WeaponInventory.IsValidIndex(Index)) return;
 	if (Index == CurrentWeaponIndex) return;
+	if (bIsSwapping) return;
 
+	bIsSwapping        = true;
+	PendingWeaponIndex = Index;
+
+	// 현재 무기 홀스터로 이동
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->StopFire();
-		CurrentWeapon->SetActorHiddenInGame(true);
+		const FName HolsterSocket = WeaponHolsterSocket.IsNone() ? WeaponAttachSocket : WeaponHolsterSocket;
+		CurrentWeapon->AttachToComponent(GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			HolsterSocket);
+		if (WeaponHolsterSocket.IsNone())
+			CurrentWeapon->SetActorHiddenInGame(true);
 	}
 
-	CurrentWeaponIndex = Index;
-	CurrentWeapon      = WeaponInventory[Index];
+	GetWorldTimerManager().SetTimer(SwapTimerHandle, this, &APlayerCharacter::FinishEquipWeapon, WeaponSwapDelay, false);
+}
+
+void APlayerCharacter::FinishEquipWeapon()
+{
+	bIsSwapping = false;
+
+	if (!WeaponInventory.IsValidIndex(PendingWeaponIndex)) return;
+
+	CurrentWeaponIndex = PendingWeaponIndex;
+	CurrentWeapon      = WeaponInventory[CurrentWeaponIndex];
+
 	CurrentWeapon->SetActorHiddenInGame(false);
+	CurrentWeapon->AttachToComponent(GetMesh(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		WeaponAttachSocket);
 }
 
 void APlayerCharacter::StartCrouch() { Crouch(); }
@@ -401,4 +457,49 @@ void APlayerCharacter::StopFire()
 void APlayerCharacter::Reload()
 {
 	if (CurrentWeapon) CurrentWeapon->Reload();
+}
+
+// --- Gravity ---
+
+void APlayerCharacter::SetGravityDirection(FVector NewDirection)
+{
+	if (NewDirection.IsNearlyZero()) return;
+	GetCharacterMovement()->SetGravityDirection(NewDirection.GetSafeNormal());
+}
+
+void APlayerCharacter::ResetGravity()
+{
+	GetCharacterMovement()->SetGravityDirection(FVector(0.f, 0.f, -1.f));
+}
+
+// --- Fall / Landing ---
+
+void APlayerCharacter::Landed(const FHitResult& Hit)
+{
+	// Landed()는 실제 착지 직전 프레임의 속도를 가지고 있지 않으므로
+	// Tick에서 추적한 CurrentFallSpeed를 착지 판정에 사용한다.
+	const float LandingSpeed = CurrentFallSpeed;
+	const bool  bHard        = LandingSpeed >= HardLandingSpeedThreshold;
+
+	CurrentFallSpeed = 0.f;
+	bIsFalling       = false;
+	bIsHardLanding   = bHard;
+
+	// AnimBP 이벤트 발동
+	OnLanding(bHard);
+
+	Super::Landed(Hit);
+}
+
+void APlayerCharacter::OnLanding_Implementation(bool bHardLanding)
+{
+	// BP에서 오버라이드:
+	//   if bHardLanding → PlayAnimMontage(HardLandMontage)
+	//   else            → PlayAnimMontage(SoftLandMontage)
+	// 몽타주 끝 Anim Notify에서 ResetHardLanding() 호출
+}
+
+void APlayerCharacter::ResetHardLanding()
+{
+	bIsHardLanding = false;
 }
