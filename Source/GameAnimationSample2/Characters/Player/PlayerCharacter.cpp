@@ -31,11 +31,15 @@ APlayerCharacter::APlayerCharacter()
 	CameraComponent->bUsePawnControlRotation = false;
 
 	// Movement defaults
-	WalkSpeed   = 400.0f;
-	SprintSpeed = 700.0f;
-	NormalFOV   = 90.0f;
-	AimFOV      = 60.0f;
-	bIsAiming   = false;
+	WalkSpeed     = 400.0f;
+	SprintSpeed   = 700.0f;
+	AimWalkSpeed  = 200.0f;
+	NormalFOV     = 90.0f;
+	AimFOV        = 60.0f;
+	bIsAiming     = false;
+
+	// 기본적으로 모든 행동 허용
+	AllowedActions = 0xFF;
 
 	bUseControllerRotationYaw                              = false;
 	GetCharacterMovement()->bOrientRotationToMovement      = true;
@@ -166,6 +170,11 @@ void APlayerCharacter::Tick(float DeltaTime)
 	}
 	UpdateCoverPeek(DeltaTime);
 
+	if (bIsAiming)
+	{
+		UpdateAimTurn(DeltaTime);
+	}
+
 	// ── 낙하 상태 추적 (AnimBP에서 bIsFalling, CurrentFallSpeed 읽음) ──
 	bIsFalling = GetCharacterMovement()->IsFalling();
 	if (bIsFalling)
@@ -204,6 +213,64 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 
 	SpringArmComponent->SocketOffset.Y = FMath::FInterpTo(
 		SpringArmComponent->SocketOffset.Y, TargetY, DeltaTime, CoverPeekInterpSpeed);
+}
+
+// --- Turn In Place ---
+
+void APlayerCharacter::UpdateAimTurn(float DeltaTime)
+{
+	const float ControlYaw = GetControlRotation().Yaw;
+	const float ActorYaw   = GetActorRotation().Yaw;
+	AimYaw = FMath::UnwindDegrees(ControlYaw - ActorYaw);
+
+	// 이동 중에는 즉시 카메라 방향으로 스냅 (AimWalk 블렌드스페이스가 처리)
+	if (GetVelocity().SizeSquared2D() > 1.f)
+	{
+		SetActorRotation(FRotator(0.f, ControlYaw, 0.f));
+		AimYaw          = 0.f;
+		bIsTurningRight = false;
+		bIsTurningLeft  = false;
+		return;
+	}
+
+	// Turn 진행 중: 액터를 카메라 방향으로 회전
+	if (bIsTurningRight || bIsTurningLeft)
+	{
+		const float Delta     = FMath::UnwindDegrees(ControlYaw - GetActorRotation().Yaw);
+		const float RotStep   = TurnRotationSpeed * DeltaTime;
+		const float RotAmount = FMath::Sign(Delta) * FMath::Min(FMath::Abs(Delta), RotStep);
+
+		FRotator NewRot = GetActorRotation();
+		NewRot.Yaw += RotAmount;
+		SetActorRotation(NewRot);
+
+		AimYaw = FMath::UnwindDegrees(ControlYaw - NewRot.Yaw);
+
+		// AimYaw가 충분히 줄어들면 Turn 완료
+		if (FMath::Abs(AimYaw) < 5.f)
+		{
+			bIsTurningRight = false;
+			bIsTurningLeft  = false;
+		}
+		return;
+	}
+
+	// 임계값 초과 시 Turn 시작
+	if (AimYaw >  TurnRightThreshold) { bIsTurningRight = true; return; }
+	if (AimYaw < -TurnLeftThreshold)  { bIsTurningLeft  = true; return; }
+
+	// 임계값 미만: SoftTurnSpeed로 천천히 카메라 따라가기
+	if (SoftTurnSpeed > 0.f && FMath::Abs(AimYaw) > 0.1f)
+	{
+		const float RotStep   = SoftTurnSpeed * DeltaTime;
+		const float RotAmount = FMath::Sign(AimYaw) * FMath::Min(FMath::Abs(AimYaw), RotStep);
+
+		FRotator NewRot = GetActorRotation();
+		NewRot.Yaw += RotAmount;
+		SetActorRotation(NewRot);
+
+		AimYaw = FMath::UnwindDegrees(ControlYaw - NewRot.Yaw);
+	}
 }
 
 // --- Grenade ---
@@ -337,26 +404,48 @@ void APlayerCharacter::HandleLook(const FInputActionValue& Value)
 	AddControllerPitchInput(Axis.Y);
 }
 
+// --- Action Permission ---
+
+bool APlayerCharacter::CanDo(ECharacterAction Action) const
+{
+	return (AllowedActions & static_cast<int32>(Action)) != 0;
+}
+
+void APlayerCharacter::Allow(ECharacterAction Action)
+{
+	AllowedActions |= static_cast<int32>(Action);
+}
+
+void APlayerCharacter::Block(ECharacterAction Action)
+{
+	AllowedActions &= ~static_cast<int32>(Action);
+}
+
 // --- Movement ---
 
 void APlayerCharacter::StartSprint()
 {
+	if (!CanDo(ECharacterAction::Sprint)) return;
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
 
 void APlayerCharacter::StopSprint()
 {
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : WalkSpeed;
 }
 
 // --- Aim ---
 
 void APlayerCharacter::StartAim()
 {
+	if (!CanDo(ECharacterAction::Aim)) return;
 	bIsAiming                                         = true;
 	CameraComponent->FieldOfView                      = AimFOV;
-	bUseControllerRotationYaw                         = true;
+	bUseControllerRotationYaw                         = false; // Rotate Root Bone이 상체 처리
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->MaxWalkSpeed              = AimWalkSpeed;
+	Block(ECharacterAction::Sprint);
+	StopSprint();
 }
 
 void APlayerCharacter::StopAim()
@@ -365,6 +454,11 @@ void APlayerCharacter::StopAim()
 	CameraComponent->FieldOfView                      = NormalFOV;
 	bUseControllerRotationYaw                         = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->MaxWalkSpeed              = WalkSpeed;
+	Allow(ECharacterAction::Sprint);
+	bIsTurningRight = false;
+	bIsTurningLeft  = false;
+	AimYaw          = 0.f;
 }
 
 // --- Weapon ---

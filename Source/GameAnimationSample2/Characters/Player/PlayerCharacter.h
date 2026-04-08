@@ -18,6 +18,25 @@ class USplineMeshComponent;
 class UTraversalComponent;
 class UMotionWarpingComponent;
 
+/**
+ * 캐릭터가 수행할 수 있는 행동 종류.
+ * AllowedActions 비트마스크와 함께 사용.
+ */
+UENUM(BlueprintType, Meta=(Bitflags, UseEnumValuesAsMaskValuesInEditor="true"))
+enum class ECharacterAction : uint8
+{
+	None    = 0x00  UMETA(Hidden),
+	Sprint  = 0x01  UMETA(DisplayName="Sprint"),
+	Aim     = 0x02  UMETA(DisplayName="Aim"),
+	Shoot   = 0x04  UMETA(DisplayName="Shoot"),
+	Punch   = 0x08  UMETA(DisplayName="Punch"),
+	Landing = 0x10  UMETA(DisplayName="Landing"),
+	Jump    = 0x20  UMETA(DisplayName="Jump"),
+	Crouch  = 0x40  UMETA(DisplayName="Crouch"),
+	Throw   = 0x80  UMETA(DisplayName="Throw"),
+};
+ENUM_CLASS_FLAGS(ECharacterAction)
+
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API APlayerCharacter : public ACharacterBase
 {
@@ -61,6 +80,24 @@ protected:
 	/** 트래버설 감지 후 가능하면 트래버설, 불가능하면 일반 점프 */
 	virtual void Jump() override;
 
+	// --- Action Permission ---
+
+	/** 현재 허용된 행동 비트마스크. ABP/BP에서 읽기 가능. */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Action")
+	int32 AllowedActions;
+
+	/** 해당 행동이 현재 허용되어 있는지 확인 */
+	UFUNCTION(BlueprintPure, Category = "Character|Action")
+	bool CanDo(ECharacterAction Action) const;
+
+	/** 특정 행동을 허용 (AnimNotify, 상태 종료 시 호출) */
+	UFUNCTION(BlueprintCallable, Category = "Character|Action")
+	void Allow(ECharacterAction Action);
+
+	/** 특정 행동을 금지 (상태 진입 시 호출) */
+	UFUNCTION(BlueprintCallable, Category = "Character|Action")
+	void Block(ECharacterAction Action);
+
 	// --- Movement ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
@@ -68,6 +105,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
 	float SprintSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
+	float AimWalkSpeed;
 
 	// --- Aim ---
 
@@ -79,6 +119,38 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsAiming;
+
+	// --- Turn In Place ---
+
+	/** 캐릭터 액터 Yaw와 카메라 Yaw의 차이 (-180~180). ABP Rotate Root Bone에 사용. */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace")
+	float AimYaw = 0.f;
+
+	/** 오른쪽 Turn 발동 각도 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	float TurnRightThreshold = 90.f;
+
+	/** 왼쪽 Turn 발동 각도 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	float TurnLeftThreshold = 90.f;
+
+	/** Turn 애니 중 액터 회전 속도 (도/초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	float TurnRotationSpeed = 200.f;
+
+	/** 임계값 미만일 때 카메라를 따라가는 속도 (도/초). 0이면 비활성화. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	float SoftTurnSpeed = 60.f;
+
+	/** ABP에서 AimTurnR 애니메이션 트리거 */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace")
+	bool bIsTurningRight = false;
+
+	/** ABP에서 AimTurnL 애니메이션 트리거 */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace")
+	bool bIsTurningLeft = false;
+
+	void UpdateAimTurn(float DeltaTime);
 
 	// --- Cover Peek ---
 
