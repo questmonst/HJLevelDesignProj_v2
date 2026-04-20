@@ -73,3 +73,9 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# UnrealClaude 플러그인 제외
+Plugins/UnrealClaude/
+
+# Source 코드 명시적 추적
+!Source/

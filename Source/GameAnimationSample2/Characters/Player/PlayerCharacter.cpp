@@ -57,7 +57,7 @@ APlayerCharacter::APlayerCharacter()
 	CurrentWeapon      = nullptr;
 	CurrentWeaponIndex = -1;
 	MaxWeaponSlots     = 3;
-	WeaponAttachSocket = TEXT("hand_r");
+	WeaponAttachSocket = TEXT("WeaponSocket");
 }
 
 void APlayerCharacter::BeginPlay()
@@ -83,12 +83,13 @@ void APlayerCharacter::BeginPlay()
 		SplineMeshPool.Add(SMC);
 	}
 
-	// Spawn default weapon
-	if (DefaultWeaponClass)
+	// Spawn default weapons (최대 MaxWeaponSlots개, 첫 번째 자동 장착)
+	for (int32 i = 0; i < DefaultWeaponClasses.Num() && i < MaxWeaponSlots; ++i)
 	{
+		if (!DefaultWeaponClasses[i]) continue;
 		FActorSpawnParameters Params;
 		Params.Owner = this;
-		AWeaponBase* Weapon = GetWorld()->SpawnActor<AWeaponBase>(DefaultWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
+		AWeaponBase* Weapon = GetWorld()->SpawnActor<AWeaponBase>(DefaultWeaponClasses[i], FVector::ZeroVector, FRotator::ZeroRotator, Params);
 		PickupWeapon(Weapon);
 	}
 }
@@ -320,7 +321,7 @@ void APlayerCharacter::UpdateTrajectory()
 	FRotator ViewRotation;
 	PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
 
-	FVector ThrowStart    = GetMesh()->GetSocketLocation(WeaponAttachSocket);
+	FVector ThrowStart    = ViewLocation + ViewRotation.Vector() * 50.f;
 	FVector ThrowVelocity = ViewRotation.Vector() * GrenadeThrowSpeed;
 
 	FPredictProjectilePathParams PredictParams(

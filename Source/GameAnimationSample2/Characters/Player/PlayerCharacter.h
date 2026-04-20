@@ -209,7 +209,7 @@ protected:
 	// --- Weapon ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
-	TSubclassOf<AWeaponBase> DefaultWeaponClass;
+	TArray<TSubclassOf<AWeaponBase>> DefaultWeaponClasses;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon")
 	TArray<AWeaponBase*> WeaponInventory;

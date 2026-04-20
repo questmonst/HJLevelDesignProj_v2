@@ -12,7 +12,7 @@ AWeaponBase::AWeaponBase()
 
 	FireMode       = EWeaponFireMode::Hitscan;
 	bIsAutoFire    = false;
-	MuzzleSocketName = TEXT("Muzzle");
+	MuzzleSocketName = TEXT("MuzzleSocket");
 
 	Damage      = 20.0f;
 	FireRate    = 10.0f;
