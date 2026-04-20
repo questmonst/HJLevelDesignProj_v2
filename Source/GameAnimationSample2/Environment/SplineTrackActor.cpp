@@ -15,6 +15,7 @@ ASplineTrackActor::ASplineTrackActor()
 void ASplineTrackActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+	BuildTrack();
 }
 
 void ASplineTrackActor::RebuildTrack()
@@ -22,20 +23,47 @@ void ASplineTrackActor::RebuildTrack()
 	BuildTrack();
 }
 
+USplineMeshComponent* ASplineTrackActor::CreateSplineMeshSegment(float StartDist, float EndDist)
+{
+	USplineMeshComponent* SMC = NewObject<USplineMeshComponent>(this, USplineMeshComponent::StaticClass(), NAME_None, RF_Transient);
+
+	SMC->SetStaticMesh(TrackMesh);
+	SMC->SetForwardAxis(ForwardAxis, false);
+	if (MeshMaterial) SMC->SetMaterial(0, MeshMaterial);
+
+	SMC->SetCollisionEnabled(bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	if (bEnableCollision) SMC->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+
+	SMC->SetMobility(EComponentMobility::Movable);
+	AddInstanceComponent(SMC);
+	SMC->AttachToComponent(SplineComp, FAttachmentTransformRules::KeepRelativeTransform);
+	SMC->RegisterComponent();
+
+	const FVector StartPos     = SplineComp->GetLocationAtDistanceAlongSpline(StartDist, ESplineCoordinateSpace::Local);
+	const FVector StartTangent = SplineComp->GetTangentAtDistanceAlongSpline(StartDist,  ESplineCoordinateSpace::Local).GetClampedToMaxSize(MeshSpacing);
+	const FVector EndPos       = SplineComp->GetLocationAtDistanceAlongSpline(EndDist,   ESplineCoordinateSpace::Local);
+	const FVector EndTangent   = SplineComp->GetTangentAtDistanceAlongSpline(EndDist,    ESplineCoordinateSpace::Local).GetClampedToMaxSize(MeshSpacing);
+
+	SMC->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent, false);
+
+	if (!FMath::IsNearlyZero(RollOffsetDegrees))
+	{
+		SMC->SetStartRoll(FMath::DegreesToRadians(RollOffsetDegrees), false);
+		SMC->SetEndRoll(FMath::DegreesToRadians(RollOffsetDegrees),   false);
+	}
+
+	SMC->UpdateMesh();
+	return SMC;
+}
+
 void ASplineTrackActor::BuildTrack()
 {
 	ClearTrackMeshes();
 
-	if (!TrackMesh)
-	{
-		return;
-	}
+	if (!TrackMesh) return;
 
 	const float SplineLength = SplineComp->GetSplineLength();
-	if (SplineLength <= 0.f || MeshSpacing <= 0.f)
-	{
-		return;
-	}
+	if (SplineLength <= 0.f || MeshSpacing <= 0.f) return;
 
 	const int32 NumSegments = FMath::CeilToInt(SplineLength / MeshSpacing);
 
@@ -43,88 +71,13 @@ void ASplineTrackActor::BuildTrack()
 	{
 		const float StartDist  = i * MeshSpacing;
 		const float ClampedEnd = FMath::Min(StartDist + MeshSpacing, SplineLength);
-
-		USplineMeshComponent* SMC = NewObject<USplineMeshComponent>(this, USplineMeshComponent::StaticClass(), NAME_None, RF_Transient);
-
-		SMC->SetStaticMesh(TrackMesh);
-		SMC->SetForwardAxis(ForwardAxis, false);
-
-		if (MeshMaterial)
-		{
-			SMC->SetMaterial(0, MeshMaterial);
-		}
-
-		if (bEnableCollision)
-		{
-			SMC->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			SMC->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-		}
-		else
-		{
-			SMC->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		}
-
-		// 에디터 동적 컴포넌트는 Movable이어야 렌더됨
-		SMC->SetMobility(EComponentMobility::Movable);
-
-		AddInstanceComponent(SMC);
-		SMC->AttachToComponent(SplineComp, FAttachmentTransformRules::KeepRelativeTransform);
-		SMC->RegisterComponent();
-
-		const FVector StartPos     = SplineComp->GetLocationAtDistanceAlongSpline(StartDist,    ESplineCoordinateSpace::Local);
-		const FVector StartTangent = SplineComp->GetTangentAtDistanceAlongSpline(StartDist,    ESplineCoordinateSpace::Local).GetClampedToMaxSize(MeshSpacing);
-		const FVector EndPos       = SplineComp->GetLocationAtDistanceAlongSpline(ClampedEnd,  ESplineCoordinateSpace::Local);
-		const FVector EndTangent   = SplineComp->GetTangentAtDistanceAlongSpline(ClampedEnd,   ESplineCoordinateSpace::Local).GetClampedToMaxSize(MeshSpacing);
-
-		SMC->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent, false);
-
-		if (!FMath::IsNearlyZero(RollOffsetDegrees))
-		{
-			SMC->SetStartRoll(FMath::DegreesToRadians(RollOffsetDegrees), false);
-			SMC->SetEndRoll(FMath::DegreesToRadians(RollOffsetDegrees),   false);
-		}
-
-		SMC->UpdateMesh();
-
-		SplineMeshes.Add(SMC);
+		SplineMeshes.Add(CreateSplineMeshSegment(StartDist, ClampedEnd));
 	}
 
 	// 루프 연결 세그먼트
 	if (bCloseLoop && !SplineComp->IsClosedLoop() && SplineMeshes.Num() > 0)
 	{
-		const float StartDist = NumSegments * MeshSpacing;
-
-		USplineMeshComponent* SMC = NewObject<USplineMeshComponent>(this, USplineMeshComponent::StaticClass(), NAME_None, RF_Transient);
-
-		SMC->SetStaticMesh(TrackMesh);
-		SMC->SetForwardAxis(ForwardAxis, false);
-
-		if (MeshMaterial) SMC->SetMaterial(0, MeshMaterial);
-
-		SMC->SetCollisionEnabled(bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
-		if (bEnableCollision) SMC->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-
-		SMC->SetMobility(EComponentMobility::Movable);
-
-		AddInstanceComponent(SMC);
-		SMC->AttachToComponent(SplineComp, FAttachmentTransformRules::KeepRelativeTransform);
-		SMC->RegisterComponent();
-
-		const FVector StartPos     = SplineComp->GetLocationAtDistanceAlongSpline(StartDist, ESplineCoordinateSpace::Local);
-		const FVector StartTangent = SplineComp->GetTangentAtDistanceAlongSpline(StartDist,  ESplineCoordinateSpace::Local).GetClampedToMaxSize(MeshSpacing);
-		const FVector EndPos       = SplineComp->GetLocationAtDistanceAlongSpline(0.f,       ESplineCoordinateSpace::Local);
-		const FVector EndTangent   = SplineComp->GetTangentAtDistanceAlongSpline(0.f,        ESplineCoordinateSpace::Local).GetClampedToMaxSize(MeshSpacing);
-
-		SMC->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent, false);
-
-		if (!FMath::IsNearlyZero(RollOffsetDegrees))
-		{
-			SMC->SetStartRoll(FMath::DegreesToRadians(RollOffsetDegrees), false);
-			SMC->SetEndRoll(FMath::DegreesToRadians(RollOffsetDegrees),   false);
-		}
-
-		SMC->UpdateMesh();
-		SplineMeshes.Add(SMC);
+		SplineMeshes.Add(CreateSplineMeshSegment(NumSegments * MeshSpacing, 0.f));
 	}
 }
 

@@ -7,8 +7,3 @@ ANPCCharacter::ANPCCharacter()
 	DetectionRange = 800.0f;
 	bIsAlly        = false;
 }
-
-void ANPCCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-}

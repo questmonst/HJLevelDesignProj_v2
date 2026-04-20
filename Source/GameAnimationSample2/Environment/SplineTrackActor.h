@@ -68,6 +68,7 @@ protected:
 private:
 	void BuildTrack();
 	void ClearTrackMeshes();
+	USplineMeshComponent* CreateSplineMeshSegment(float StartDist, float EndDist);
 
 	UPROPERTY()
 	TArray<USplineMeshComponent*> SplineMeshes;

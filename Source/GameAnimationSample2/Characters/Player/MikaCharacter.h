@@ -112,11 +112,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Landing")
 	float LandingDiveSpeed = 2000.0f;
 
-	// --- State (internal) ---
+	// --- State ---
 
+	UPROPERTY(BlueprintReadOnly, Category = "Mika|State")
 	bool bCanPunch        = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Mika|State")
 	bool bIsChargingPunch = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Mika|State")
 	bool bIsDashing       = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Mika|State")
 	bool bIsDivingLanding = false;
 
 	float ChargeStartTime            = 0.f;
