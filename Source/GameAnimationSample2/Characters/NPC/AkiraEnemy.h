@@ -15,13 +15,14 @@ public:
 	AAkiraEnemy();
 
 protected:
-	virtual void BeginPlay() override;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted")
+	float ScriptedMoveSpeed = 600.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted")
-	float ScriptedMoveSpeed;
+	float DefaultMoveSpeed = 400.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted")
-	bool bIsInScriptedMove;
+	UPROPERTY(BlueprintReadOnly, Category = "Akira|Scripted")
+	bool bIsInScriptedMove = false;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Akira|Scripted")

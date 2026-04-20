@@ -140,8 +140,7 @@ bool AMikaCharacter::CanTriggerLanding() const
 {
 	if (!bIsAiming) return false;
 
-	float Pitch = GetControlRotation().Pitch;
-	if (Pitch > 180.f) Pitch -= 360.f;
+	const float Pitch = FMath::UnwindDegrees(GetControlRotation().Pitch);
 	if (Pitch > -LandingDownAngle) return false;
 
 	FHitResult Hit;

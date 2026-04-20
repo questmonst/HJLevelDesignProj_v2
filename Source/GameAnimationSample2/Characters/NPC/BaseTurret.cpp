@@ -84,7 +84,7 @@ float ABaseTurret::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
     AController* EventInstigator, AActor* DamageCauser)
 {
     Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-    CurrentHealth -= DamageAmount;
+    CurrentHealth = FMath::Max(0.f, CurrentHealth - DamageAmount);
     if (CurrentHealth <= 0.f)
     {
         if (TurretWeapon) TurretWeapon->StopFire();

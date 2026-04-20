@@ -4,7 +4,9 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "WebFetch(domain:dev.epicgames.com)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:gemini.google.com)"
     ]
   }
 }

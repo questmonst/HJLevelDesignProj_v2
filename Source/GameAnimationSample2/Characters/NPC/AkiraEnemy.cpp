@@ -5,13 +5,6 @@
 
 AAkiraEnemy::AAkiraEnemy()
 {
-	ScriptedMoveSpeed = 600.0f;
-	bIsInScriptedMove = false;
-}
-
-void AAkiraEnemy::BeginPlay()
-{
-	Super::BeginPlay();
 }
 
 void AAkiraEnemy::StartScriptedMove()
@@ -23,12 +16,10 @@ void AAkiraEnemy::StartScriptedMove()
 void AAkiraEnemy::StopScriptedMove()
 {
 	bIsInScriptedMove = false;
-	// Restore default speed; Blueprint can further adjust
-	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
+	GetCharacterMovement()->MaxWalkSpeed = DefaultMoveSpeed;
 }
 
 void AAkiraEnemy::OnPhaseChange_Implementation(int32 Phase)
 {
-	// Default: log phase change. Override in Blueprint for phase-specific behaviour.
 	UE_LOG(LogTemp, Log, TEXT("AkiraEnemy: Phase changed to %d"), Phase);
 }

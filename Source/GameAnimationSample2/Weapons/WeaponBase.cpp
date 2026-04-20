@@ -67,12 +67,22 @@ void AWeaponBase::Fire()
 
 void AWeaponBase::HitscanFire()
 {
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
+	APawn* OwnerPawn           = Cast<APawn>(GetOwner());
+	AController* OwnerCtrl     = OwnerPawn ? OwnerPawn->GetController() : nullptr;
 
 	FVector  CamLoc;
 	FRotator CamRot;
-	PC->GetPlayerViewPoint(CamLoc, CamRot);
+
+	if (APlayerController* PC = Cast<APlayerController>(OwnerCtrl))
+	{
+		PC->GetPlayerViewPoint(CamLoc, CamRot);
+	}
+	else if (OwnerPawn)
+	{
+		CamLoc = OwnerPawn->GetActorLocation();
+		CamRot = OwnerPawn->GetActorRotation();
+	}
+	else return;
 
 	FVector TraceEnd = CamLoc + CamRot.Vector() * Range;
 
@@ -87,7 +97,7 @@ void AWeaponBase::HitscanFire()
 	{
 		UGameplayStatics::ApplyPointDamage(
 			Hit.GetActor(), Damage, CamRot.Vector(), Hit,
-			PC, this, nullptr);
+			OwnerCtrl, this, nullptr);
 	}
 
 	OnFire(Hit);
@@ -101,20 +111,29 @@ void AWeaponBase::ProjectileFire()
 		? WeaponMesh->GetSocketLocation(MuzzleSocketName)
 		: GetActorLocation();
 
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
+	APawn* OwnerPawn       = Cast<APawn>(GetOwner());
+	AController* OwnerCtrl = OwnerPawn ? OwnerPawn->GetController() : nullptr;
 
 	FVector  CamLoc;
 	FRotator CamRot;
-	PC->GetPlayerViewPoint(CamLoc, CamRot);
 
-	// Aim toward camera target so projectile flies toward crosshair
+	if (APlayerController* PC = Cast<APlayerController>(OwnerCtrl))
+	{
+		PC->GetPlayerViewPoint(CamLoc, CamRot);
+	}
+	else if (OwnerPawn)
+	{
+		CamLoc = OwnerPawn->GetActorLocation();
+		CamRot = OwnerPawn->GetActorRotation();
+	}
+	else return;
+
 	FVector  TargetPoint = CamLoc + CamRot.Vector() * Range;
 	FRotator SpawnRot    = (TargetPoint - MuzzleLoc).Rotation();
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner      = GetOwner();
-	SpawnParams.Instigator = Cast<APawn>(GetOwner());
+	SpawnParams.Instigator = OwnerPawn;
 
 	GetWorld()->SpawnActor<AProjectileBase>(ProjectileClass, MuzzleLoc, SpawnRot, SpawnParams);
 

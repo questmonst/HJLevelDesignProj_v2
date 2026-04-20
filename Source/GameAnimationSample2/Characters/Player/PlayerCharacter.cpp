@@ -441,7 +441,6 @@ void APlayerCharacter::StartAim()
 	if (!CanDo(ECharacterAction::Aim)) return;
 	bIsAiming                                         = true;
 	CameraComponent->FieldOfView                      = AimFOV;
-	bUseControllerRotationYaw                         = false; // Rotate Root Bone이 상체 처리
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->MaxWalkSpeed              = AimWalkSpeed;
 	Block(ECharacterAction::Sprint);

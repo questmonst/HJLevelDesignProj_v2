@@ -103,7 +103,7 @@ public:
 	 * 지오메트리 또는 Player가 막고 있으면 false.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Miyu|Support")
-	bool HasLineOfSightToTarget(AActor* Target);
+	bool HasLineOfSightToTarget(const AActor* Target) const;
 
 	// ────────────────────────────────────────────────
 	// Events (BP에서 오버라이드)

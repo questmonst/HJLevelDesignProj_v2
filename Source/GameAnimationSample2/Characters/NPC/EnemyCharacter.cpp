@@ -3,7 +3,6 @@
 #include "EnemyCharacter.h"
 #include "EnemyAIController.h"
 #include "WeaponBase.h"
-#include "Kismet/GameplayStatics.h"
 
 // Blackboard 키 이름 정의 (AEnemyAIController와 반드시 일치)
 const FName AEnemyCharacter::BBKey_TargetActor    = TEXT("TargetActor");
@@ -57,15 +56,22 @@ void AEnemyCharacter::AlertEnemy(AActor* Target)
     bIsAlerted = true;
     OnDetectPlayer();
 
-    // 반경 내 아군에게도 알림
-    TArray<AActor*> Nearby;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemyCharacter::StaticClass(), Nearby);
-    for (AActor* Actor : Nearby)
-    {
-        if (Actor == this) continue;
-        if (FVector::Dist(GetActorLocation(), Actor->GetActorLocation()) > AlertRadius) continue;
+    // 반경 내 아군에게도 알림 (OverlapSphere로 범위 내 액터만 검색)
+    TArray<FOverlapResult> Overlaps;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
 
-        AEnemyCharacter* Ally = Cast<AEnemyCharacter>(Actor);
+    GetWorld()->OverlapMultiByObjectType(
+        Overlaps,
+        GetActorLocation(),
+        FQuat::Identity,
+        FCollisionObjectQueryParams(ECC_Pawn),
+        FCollisionShape::MakeSphere(AlertRadius),
+        Params);
+
+    for (const FOverlapResult& Overlap : Overlaps)
+    {
+        AEnemyCharacter* Ally = Cast<AEnemyCharacter>(Overlap.GetActor());
         if (Ally && !Ally->bIsAlerted)
         {
             Ally->AlertEnemy(Target);

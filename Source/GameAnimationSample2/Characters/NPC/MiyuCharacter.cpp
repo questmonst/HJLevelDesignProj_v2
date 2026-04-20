@@ -78,11 +78,10 @@ bool AMiyuCharacter::CanFireAtTarget() const
 	if (DistSq > FMath::Square(SupportFireRange)) return false;
 
 	// 2. LoS + 플레이어 미차단 체크
-	//    HasLineOfSightToTarget 은 비-const이므로 const_cast 사용
-	return const_cast<AMiyuCharacter*>(this)->HasLineOfSightToTarget(CurrentTarget);
+	return HasLineOfSightToTarget(CurrentTarget);
 }
 
-bool AMiyuCharacter::HasLineOfSightToTarget(AActor* Target)
+bool AMiyuCharacter::HasLineOfSightToTarget(const AActor* Target) const
 {
 	if (!Target || !GetWorld()) return false;
 
@@ -92,7 +91,7 @@ bool AMiyuCharacter::HasLineOfSightToTarget(AActor* Target)
 	FHitResult Hit;
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
-	Params.AddIgnoredActor(Target);
+	Params.AddIgnoredActor(const_cast<AActor*>(Target));
 	// ※ PlayerRef는 무시 목록에 추가하지 않음.
 	//   플레이어가 Miyu와 Target 사이에 있으면 LineTrace가 플레이어에 막혀
 	//   bHit = true → return false → 발사 안 함.

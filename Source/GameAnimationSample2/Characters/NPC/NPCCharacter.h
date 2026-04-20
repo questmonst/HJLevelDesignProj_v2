@@ -15,8 +15,6 @@ public:
 	ANPCCharacter();
 
 protected:
-	virtual void BeginPlay() override;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection")
 	float DetectionRange;
 
