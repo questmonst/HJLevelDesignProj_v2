@@ -10,6 +10,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class UArrowComponent;
 class AWeaponBase;
 class AGrenadeBase;
 class UInputMappingContext;
@@ -93,6 +94,21 @@ protected:
 
 	// --- Aim ---
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Aim")
+	UArrowComponent* AimArrow;
+
+	/** AnimBP에서 읽어 spine Transform Modify Bone에 적용할 피치 값 */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Aim")
+	float AimSpinePitch = 0.f;
+
+	/** AimSpinePitch 클램프 범위 (±도) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Aim")
+	float AimSpinePitchClamp = 60.f;
+
+	/** AimSpinePitch 보간 속도 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Aim")
+	float AimSpineInterpSpeed = 15.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
 	float NormalFOV;
 
@@ -153,6 +169,7 @@ protected:
 	float DefaultSocketOffsetY = 60.f;
 
 	void UpdateCoverPeek(float DeltaTime);
+	void UpdateAimSpinePitch(float DeltaTime);
 
 private:
 	float NormalSocketOffsetY = 0.f;

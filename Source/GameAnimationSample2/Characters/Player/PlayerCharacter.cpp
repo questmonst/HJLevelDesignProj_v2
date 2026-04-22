@@ -14,6 +14,7 @@
 #include "Components/SplineMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "MotionWarpingComponent.h"
+#include "Components/ArrowComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -48,6 +49,11 @@ APlayerCharacter::APlayerCharacter()
 	// Traversal
 	TraversalComponent    = CreateDefaultSubobject<UTraversalComponent>(TEXT("TraversalComponent"));
 	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarpingComponent"));
+
+	// AimArrow — BP 뷰포트에서 머즐 소켓 위치에 배치
+	AimArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("AimArrow"));
+	AimArrow->SetupAttachment(GetMesh());
+	AimArrow->SetArrowColor(FColor::Cyan);
 
 	// Trajectory Spline
 	TrajectorySpline = CreateDefaultSubobject<USplineComponent>(TEXT("TrajectorySpline"));
@@ -176,6 +182,8 @@ void APlayerCharacter::Tick(float DeltaTime)
 		UpdateAimTurn(DeltaTime);
 	}
 
+	UpdateAimSpinePitch(DeltaTime);
+
 	// ── 낙하 상태 추적 (AnimBP에서 bIsFalling, CurrentFallSpeed 읽음) ──
 	bIsFalling = GetCharacterMovement()->IsFalling();
 	if (bIsFalling)
@@ -272,6 +280,35 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 
 		AimYaw = FMath::UnwindDegrees(ControlYaw - NewRot.Yaw);
 	}
+}
+
+// --- Aim Spine Pitch ---
+
+void APlayerCharacter::UpdateAimSpinePitch(float DeltaTime)
+{
+	float TargetPitch = 0.f;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC && AimArrow)
+	{
+		FVector CamLoc; FRotator CamRot;
+		PC->GetPlayerViewPoint(CamLoc, CamRot);
+
+		FVector TraceEnd = CamLoc + CamRot.Vector() * 10000.f;
+		FHitResult Hit;
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+
+		FVector AimTarget = GetWorld()->LineTraceSingleByChannel(
+			Hit, CamLoc, TraceEnd, ECC_Visibility, Params)
+			? Hit.ImpactPoint : TraceEnd;
+
+		FVector ToTarget = (AimTarget - AimArrow->GetComponentLocation()).GetSafeNormal();
+		float RawPitch = FMath::RadiansToDegrees(FMath::Asin(ToTarget.Z));
+		TargetPitch = FMath::ClampAngle(RawPitch, -AimSpinePitchClamp, AimSpinePitchClamp);
+	}
+
+	AimSpinePitch = FMath::FInterpTo(AimSpinePitch, TargetPitch, DeltaTime, AimSpineInterpSpeed);
 }
 
 // --- Grenade ---
