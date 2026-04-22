@@ -20,6 +20,61 @@ AMikaCharacter::AMikaCharacter()
 void AMikaCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (MikaData)
+	{
+		// Stats
+		MaxHealth                  = MikaData->MaxHealth;
+		// Movement
+		WalkSpeed                  = MikaData->WalkSpeed;
+		SprintSpeed                = MikaData->SprintSpeed;
+		AimWalkSpeed               = MikaData->AimWalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+		// Camera
+		NormalFOV                  = MikaData->NormalFOV;
+		AimFOV                     = MikaData->AimFOV;
+		CoverTraceDistance         = MikaData->CoverTraceDistance;
+		CoverPeekOffset            = MikaData->CoverPeekOffset;
+		CoverPeekInterpSpeed       = MikaData->CoverPeekInterpSpeed;
+		DefaultSocketOffsetY       = MikaData->DefaultSocketOffsetY;
+		// TurnInPlace
+		TurnRightThreshold         = MikaData->TurnRightThreshold;
+		TurnLeftThreshold          = MikaData->TurnLeftThreshold;
+		TurnRotationSpeed          = MikaData->TurnRotationSpeed;
+		SoftTurnSpeed              = MikaData->SoftTurnSpeed;
+		// Fall
+		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
+		// Grenade / Weapon
+		GrenadeThrowSpeed          = MikaData->GrenadeThrowSpeed;
+		WeaponSwapDelay            = MikaData->WeaponSwapDelay;
+		// Punch
+		PunchDamage                = MikaData->PunchDamage;
+		PunchCooldown              = MikaData->PunchCooldown;
+		ChargeGravityScale         = MikaData->ChargeGravityScale;
+		ChargeMovementScale        = MikaData->ChargeMovementScale;
+		ChargeBrakingDeceleration  = MikaData->ChargeBrakingDeceleration;
+		ChargeAirBrakingDeceleration = MikaData->ChargeAirBrakingDeceleration;
+		MinChargeTime              = MikaData->MinChargeTime;
+		MaxChargeTime              = MikaData->MaxChargeTime;
+		ForcedMaxChargeTime        = MikaData->ForcedMaxChargeTime;
+		MinDashSpeed               = MikaData->MinDashSpeed;
+		MaxDashSpeed               = MikaData->MaxDashSpeed;
+		DashDuration               = MikaData->DashDuration;
+		DashBrakingDeceleration    = MikaData->DashBrakingDeceleration;
+		// Punch Camera
+		ChargeSpringArmLength      = MikaData->ChargeSpringArmLength;
+		ChargeFOV                  = MikaData->ChargeFOV;
+		DashSpringArmLength        = MikaData->DashSpringArmLength;
+		DashFOV                    = MikaData->DashFOV;
+		CameraInterpSpeed          = MikaData->CameraInterpSpeed;
+		// Landing
+		LandingDamage              = MikaData->LandingDamage;
+		LandingRadius              = MikaData->LandingRadius;
+		LandingDownAngle           = MikaData->LandingDownAngle;
+		LandingMinHeight           = MikaData->LandingMinHeight;
+		LandingDiveSpeed           = MikaData->LandingDiveSpeed;
+	}
+
 	PunchHitbox->OnComponentBeginOverlap.AddDynamic(this, &AMikaCharacter::OnPunchHitboxOverlap);
 	NormalSpringArmLength        = SpringArmComponent->TargetArmLength;
 	DefaultBrakingDeceleration     = GetCharacterMovement()->BrakingDecelerationWalking;

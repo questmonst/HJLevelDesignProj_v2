@@ -3,6 +3,7 @@
 #include "EnemyCharacter.h"
 #include "EnemyAIController.h"
 #include "WeaponBase.h"
+#include "Engine/OverlapResult.h"
 
 // Blackboard 키 이름 정의 (AEnemyAIController와 반드시 일치)
 const FName AEnemyCharacter::BBKey_TargetActor    = TEXT("TargetActor");

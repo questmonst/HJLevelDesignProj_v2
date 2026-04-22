@@ -4,6 +4,8 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -19,6 +21,10 @@ AProjectileBase::AProjectileBase()
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = false;
 
+	FlightVFXComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FlightVFX"));
+	FlightVFXComponent->SetupAttachment(RootComponent);
+	FlightVFXComponent->SetAutoActivate(false);
+
 	Damage          = 20.0f;
 	InitialSpeed    = 3000.0f;
 	GravityScale    = 0.1f;
@@ -33,6 +39,30 @@ void AProjectileBase::BeginPlay()
 	ProjectileMovement->MaxSpeed     = InitialSpeed;
 	ProjectileMovement->ProjectileGravityScale = GravityScale;
 
+	if (ProjectileData)
+	{
+		Damage          = ProjectileData->Damage;
+		InitialSpeed    = ProjectileData->InitialSpeed;
+		GravityScale    = ProjectileData->GravityScale;
+		LifeSpanSeconds = ProjectileData->LifeSpanSeconds;
+		HitSound        = ProjectileData->HitSound;
+		FlightVFX       = ProjectileData->FlightVFX;
+		FlightVFXScale  = ProjectileData->FlightVFXScale;
+		HitVFX          = ProjectileData->HitVFX;
+		HitVFXScale     = ProjectileData->HitVFXScale;
+
+		ProjectileMovement->InitialSpeed           = InitialSpeed;
+		ProjectileMovement->MaxSpeed               = InitialSpeed;
+		ProjectileMovement->ProjectileGravityScale = GravityScale;
+	}
+
+	if (FlightVFX)
+	{
+		FlightVFXComponent->SetAsset(FlightVFX);
+		FlightVFXComponent->SetWorldScale3D(FVector(FlightVFXScale));
+		FlightVFXComponent->Activate();
+	}
+
 	SetLifeSpan(LifeSpanSeconds);
 }
 
@@ -46,11 +76,38 @@ void AProjectileBase::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 		OtherActor, Damage, GetActorForwardVector(), Hit,
 		GetInstigatorController(), this, nullptr);
 
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, Hit.ImpactPoint);
+	}
+
+	if (HitVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), HitVFX,
+			Hit.ImpactPoint,
+			Hit.ImpactNormal.Rotation(),
+			FVector(HitVFXScale));
+	}
+
 	OnProjectileHit(OtherActor, Hit);
 	Destroy();
 }
 
-void AProjectileBase::OnProjectileHit_Implementation(AActor* HitActor, const FHitResult& Hit)
+void AProjectileBase::OnProjectileHit_Implementation(AActor* HitActor, const FHitResult& Hit) {}
+
+void AProjectileBase::OverrideSpeed(float NewSpeed)
 {
-	// Override in Blueprint for effects (explosion, sound, decal, etc.)
+	InitialSpeed = NewSpeed;
+	ProjectileMovement->InitialSpeed = NewSpeed;
+	ProjectileMovement->MaxSpeed     = NewSpeed;
+	ProjectileMovement->Velocity     = GetActorForwardVector() * NewSpeed;
+}
+
+void AProjectileBase::AddIgnoredActor(AActor* Actor)
+{
+	if (Actor)
+	{
+		CollisionComp->IgnoreActorWhenMoving(Actor, true);
+	}
 }

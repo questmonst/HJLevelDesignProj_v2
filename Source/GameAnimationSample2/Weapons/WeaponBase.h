@@ -1,11 +1,14 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+//// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ProjectileBase.h"
+#include "WeaponDataAsset.h"
 #include "WeaponBase.generated.h"
+
+class UNiagaraSystem;
 
 UENUM(BlueprintType)
 enum class EWeaponFireMode : uint8
@@ -23,8 +26,16 @@ public:
 	AWeaponBase();
 
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	USkeletalMeshComponent* WeaponMesh;
+
+	// --- Data ---
+
+	/** 할당 시 BeginPlay에서 Stats·Audio·VFX 값을 덮어씀 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Data")
+	UWeaponDataAsset* WeaponData = nullptr;
 
 	// --- Config ---
 
@@ -66,6 +77,26 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile")
 	TSubclassOf<AProjectileBase> ProjectileClass;
+
+	/** 0이면 투사체 기본값 사용, 양수면 이 속도로 덮어씀 (cm/s) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile")
+	float ProjectileSpeedOverride = 0.f;
+
+	// --- Audio ---
+
+	/** 발사 시 재생할 사운드 (SoundWave / SoundCue 모두 가능) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio")
+	USoundBase* FireSound = nullptr;
+
+	// --- VFX ---
+
+	/** 발사 시 머즐에 스폰할 나이아가라 시스템 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|VFX")
+	UNiagaraSystem* MuzzleVFX = nullptr;
+
+	/** 머즐 VFX 스케일 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|VFX")
+	float MuzzleVFXScale = 1.0f;
 
 	// --- Internal state ---
 

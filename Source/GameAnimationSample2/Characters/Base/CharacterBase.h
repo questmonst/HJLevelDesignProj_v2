@@ -6,7 +6,7 @@
 #include "GameFramework/Character.h"
 #include "CharacterBase.generated.h"
 
-UCLASS(Blueprintable, BlueprintType)
+UCLASS(Blueprintable, BlueprintType, meta=(PrioritizeCategories="Character|Stats"))
 class GAMEANIMATIONSAMPLE2_API ACharacterBase : public ACharacter
 {
 	GENERATED_BODY()

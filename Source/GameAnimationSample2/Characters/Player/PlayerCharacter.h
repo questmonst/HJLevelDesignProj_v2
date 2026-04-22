@@ -99,7 +99,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
 	float AimFOV;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
 	bool bIsAiming;
 
 	// --- Turn In Place ---

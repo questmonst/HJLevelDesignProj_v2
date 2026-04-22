@@ -27,7 +27,8 @@ public class GameAnimationSample2 : ModuleRules
 			"EnhancedInput",
 			"AIModule",
 			"NavigationSystem",
-			"MotionWarping"
+			"MotionWarping",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "PlayerCharacter.h"
+#include "MikaDataAsset.h"
 #include "MikaCharacter.generated.h"
 
 class UBoxComponent;
@@ -19,6 +20,12 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+
+	// --- Data ---
+
+	/** 할당 시 BeginPlay에서 모든 스탯을 덮어씀 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Data")
+	UMikaDataAsset* MikaData = nullptr;
 
 	// --- Punch / Landing 공유 ---
 

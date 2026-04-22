@@ -2,6 +2,7 @@
 
 #include "WeaponBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
 
 AWeaponBase::AWeaponBase()
 {
@@ -24,6 +25,26 @@ AWeaponBase::AWeaponBase()
 	ReserveAmmo = 90;
 
 	bIsReloading = false;
+}
+
+void AWeaponBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (WeaponData)
+	{
+		Damage                  = WeaponData->Damage;
+		FireRate                = WeaponData->FireRate;
+		Range                   = WeaponData->Range;
+		ReloadTime              = WeaponData->ReloadTime;
+		MagSize                 = WeaponData->MagSize;
+		CurrentAmmo             = WeaponData->MagSize;
+		ReserveAmmo             = WeaponData->ReserveAmmo;
+		ProjectileSpeedOverride = WeaponData->ProjectileSpeedOverride;
+		FireSound               = WeaponData->FireSound;
+		MuzzleVFX               = WeaponData->MuzzleVFX;
+		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
+	}
 }
 
 bool AWeaponBase::CanFire() const
@@ -52,6 +73,24 @@ void AWeaponBase::Fire()
 	if (!CanFire()) return;
 
 	CurrentAmmo--;
+
+	FTransform MuzzleTransform = WeaponMesh->DoesSocketExist(MuzzleSocketName)
+		? WeaponMesh->GetSocketTransform(MuzzleSocketName)
+		: GetActorTransform();
+
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleTransform.GetLocation());
+	}
+
+	if (MuzzleVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MuzzleVFX,
+			MuzzleTransform.GetLocation(),
+			MuzzleTransform.GetRotation().Rotator(),
+			FVector(MuzzleVFXScale));
+	}
 
 	switch (FireMode)
 	{
@@ -135,7 +174,18 @@ void AWeaponBase::ProjectileFire()
 	SpawnParams.Owner      = GetOwner();
 	SpawnParams.Instigator = OwnerPawn;
 
-	GetWorld()->SpawnActor<AProjectileBase>(ProjectileClass, MuzzleLoc, SpawnRot, SpawnParams);
+	AProjectileBase* Projectile = GetWorld()->SpawnActor<AProjectileBase>(ProjectileClass, MuzzleLoc, SpawnRot, SpawnParams);
+
+	if (Projectile)
+	{
+		Projectile->AddIgnoredActor(this);
+		Projectile->AddIgnoredActor(GetOwner());
+
+		if (ProjectileSpeedOverride > 0.f)
+		{
+			Projectile->OverrideSpeed(ProjectileSpeedOverride);
+		}
+	}
 
 	FHitResult DummyHit;
 	OnFire(DummyHit);
