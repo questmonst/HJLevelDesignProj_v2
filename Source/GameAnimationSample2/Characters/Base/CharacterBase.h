@@ -28,6 +28,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats")
 	int32 TeamID;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats")
+	bool bIsDead = false;
+
 	// --- Internal ---
 
 	void Die();

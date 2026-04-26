@@ -15,6 +15,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionWarpingComponent.h"
 #include "Components/ArrowComponent.h"
+#include "HUDDataAsset.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -183,6 +184,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	}
 
 	UpdateAimSpinePitch(DeltaTime);
+	UpdateCrosshairSpread(DeltaTime);
 
 	// ── 낙하 상태 추적 (AnimBP에서 bIsFalling, CurrentFallSpeed 읽음) ──
 	bIsFalling = GetCharacterMovement()->IsFalling();
@@ -282,11 +284,44 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 	}
 }
 
+// --- Crosshair Spread ---
+
+void APlayerCharacter::UpdateCrosshairSpread(float DeltaTime)
+{
+	if (!HUDData) return;
+
+	float BaseSpread = 0.f;
+	const float Speed = GetVelocity().Size2D();
+
+	if (Speed > SprintSpeed * 0.8f)
+		BaseSpread = HUDData->SpreadSprinting;
+	else if (Speed > 10.f)
+		BaseSpread = HUDData->SpreadWalking;
+
+	if (bIsAiming)
+		BaseSpread = FMath::Max(0.f, BaseSpread + HUDData->SpreadAimingDelta);
+
+	SpreadAdditive = FMath::Max(SpreadAdditive - HUDData->SpreadRecoverySpeed * DeltaTime, 0.f);
+	CurrentCrosshairSpread = BaseSpread + SpreadAdditive;
+}
+
+void APlayerCharacter::AddCrosshairSpread(float Amount)
+{
+	SpreadAdditive += Amount;
+}
+
 // --- Aim Spine Pitch ---
 
 void APlayerCharacter::UpdateAimSpinePitch(float DeltaTime)
 {
 	float TargetPitch = 0.f;
+
+	// 회전 중에는 스파인 피치를 0으로 수렴 (회전과 스파인 동시 적용 시 충돌 방지)
+	if (bIsTurningRight || bIsTurningLeft)
+	{
+		AimSpinePitch = FMath::FInterpTo(AimSpinePitch, 0.f, DeltaTime, AimSpineInterpSpeed);
+		return;
+	}
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC && AimArrow)
@@ -325,7 +360,8 @@ void APlayerCharacter::ReleaseGrenadeThrow()
 	bIsPreparingThrow = false;
 	ClearTrajectory();
 
-	if (!GrenadeClass) return;
+	if (!GrenadeClass || GrenadeCount <= 0) return;
+	GrenadeCount--;
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (!PC) return;

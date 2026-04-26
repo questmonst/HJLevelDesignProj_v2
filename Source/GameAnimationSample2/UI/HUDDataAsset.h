@@ -43,6 +43,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Crosshair|Spread")
 	float SpreadAimingDelta = -5.f;
 
+	/** 발사/이동으로 추가된 스프레드가 초당 줄어드는 양 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Crosshair|Spread")
-	float SpreadInterpSpeed = 8.f;
+	float SpreadRecoverySpeed = 15.f;
 };

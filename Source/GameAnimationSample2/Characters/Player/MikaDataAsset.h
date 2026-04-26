@@ -46,6 +46,12 @@ public:
 	float CoverPeekInterpSpeed = 8.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float AimSpinePitchClamp = 60.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float AimSpineInterpSpeed = 15.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	float DefaultSocketOffsetY = 60.f;
 
 	// --- TurnInPlace ---
@@ -71,6 +77,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
 	float GrenadeThrowSpeed = 1200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
+	int32 MaxGrenadeCount = 4;
 
 	// --- Weapon ---
 

@@ -12,6 +12,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UArrowComponent;
 class AWeaponBase;
+class UHUDDataAsset;
 class AGrenadeBase;
 class UInputMappingContext;
 class UInputAction;
@@ -46,6 +47,11 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal")
 	UMotionWarpingComponent* MotionWarpingComponent;
+
+	// --- HUD Data ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|HUD")
+	UHUDDataAsset* HUDData = nullptr;
 
 	// --- Input ---
 
@@ -91,6 +97,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
 	float AimWalkSpeed;
+
+	// --- Crosshair ---
+
+	/** WBP에서 크로스헤어 크기/퍼짐에 사용 */
+	UPROPERTY(BlueprintReadOnly, Category = "Character|HUD")
+	float CurrentCrosshairSpread = 0.f;
 
 	// --- Aim ---
 
@@ -170,6 +182,9 @@ protected:
 
 	void UpdateCoverPeek(float DeltaTime);
 	void UpdateAimSpinePitch(float DeltaTime);
+	void UpdateCrosshairSpread(float DeltaTime);
+
+	float SpreadAdditive = 0.f;
 
 private:
 	float NormalSocketOffsetY = 0.f;
@@ -183,6 +198,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
 	float GrenadeThrowSpeed = 1200.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Grenade")
+	int32 GrenadeCount = 4;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
 	UStaticMesh* TrajectoryMesh;
@@ -245,6 +263,9 @@ protected:
 
 public:
 	// --- Movement ---
+
+	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
+	void AddCrosshairSpread(float Amount);
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Movement")
 	void StartSprint();

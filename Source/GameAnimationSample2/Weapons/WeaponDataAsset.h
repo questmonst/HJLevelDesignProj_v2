@@ -42,6 +42,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile")
 	float ProjectileSpeedOverride = 0.f;
 
+	// --- Spread ---
+
+	/** 발사 1회당 추가되는 크로스헤어 스프레드 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spread")
+	float SpreadPerShot = 2.f;
+
+	/** 장전 시작 시 추가되는 크로스헤어 스프레드 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spread")
+	float SpreadReloading = 5.f;
+
 	// --- Audio ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")

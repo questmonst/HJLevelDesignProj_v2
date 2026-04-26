@@ -16,6 +16,7 @@ public class GameAnimationSample2 : ModuleRules
 			Path.Combine(ModuleDirectory, "Weapons"),
 			Path.Combine(ModuleDirectory, "Core"),
 			Path.Combine(ModuleDirectory, "Environment"),
+			Path.Combine(ModuleDirectory, "UI"),
 		});
 
 		PublicDependencyModuleNames.AddRange(new string[]

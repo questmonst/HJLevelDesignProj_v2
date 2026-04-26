@@ -37,7 +37,9 @@ void AMikaCharacter::BeginPlay()
 		CoverPeekOffset            = MikaData->CoverPeekOffset;
 		CoverPeekInterpSpeed       = MikaData->CoverPeekInterpSpeed;
 		DefaultSocketOffsetY       = MikaData->DefaultSocketOffsetY;
-		// TurnInPlace
+			AimSpinePitchClamp         = MikaData->AimSpinePitchClamp;
+			AimSpineInterpSpeed        = MikaData->AimSpineInterpSpeed;
+			// TurnInPlace
 		TurnRightThreshold         = MikaData->TurnRightThreshold;
 		TurnLeftThreshold          = MikaData->TurnLeftThreshold;
 		TurnRotationSpeed          = MikaData->TurnRotationSpeed;
@@ -46,7 +48,9 @@ void AMikaCharacter::BeginPlay()
 		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
 		// Grenade / Weapon
 		GrenadeThrowSpeed          = MikaData->GrenadeThrowSpeed;
+			GrenadeCount               = MikaData->MaxGrenadeCount;
 		WeaponSwapDelay            = MikaData->WeaponSwapDelay;
+		CurrentHealth              = MaxHealth;
 		// Punch
 		PunchDamage                = MikaData->PunchDamage;
 		PunchCooldown              = MikaData->PunchCooldown;

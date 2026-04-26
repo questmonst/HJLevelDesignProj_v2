@@ -3,6 +3,7 @@
 #include "WeaponBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
+#include "PlayerCharacter.h"
 
 AWeaponBase::AWeaponBase()
 {
@@ -41,6 +42,8 @@ void AWeaponBase::BeginPlay()
 		CurrentAmmo             = WeaponData->MagSize;
 		ReserveAmmo             = WeaponData->ReserveAmmo;
 		ProjectileSpeedOverride = WeaponData->ProjectileSpeedOverride;
+		SpreadPerShot           = WeaponData->SpreadPerShot;
+		SpreadReloading         = WeaponData->SpreadReloading;
 		FireSound               = WeaponData->FireSound;
 		MuzzleVFX               = WeaponData->MuzzleVFX;
 		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
@@ -96,6 +99,11 @@ void AWeaponBase::Fire()
 	{
 	case EWeaponFireMode::Hitscan:    HitscanFire();    break;
 	case EWeaponFireMode::Projectile: ProjectileFire(); break;
+	}
+
+	if (APlayerCharacter* PC = Cast<APlayerCharacter>(GetOwner()))
+	{
+		PC->AddCrosshairSpread(SpreadPerShot);
 	}
 
 	if (CurrentAmmo == 0 && ReserveAmmo > 0)
@@ -198,6 +206,11 @@ void AWeaponBase::Reload()
 	bIsReloading = true;
 	StopFire();
 	OnReloadStart();
+
+	if (APlayerCharacter* PC = Cast<APlayerCharacter>(GetOwner()))
+	{
+		PC->AddCrosshairSpread(SpreadReloading);
+	}
 
 	GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &AWeaponBase::FinishReload, ReloadTime, false);
 }

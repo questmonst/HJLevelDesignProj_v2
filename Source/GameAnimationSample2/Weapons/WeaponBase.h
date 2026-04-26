@@ -82,6 +82,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile")
 	float ProjectileSpeedOverride = 0.f;
 
+	// --- Spread ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Spread")
+	float SpreadPerShot = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Spread")
+	float SpreadReloading = 5.f;
+
 	// --- Audio ---
 
 	/** 발사 시 재생할 사운드 (SoundWave / SoundCue 모두 가능) */
