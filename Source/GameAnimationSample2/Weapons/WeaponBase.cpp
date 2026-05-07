@@ -4,6 +4,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "PlayerCharacter.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 AWeaponBase::AWeaponBase()
 {
@@ -34,6 +36,9 @@ void AWeaponBase::BeginPlay()
 
 	if (WeaponData)
 	{
+		FireMode                = WeaponData->FireMode;
+		bIsAutoFire             = WeaponData->bIsAutoFire;
+		CosmeticProjectileClass = WeaponData->CosmeticProjectileClass;
 		Damage                  = WeaponData->Damage;
 		FireRate                = WeaponData->FireRate;
 		Range                   = WeaponData->Range;
@@ -44,6 +49,10 @@ void AWeaponBase::BeginPlay()
 		ProjectileSpeedOverride = WeaponData->ProjectileSpeedOverride;
 		SpreadPerShot           = WeaponData->SpreadPerShot;
 		SpreadReloading         = WeaponData->SpreadReloading;
+		SpreadRecoverySpeed     = WeaponData->SpreadRecoverySpeed;
+		TraceStartOffset        = WeaponData->TraceStartOffset;
+		bDebugTrace             = WeaponData->bDebugTrace;
+		HitVFX                  = WeaponData->HitVFX;
 		FireSound               = WeaponData->FireSound;
 		MuzzleVFX               = WeaponData->MuzzleVFX;
 		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
@@ -131,20 +140,63 @@ void AWeaponBase::HitscanFire()
 	}
 	else return;
 
-	FVector TraceEnd = CamLoc + CamRot.Vector() * Range;
+	const bool bIsPlayer     = Cast<APlayerController>(OwnerCtrl) != nullptr;
+	const FVector TraceStart = bIsPlayer ? CamLoc + CamRot.Vector() * TraceStartOffset : CamLoc;
+	FVector TraceEnd         = TraceStart + CamRot.Vector() * Range;
 
 	FHitResult Hit;
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.AddIgnoredActor(GetOwner());
 
-	GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, TraceEnd, ECC_Visibility, Params);
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, Params);
 
-	if (Hit.bBlockingHit && Hit.GetActor())
+	if (bDebugTrace)
 	{
-		UGameplayStatics::ApplyPointDamage(
-			Hit.GetActor(), Damage, CamRot.Vector(), Hit,
-			OwnerCtrl, this, nullptr);
+		const FVector DebugEnd = Hit.bBlockingHit ? Hit.ImpactPoint : TraceEnd;
+		UKismetSystemLibrary::DrawDebugLine(this, TraceStart, DebugEnd, FLinearColor::Red, 2.f, 1.f);
+		UKismetSystemLibrary::DrawDebugSphere(this, TraceStart, 5.f, 8, FLinearColor::Green, 2.f);
+	}
+
+	float ActualDamage = Damage;
+	if (CosmeticProjectileClass)
+	{
+		if (const AProjectileBase* CDO = CosmeticProjectileClass->GetDefaultObject<AProjectileBase>())
+			ActualDamage = CDO->GetDamage();
+	}
+
+	if (Hit.bBlockingHit)
+	{
+		if (HitVFX)
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitVFX, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+
+		if (Hit.GetActor())
+			UGameplayStatics::ApplyPointDamage(Hit.GetActor(), ActualDamage, CamRot.Vector(), Hit, OwnerCtrl, this, nullptr);
+	}
+
+	if (CosmeticProjectileClass)
+	{
+		FVector MuzzleLoc = WeaponMesh->DoesSocketExist(MuzzleSocketName)
+			? WeaponMesh->GetSocketLocation(MuzzleSocketName)
+			: GetActorLocation();
+
+		const FVector TargetPoint = Hit.bBlockingHit ? Hit.ImpactPoint : TraceEnd;
+		FRotator SpawnRot = (TargetPoint - MuzzleLoc).Rotation();
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner      = GetOwner();
+		SpawnParams.Instigator = Cast<APawn>(GetOwner());
+
+		AProjectileBase* Cosmetic = GetWorld()->SpawnActor<AProjectileBase>(
+			CosmeticProjectileClass, MuzzleLoc, SpawnRot, SpawnParams);
+
+		if (Cosmetic)
+		{
+			Cosmetic->SetActorEnableCollision(false);
+			if (ProjectileSpeedOverride > 0.f)
+				Cosmetic->OverrideSpeed(ProjectileSpeedOverride);
+
+		}
 	}
 
 	OnFire(Hit);
@@ -175,8 +227,29 @@ void AWeaponBase::ProjectileFire()
 	}
 	else return;
 
-	FVector  TargetPoint = CamLoc + CamRot.Vector() * Range;
-	FRotator SpawnRot    = (TargetPoint - MuzzleLoc).Rotation();
+	const bool bIsPlayerProj     = Cast<APlayerController>(OwnerCtrl) != nullptr;
+	const FVector TraceStartProj = bIsPlayerProj ? CamLoc + CamRot.Vector() * TraceStartOffset : CamLoc;
+	FVector TargetPoint          = TraceStartProj + CamRot.Vector() * Range;
+
+	if (bIsPlayerProj)
+	{
+		FHitResult CamHit;
+		FCollisionQueryParams CamParams;
+		CamParams.AddIgnoredActor(this);
+		CamParams.AddIgnoredActor(GetOwner());
+		if (GetWorld()->LineTraceSingleByChannel(CamHit, TraceStartProj, TargetPoint, ECC_Visibility, CamParams))
+		{
+			TargetPoint = CamHit.ImpactPoint;
+		}
+	}
+
+	if (bDebugTrace)
+	{
+		UKismetSystemLibrary::DrawDebugSphere(this, TraceStartProj, 5.f, 8, FLinearColor::Green, 2.f);
+		UKismetSystemLibrary::DrawDebugLine(this, TraceStartProj, TargetPoint, FLinearColor::Red, 2.f, 1.f);
+	}
+
+	FRotator SpawnRot = (TargetPoint - MuzzleLoc).Rotation();
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner      = GetOwner();

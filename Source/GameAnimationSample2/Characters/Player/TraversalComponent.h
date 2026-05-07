@@ -35,6 +35,12 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    // --- Enable ---
+
+    /** false면 TryTraversal() 호출을 무시함 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traversal")
+    bool bEnabled = true;
+
     // --- Detection ---
 
     /** 전방 장애물 감지 거리 (cm) */

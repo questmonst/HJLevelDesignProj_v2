@@ -10,13 +10,6 @@
 
 class UNiagaraSystem;
 
-UENUM(BlueprintType)
-enum class EWeaponFireMode : uint8
-{
-	Hitscan    UMETA(DisplayName = "Hitscan"),
-	Projectile UMETA(DisplayName = "Projectile"),
-};
-
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API AWeaponBase : public AActor
 {
@@ -78,6 +71,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile")
 	TSubclassOf<AProjectileBase> ProjectileClass;
 
+	/** Hitscan 모드에서 장식용으로 스폰할 투사체 (충돌·대미지 없음) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile")
+	TSubclassOf<AProjectileBase> CosmeticProjectileClass;
+
 	/** 0이면 투사체 기본값 사용, 양수면 이 속도로 덮어씀 (cm/s) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile")
 	float ProjectileSpeedOverride = 0.f;
@@ -90,11 +87,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Spread")
 	float SpreadReloading = 5.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Spread")
+	float SpreadRecoverySpeed = 15.f;
+
+	/** 플레이어 발사 시 카메라에서 트레이스 시작점을 앞으로 밀어 엄폐물 클리핑 방지 (cm) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
+	float TraceStartOffset = 30.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
+	bool bDebugTrace = false;
+
 	// --- Audio ---
 
 	/** 발사 시 재생할 사운드 (SoundWave / SoundCue 모두 가능) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio")
 	USoundBase* FireSound = nullptr;
+
+	// --- Hit VFX ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|VFX")
+	UNiagaraSystem* HitVFX = nullptr;
 
 	// --- VFX ---
 
@@ -146,6 +158,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
 	bool IsReloading() const { return bIsReloading; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Spread")
+	float GetSpreadRecoverySpeed() const { return SpreadRecoverySpeed; }
 
 	// --- Events (override in Blueprint for VFX/SFX) ---
 

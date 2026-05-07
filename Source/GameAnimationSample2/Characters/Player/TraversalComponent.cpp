@@ -23,7 +23,7 @@ void UTraversalComponent::BeginPlay()
 
 bool UTraversalComponent::TryTraversal()
 {
-    if (bIsTraversing || !OwnerCharacter) return false;
+    if (!bEnabled || bIsTraversing || !OwnerCharacter) return false;
 
     ETraversalType Type;
     FTransform WarpTarget, Ledge;
