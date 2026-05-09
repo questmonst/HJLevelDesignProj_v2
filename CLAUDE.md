@@ -4,6 +4,67 @@
 블루아카이브 스타일 서브컬쳐 캐릭터를 사용하고,
 미카(플레이어)와 미유(NPC)가 등장, 또 적으로는 기본 적과 아키라 적이 있어.
 
+## 역할 정의
+
+너는 이 게임 프로젝트의 구현 에이전트야.
+사람은 방향과 기준을 정하고, 너는 코드·문서·테스트를 작성한다.
+모르는 게 있으면 추측하지 말고 명확히 물어봐.
+
+-----
+
+## 코드 작성 원칙
+
+- 한 파일은 **500줄 이하**로 유지 (컨텍스트 효율 최우선)
+    - 대신 UProPerty를 많이 노출해야 할 때는 확인 후 넘겨도 됨.
+- 같은 기능을 두 번 구현하지 마 — 공유 유틸이 있으면 반드시 그걸 써
+- 하나의 방법론만 써: ORM 하나, 언어 하나, 패턴 하나
+- 아키텍처 레이어 간 의존성 방향을 어기지 마
+
+-----
+
+## 문서화 규칙
+
+- 새 시스템/모듈 추가할 때 **왜 이렇게 설계했는지** ADR(Architecture Decision Record) 짧게 남겨
+    - Record.md 생성해서 거기에 남겨.
+- 함수/클래스에 “무엇을 하는지”보다 **“왜 존재하는지”** 를 주석으로
+- 게임 핵심 루프(Core Loop), 주요 유저 플로우는 항상 문서 최신 상태 유지 → **Record.md**에서 관리
+
+-----
+
+## 게임 개발 특화 기준
+
+- 게임 상태(Game State)는 단일 진실 공급원(Single Source of Truth)으로 관리
+
+-----
+
+## PR / 작업 단위
+
+- PR 하나 = 하나의 명확한 기능 or 버그픽스 (작게 쪼개기)
+- PR 설명에 **무엇을, 왜, 어떻게 테스트했는지** 포함
+- 미완성 코드는 `TODO(이유):` 형식으로 표시, 그냥 주석 금지
+
+-----
+
+## 피드백 루프 (Just-in-Time)
+
+- 린트 에러 메시지는 단순 오류가 아니라 **코딩 철학 지침**으로 읽어
+- 테스트 실패 → 먼저 테스트가 맞는지 확인, 그다음 코드 수정
+- 리뷰 코멘트는 개인 취향이 아니라 **시스템 기준** 기반
+
+-----
+
+## 하지 말아야 할 것
+
+- 존재하지 않는 API/함수 추측해서 쓰기 ❌
+- 요구사항 불명확한데 일단 구현하기 ❌
+- 기존 패턴 무시하고 새 방식 도입하기 (합의 없이) ❌
+- 슬롭(품질 낮은 임시 코드) 그냥 남겨두기 ❌
+
+
+
+# 서브 목표
+아래 내용은 이하 내가 진행할 예정인 게임 기획 내용이야.
+
 # 캐릭터 정보
 
 - **미카 (플레이어)**: 수평(미카 펀치) + 수직(미카 랜딩) 근접 공격, 사거리 짧음
@@ -216,20 +277,23 @@ MG — 개활지 방어형: 강한 화력으로 전진 차단
 
 12. 코드 구조
 AActor
-├── ABaseCharacter
-│   ├── APlayerCharacter (미카)
-│   └── AEnemyCharacter
-│       ├── AAREnemy
-│       ├── AShotgunEnemy
-│       ├── ASniperEnemy
-│       ├── AMGEnemy
-│       ├── AShieldEnemy
-│       ├── ALargeSweeperEnemy
-│       └── ABossCharacter (아키라)
-├── ABaseAirUnit
-│   ├── ADroneEnemy
-│   └── AHelicopterEnemy
-└── ABaseTurret
+├── ACharacterBase
+│   ├── APlayerCharacter
+│   │   └── AMikaCharacter (미카)
+│   └── ANPCCharacter
+│       ├── AMiyuCharacter (미유, 아군)
+│       ├── AAkiraEnemy (보스)
+│       └── AEnemyCharacter
+│           ├── AAREnemy
+│           ├── AShotgunEnemy
+│           ├── ASniperEnemy
+│           ├── AMGEnemy
+│           ├── AShieldEnemy
+│           ├── ALargeSweeperEnemy
+│           └── ABaseAirUnit
+│               ├── ADroneEnemy
+│               └── AHelicopterEnemy
+└── ABaseTurret (AActor 직접 상속, 이동 없는 고정 포탑)
     └── ASmallTurret
 
 13. 아키라 행동 패턴 (구간별 BT)
@@ -253,7 +317,7 @@ AActor
 Sequencer 활용
 
 레벨 04 — 무대
-3페이즈 자율 행동 (GAS 연동)
+3페이즈 자율 행동 (BP + BT 기반)
 
 14. 설계 원칙
 

@@ -54,6 +54,15 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
     }
 }
 
+FGenericTeamId AEnemyAIController::GetGenericTeamId() const
+{
+    if (const IGenericTeamAgentInterface* TeamPawn = Cast<IGenericTeamAgentInterface>(GetPawn()))
+    {
+        return TeamPawn->GetGenericTeamId();
+    }
+    return FGenericTeamId(1);
+}
+
 void AEnemyAIController::OnUnPossess()
 {
     Super::OnUnPossess();

@@ -4,11 +4,10 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "MotionWarpingComponent.h"
 
 UTraversalComponent::UTraversalComponent()
 {
-    PrimaryComponentTick.bCanEverTick = false;
+    PrimaryComponentTick.bCanEverTick = true;
 }
 
 void UTraversalComponent::BeginPlay()
@@ -18,81 +17,68 @@ void UTraversalComponent::BeginPlay()
 }
 
 // ---------------------------------------------------------------------------
-// TryTraversal
+// TickComponent — bCanTraverse 캐시 갱신
+// ---------------------------------------------------------------------------
+
+void UTraversalComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+    FVector Dummy;
+    bCanTraverse = bEnabled && !bOnCooldown && DetectTraversal(Dummy);
+}
+
+// ---------------------------------------------------------------------------
+// TryTraversal — 장애물 감지 후 목표 지점으로 포물선 점프 (공중 가능)
 // ---------------------------------------------------------------------------
 
 bool UTraversalComponent::TryTraversal()
 {
-    if (!bEnabled || bIsTraversing || !OwnerCharacter) return false;
+    if (!bEnabled || bOnCooldown || !OwnerCharacter) return false;
 
-    ETraversalType Type;
-    FTransform WarpTarget, Ledge;
+    FVector LandingPos;
+    if (!DetectTraversal(LandingPos)) return false;
 
-    if (!DetectTraversal(Type, WarpTarget, Ledge)) return false;
+    // 쿨다운 시작
+    bOnCooldown = true;
+    GetWorld()->GetTimerManager().SetTimer(
+        CooldownTimerHandle,
+        [this]() { bOnCooldown = false; },
+        JumpCooldown, false);
 
-    bIsTraversing        = true;
-    CurrentTraversalType = Type;
-    WarpTargetTransform  = WarpTarget;
-    LedgeTransform       = Ledge;
+    // 포물선 궤적 계산
+    const FVector CurrentPos = OwnerCharacter->GetActorLocation();
+    const FVector Diff       = LandingPos - CurrentPos;
+    const float GravityZ     = FMath::Abs(OwnerCharacter->GetCharacterMovement()->GetGravityZ());
 
-    // MotionWarping 타겟 등록
-    if (UMotionWarpingComponent* MWC = OwnerCharacter->FindComponentByClass<UMotionWarpingComponent>())
-    {
-        MWC->AddOrUpdateWarpTargetFromTransform(FName("TraversalLedge"),   Ledge);
-        MWC->AddOrUpdateWarpTargetFromTransform(FName("TraversalLanding"), WarpTarget);
-    }
+    // 최고점 = 목표-현재 Z차이(최소 0) + JumpArcHeight
+    const float PeakHeight  = FMath::Max(Diff.Z, 0.f) + JumpArcHeight;
+    const float Vz          = FMath::Sqrt(2.f * GravityZ * PeakHeight);
+    const float TimeToPeak  = Vz / GravityZ;
+    const float TimeFalling = FMath::Sqrt(2.f * FMath::Max(PeakHeight - Diff.Z, 0.f) / GravityZ);
+    const float TotalTime   = TimeToPeak + TimeFalling;
 
-    // 이동 잠금 (애니메이션이 루트모션으로 이동을 처리)
-    OwnerCharacter->GetCharacterMovement()->DisableMovement();
+    const FVector HorizVel  = FVector(Diff.X, Diff.Y, 0.f) / TotalTime;
+    const FVector LaunchVel = HorizVel + FVector(0.f, 0.f, Vz);
 
-    OnTraversalStart(Type, WarpTarget, Ledge);
+    OwnerCharacter->LaunchCharacter(LaunchVel, true, true);
     return true;
 }
 
 // ---------------------------------------------------------------------------
-// FinishTraversal — AnimNotify 또는 BP에서 호출
+// DetectTraversal — 전방 장애물 감지 및 착지 위치 계산
 // ---------------------------------------------------------------------------
 
-void UTraversalComponent::FinishTraversal()
-{
-    if (!bIsTraversing || !OwnerCharacter) return;
-
-    bIsTraversing        = false;
-    CurrentTraversalType = ETraversalType::None;
-
-    // 착지 위치로 스냅 (MotionWarping이 없거나 루트모션이 끝나지 않은 경우 보정)
-    OwnerCharacter->SetActorLocation(
-        WarpTargetTransform.GetLocation(), false, nullptr, ETeleportType::TeleportPhysics);
-
-    OwnerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-}
-
-// ---------------------------------------------------------------------------
-// OnTraversalStart_Implementation — BP에서 오버라이드해 몽타주 재생
-// ---------------------------------------------------------------------------
-
-void UTraversalComponent::OnTraversalStart_Implementation(
-    ETraversalType Type, const FTransform& WarpTarget, const FTransform& Ledge)
-{
-    // 기본 구현 없음 — BP에서 Type에 따라 몽타주를 선택해 재생하고
-    // 몽타주 종료 AnimNotify에서 FinishTraversal()을 호출하면 됨.
-}
-
-// ---------------------------------------------------------------------------
-// DetectTraversal — 트레이스로 장애물을 감지하고 타입/목표를 계산
-// ---------------------------------------------------------------------------
-
-bool UTraversalComponent::DetectTraversal(
-    ETraversalType& OutType, FTransform& OutWarpTarget, FTransform& OutLedge) const
+bool UTraversalComponent::DetectTraversal(FVector& OutLandingPos) const
 {
     if (!OwnerCharacter) return false;
 
-    UCapsuleComponent* Capsule  = OwnerCharacter->GetCapsuleComponent();
-    const float HalfHeight      = Capsule->GetScaledCapsuleHalfHeight();
-    const float Radius          = Capsule->GetScaledCapsuleRadius();
-    const FVector ActorLoc      = OwnerCharacter->GetActorLocation();
-    const FVector Forward       = OwnerCharacter->GetActorForwardVector();
-    const float FeetZ           = ActorLoc.Z - HalfHeight;
+    UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent();
+    const float HalfHeight     = Capsule->GetScaledCapsuleHalfHeight();
+    const float Radius         = Capsule->GetScaledCapsuleRadius();
+    const FVector ActorLoc     = OwnerCharacter->GetActorLocation();
+    const FVector Forward      = OwnerCharacter->GetActorForwardVector();
+    const float FeetZ          = ActorLoc.Z - HalfHeight;
 
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(OwnerCharacter);
@@ -105,71 +91,39 @@ bool UTraversalComponent::DetectTraversal(
     const FVector SweepEnd   = SweepStart + Forward * ForwardTraceDistance;
 
     FHitResult WallHit;
-    const bool bHitWall = World->SweepSingleByChannel(
+    if (!World->SweepSingleByChannel(
         WallHit, SweepStart, SweepEnd,
         FQuat::Identity, ECC_WorldStatic,
-        FCollisionShape::MakeSphere(Radius * 0.5f), Params);
-
-    if (!bHitWall) return false;
+        FCollisionShape::MakeSphere(Radius * 0.5f), Params))
+    {
+        return false;
+    }
 
     // ------------------------------------------------------------------
     // Step 2: 장애물 상단 탐색 — 위에서 아래로 라인 트레이스
-    //   - 장애물 표면 바로 위 + 앞쪽 30cm 에서 아래로 쏨
     // ------------------------------------------------------------------
     const FVector OverPoint = FVector(
         WallHit.ImpactPoint.X + Forward.X * 30.f,
         WallHit.ImpactPoint.Y + Forward.Y * 30.f,
-        FeetZ + ClimbMaxHeight + 30.f);   // 최대 클라임 높이 위에서 시작
-
-    const FVector DownEnd = FVector(OverPoint.X, OverPoint.Y, FeetZ - 10.f);
+        FeetZ + MaxObstacleHeight + 30.f);
 
     FHitResult TopHit;
-    const bool bFoundTop = World->LineTraceSingleByChannel(
-        TopHit, OverPoint, DownEnd, ECC_WorldStatic, Params);
-
-    if (!bFoundTop) return false;
+    if (!World->LineTraceSingleByChannel(
+        TopHit, OverPoint,
+        FVector(OverPoint.X, OverPoint.Y, FeetZ - 10.f),
+        ECC_WorldStatic, Params))
+    {
+        return false;
+    }
 
     const float RelHeight = TopHit.ImpactPoint.Z - FeetZ;
+    if (RelHeight < MinObstacleHeight || RelHeight > MaxObstacleHeight) return false;
 
-    if (RelHeight < MinObstacleHeight) return false;
-    if (RelHeight > ClimbMaxHeight)    return false;
-
-    // ------------------------------------------------------------------
-    // Step 3: 착지 위치 공간 확인 — 캡슐이 들어갈 수 있는지
-    // ------------------------------------------------------------------
-    const FVector LandingPos = FVector(
+    // 착지 목표: 장애물 상단 + ForwardOffset + HeightOffset (캡슐 중심 기준)
+    OutLandingPos = FVector(
         TopHit.ImpactPoint.X + Forward.X * LandingForwardOffset,
         TopHit.ImpactPoint.Y + Forward.Y * LandingForwardOffset,
-        TopHit.ImpactPoint.Z + HalfHeight + 2.f);
-
-    FHitResult HeadroomHit;
-    const bool bBlocked = World->SweepSingleByChannel(
-        HeadroomHit,
-        LandingPos, LandingPos + FVector(0.f, 0.f, 2.f),
-        FQuat::Identity, ECC_WorldStatic,
-        FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
-
-    if (bBlocked) return false;
-
-    // ------------------------------------------------------------------
-    // Step 4: 높이에 따른 타입 결정
-    // ------------------------------------------------------------------
-    if      (RelHeight <= HurdleMaxHeight) OutType = ETraversalType::Hurdle;
-    else if (RelHeight <= VaultMaxHeight)  OutType = ETraversalType::Vault;
-    else if (RelHeight <= MantleMaxHeight) OutType = ETraversalType::Mantle;
-    else                                   OutType = ETraversalType::Climb;
-
-    const FRotator OwnerRot = OwnerCharacter->GetActorRotation();
-
-    // 착지 트랜스폼 (TraversalLanding)
-    OutWarpTarget = FTransform(OwnerRot, LandingPos);
-
-    // 가장자리 트랜스폼 (TraversalLedge) — 장애물 모서리 바로 앞
-    const FVector LedgePos = FVector(
-        TopHit.ImpactPoint.X,
-        TopHit.ImpactPoint.Y,
-        TopHit.ImpactPoint.Z);
-    OutLedge = FTransform(OwnerRot, LedgePos);
+        TopHit.ImpactPoint.Z + HalfHeight + LandingHeightOffset);
 
     return true;
 }

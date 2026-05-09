@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GenericTeamAgentInterface.h"
 #include "CharacterBase.generated.h"
 
 UCLASS(Blueprintable, BlueprintType, meta=(PrioritizeCategories="Character|Stats"))
-class GAMEANIMATIONSAMPLE2_API ACharacterBase : public ACharacter
+class GAMEANIMATIONSAMPLE2_API ACharacterBase : public ACharacter, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -39,6 +40,8 @@ protected:
 	                         AController* EventInstigator, AActor* DamageCauser) override;
 
 public:
+	virtual FGenericTeamId GetGenericTeamId() const override { return FGenericTeamId(TeamID); }
+
 	// --- BlueprintNativeEvent ---
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Character|Combat")

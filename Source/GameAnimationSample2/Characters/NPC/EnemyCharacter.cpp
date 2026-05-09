@@ -16,6 +16,7 @@ AEnemyCharacter::AEnemyCharacter()
 {
     AIControllerClass = AEnemyAIController::StaticClass();
     AutoPossessAI     = EAutoPossessAI::PlacedInWorldOrSpawned;
+    TeamID            = 1;
 }
 
 void AEnemyCharacter::BeginPlay()

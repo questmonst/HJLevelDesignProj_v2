@@ -38,6 +38,14 @@ float ADestructibleCover::TakeDamage(float DamageAmount, const FDamageEvent& Dam
 	return Applied;
 }
 
+void ADestructibleCover::DestroyByPunch_Implementation(AActor* PunchInstigator)
+{
+    if (bIsDestroyed) return;
+    bIsDestroyed  = true;
+    CurrentHealth = 0.f;
+    OnCoverDestroyed();
+}
+
 void ADestructibleCover::OnCoverDestroyed_Implementation()
 {
 	// 콜리전 즉시 제거 (총알·캐릭터가 통과하도록)

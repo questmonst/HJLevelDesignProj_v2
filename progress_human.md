@@ -4,33 +4,37 @@
 > 완료된 항목은 `[x]`로 체크.
 
 ---
+## 0. 임시 순서
+- 미카 펀칭 및 랜딩 애니 넣기
+- 샷건, 저격총, 머신건 추가하기
+- 기본 적 만들고 ABP까지 넣기.
 
 ## 1. 블루프린트 자식 클래스 생성
 
 각 C++ 클래스에서 블루프린트 자식을 만들어야 메시·애님·수치를 에디터에서 설정할 수 있음.
 
-| BP 이름 (예시) | 부모 C++ 클래스 | 우선순위 |
-|---|---|---|
-| `[ ]` BP_Mika | AMikaCharacter | 최상 |
-| `[ ]` BP_Miyu | AMiyuCharacter | 상 |
-| `[ ]` BP_Akira | AAkiraEnemy | 상 |
-| `[ ]` BP_AREnemy | AAREnemy | 중 |
-| `[ ]` BP_ShotgunEnemy | AShotgunEnemy | 중 |
-| `[ ]` BP_SniperEnemy | ASniperEnemy | 중 |
-| `[ ]` BP_MGEnemy | AMGEnemy | 중 |
-| `[ ]` BP_ShieldEnemy | AShieldEnemy | 중 |
-| `[ ]` BP_LargeSweeperEnemy | ALargeSweeperEnemy | 중 |
-| `[ ]` BP_DroneEnemy | ADroneEnemy | 하 |
-| `[ ]` BP_HelicopterEnemy | AHelicopterEnemy | 하 |
-| `[ ]` BP_SmallTurret | ASmallTurret | 하 |
-| `[ ]` BP_WeaponAR | AWeaponBase | 상 |
-| `[ ]` BP_WeaponShotgun | AWeaponBase | 중 |
-| `[ ]` BP_WeaponSniper | AWeaponBase | 중 |
-| `[ ]` BP_Grenade | AGrenadeBase | 중 |
-| `[ ]` BP_DestructibleCover | ADestructibleCover | 상 |
-| `[ ]` BP_FallResetTrigger | AFallResetTrigger | 상 |
-| `[ ]` BP_FallResetTarget | AFallResetTarget | 상 |
-| `[ ]` BP_SplineTrackActor | ASplineTrackActor | 중 |
+| BP 이름 (예시) | 부모 C++ 클래스 | 우선순위 | 남은 것 |
+|---|---|---|---|
+| `[ ]` BP_Mika | AMikaCharacter | 최상 |펀치 및 랜딩 애니|
+| `[ ]` BP_Miyu | AMiyuCharacter | 상 | 원래 것 쓸 수 있나?|
+| `[ ]` BP_Akira | AAkiraEnemy | 상 | 모델부터 찾아야|
+| `[ ]` BP_AREnemy | AAREnemy | 중 ||
+| `[ ]` BP_ShotgunEnemy | AShotgunEnemy | 중 ||
+| `[ ]` BP_SniperEnemy | ASniperEnemy | 중 ||
+| `[ ]` BP_MGEnemy | AMGEnemy | 중 ||
+| `[ ]` BP_ShieldEnemy | AShieldEnemy | 중 ||
+| `[ ]` BP_LargeSweeperEnemy | ALargeSweeperEnemy | 중 ||
+| `[ ]` BP_DroneEnemy | ADroneEnemy | 하 ||
+| `[ ]` BP_HelicopterEnemy | AHelicopterEnemy | 하 ||
+| `[ ]` BP_SmallTurret | ASmallTurret | 하 ||
+| `[ ]` BP_WeaponAR | AWeaponBase | 상 ||
+| `[ ]` BP_WeaponShotgun | AWeaponBase | 중 ||
+| `[ ]` BP_WeaponSniper | AWeaponBase | 중 ||
+| `[ ]` BP_Grenade | AGrenadeBase | 중 ||
+| `[ ]` BP_DestructibleCover | ADestructibleCover | 상 ||
+| `[ ]` BP_FallResetTrigger | AFallResetTrigger | 상 ||
+| `[ ]` BP_FallResetTarget | AFallResetTarget | 상 ||
+| `[ ]` BP_SplineTrackActor | ASplineTrackActor | 중 ||
 
 ---
 

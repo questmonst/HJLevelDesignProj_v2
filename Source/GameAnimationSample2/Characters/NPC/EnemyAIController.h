@@ -44,6 +44,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
     float HearingRange = 1200.f;
 
+public:
+    virtual FGenericTeamId GetGenericTeamId() const override;
+
 private:
     UAISenseConfig_Sight*   SightConfig   = nullptr;
     UAISenseConfig_Hearing* HearingConfig = nullptr;

@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "IDestructible.h"
 #include "DestructibleCover.generated.h"
 
 class UStaticMeshComponent;
 class UBoxComponent;
 
 UCLASS(Blueprintable, BlueprintType)
-class GAMEANIMATIONSAMPLE2_API ADestructibleCover : public AActor
+class GAMEANIMATIONSAMPLE2_API ADestructibleCover : public AActor, public IDestructibleObject
 {
 	GENERATED_BODY()
 
@@ -52,4 +53,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Cover|Health")
 	bool IsDestroyed() const { return bIsDestroyed; }
+
+	/** IDestructibleObject — 미카 펀치 즉각 파괴 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Destructible")
+	void DestroyByPunch(AActor* PunchInstigator);
+	virtual void DestroyByPunch_Implementation(AActor* PunchInstigator) override;
 };

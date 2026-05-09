@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MikaCharacter.h"
+#include "IDestructible.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -280,7 +281,16 @@ void AMikaCharacter::OnPunchHitboxOverlap(UPrimitiveComponent* OverlappedComp, A
 	if (HitActorsDuringDash.Contains(OtherActor)) return;
 
 	HitActorsDuringDash.Add(OtherActor);
-	UGameplayStatics::ApplyDamage(OtherActor, PunchDamage, GetController(), this, UDamageType::StaticClass());
+
+	// IDestructibleObject이면 즉각 파괴, 아니면 일반 데미지
+	if (IDestructibleObject* Destructible = Cast<IDestructibleObject>(OtherActor))
+	{
+		Destructible->Execute_DestroyByPunch(OtherActor, this);
+	}
+	else
+	{
+		UGameplayStatics::ApplyDamage(OtherActor, PunchDamage, GetController(), this, UDamageType::StaticClass());
+	}
 }
 
 // --- 미카 랜딩 ---
