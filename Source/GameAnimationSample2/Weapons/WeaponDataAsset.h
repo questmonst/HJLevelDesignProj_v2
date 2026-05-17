@@ -44,6 +44,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config", meta=(ToolTip="자동 연사 여부. true면 누르는 동안 계속 발사"))
 	bool bIsAutoFire = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config", meta=(ToolTip="곡사 투사체 궤도 미리보기 표시. 발사 버튼 누르는 동안 궤도 렌더링. ProjectileSpeedOverride를 시뮬레이션 속도로 사용"))
+	bool bShowArcTrajectory = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config", meta=(ToolTip="true=팰릿 수만큼 탄약 소비(샷건). false=발사 1회당 1발 소비(DMR 점사)"))
+	bool bAmmoPerPellet = true;
+
 	// --- Stats ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="발사 1회당 피해량"))

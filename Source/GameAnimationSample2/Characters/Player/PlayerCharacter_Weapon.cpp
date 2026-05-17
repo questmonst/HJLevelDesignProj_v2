@@ -48,6 +48,7 @@ bool APlayerCharacter::PickupWeapon(AWeaponBase* Weapon)
 void APlayerCharacter::OnWeaponPickupRangeEnter(AWeaponBase* Weapon)
 {
 	if (!Weapon || !Weapon->IsDropped()) return;
+	if (bIsSwapping) return;
 
 	if (WeaponInventory.Num() < MaxWeaponSlots)
 	{
@@ -145,6 +146,7 @@ void APlayerCharacter::EquipWeapon(int32 Index)
 	if (bIsSwapping) return;
 
 	bIsSwapping        = true;
+	LastWeaponIndex    = CurrentWeaponIndex;
 	PendingWeaponIndex = Index;
 
 	if (CurrentWeapon)
@@ -181,6 +183,12 @@ void APlayerCharacter::FinishEquipWeapon()
 void APlayerCharacter::EquipWeaponSlot1() { EquipWeapon(0); }
 void APlayerCharacter::EquipWeaponSlot2() { EquipWeapon(1); }
 void APlayerCharacter::EquipWeaponSlot3() { EquipWeapon(2); }
+
+void APlayerCharacter::SwapToLastWeapon()
+{
+	if (WeaponInventory.IsValidIndex(LastWeaponIndex))
+		EquipWeapon(LastWeaponIndex);
+}
 
 void APlayerCharacter::StartFire()
 {

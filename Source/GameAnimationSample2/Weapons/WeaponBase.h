@@ -35,7 +35,7 @@ protected:
 	float PickupRadius = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup", meta=(ToolTip="true면 월드에 떨어진 상태 (줍기 가능)"))
-	bool bIsDropped = false;
+	bool bIsDropped = true;
 
 	// --- Data ---
 
@@ -49,6 +49,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="자동 연사 여부. true면 누르는 동안 계속 발사"))
 	bool bIsAutoFire;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="발사 버튼 누르는 동안 곡사 궤도 미리보기 표시"))
+	bool bShowArcTrajectory = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="true=팰릿 수만큼 탄약 소비(샷건). false=발사 1회당 1발 소비(DMR 점사)"))
+	bool bAmmoPerPellet = true;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Config", meta=(ToolTip="소켓 기준 무기 메시 회전 오프셋. DataAsset에서 설정"))
 	FRotator WeaponMeshRotationOffset = FRotator::ZeroRotator;
@@ -231,6 +237,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	bool IsAutoFire() const { return bIsAutoFire; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	bool ShowsArcTrajectory() const { return bShowArcTrajectory; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	FVector GetMuzzleLocation() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	float GetProjectileSpeedForTrajectory() const { return FMath::Max(ProjectileSpeedOverride, 100.f); }
 
 	// --- Fire ---
 

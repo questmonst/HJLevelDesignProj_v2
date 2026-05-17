@@ -206,6 +206,7 @@ protected:
 	void StartGrenadeThrow();
 	void ReleaseGrenadeThrow();
 	void UpdateTrajectory();
+	void UpdateWeaponTrajectory();
 	void ClearTrajectory();
 
 	// --- Weapon ---
@@ -240,6 +241,7 @@ protected:
 	bool  bIsSwapping        = false;
 	bool  bIsFiring          = false;
 	int32 PendingWeaponIndex = -1;
+	int32 LastWeaponIndex    = -1;
 
 	FTimerHandle SwapTimerHandle;
 
@@ -284,6 +286,9 @@ public:
 	void EquipWeaponSlot1();
 	void EquipWeaponSlot2();
 	void EquipWeaponSlot3();
+
+	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
+	void SwapToLastWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
 	bool PickupWeapon(AWeaponBase* Weapon);

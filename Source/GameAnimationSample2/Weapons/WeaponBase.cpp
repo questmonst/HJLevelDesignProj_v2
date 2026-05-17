@@ -59,6 +59,8 @@ void AWeaponBase::BeginPlay()
 		// --- Config ---
 		FireMode                = WeaponData->FireMode;
 		bIsAutoFire             = WeaponData->bIsAutoFire;
+		bShowArcTrajectory      = WeaponData->bShowArcTrajectory;
+		bAmmoPerPellet          = WeaponData->bAmmoPerPellet;
 		ProjectileClass         = WeaponData->ProjectileClass;
 		CosmeticProjectileClass = WeaponData->CosmeticProjectileClass;
 		// --- Stats ---
@@ -96,6 +98,11 @@ void AWeaponBase::BeginPlay()
 
 	RefreshMeshTransform();
 	PickupSphere->SetSphereRadius(PickupRadius);
+
+	// Owner 있으면(SpawnActor로 생성) 인벤토리 무기로 간주해 드롭 상태 해제
+	if (GetOwner())
+		bIsDropped = false;
+
 	PickupSphere->SetCollisionEnabled(bIsDropped ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 }
 
@@ -200,7 +207,9 @@ void AWeaponBase::Fire()
 		return;
 	}
 
-	CurrentAmmo--;
+	// bAmmoPerPellet=false(DMR)면 첫 번째 팰릿(CurrentPelletShot==0)일 때만 소비
+	if (bAmmoPerPellet || CurrentPelletShot == 0)
+		CurrentAmmo--;
 
 	FTransform MuzzleTransform = WeaponMesh->DoesSocketExist(MuzzleSocketName)
 		? WeaponMesh->GetSocketTransform(MuzzleSocketName)
@@ -625,6 +634,13 @@ USoundBase* AWeaponBase::GetPickupSound() const
 FText AWeaponBase::GetWeaponDisplayName() const
 {
 	return WeaponData ? WeaponData->WeaponDisplayName : FText::GetEmpty();
+}
+
+FVector AWeaponBase::GetMuzzleLocation() const
+{
+	if (WeaponMesh->DoesSocketExist(MuzzleSocketName))
+		return WeaponMesh->GetSocketLocation(MuzzleSocketName);
+	return GetActorLocation();
 }
 
 void AWeaponBase::OnPickupSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

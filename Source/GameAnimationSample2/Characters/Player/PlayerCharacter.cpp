@@ -147,6 +147,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	Bind(TEXT("Weapon1"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot1);
 	Bind(TEXT("Weapon2"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot2);
 	Bind(TEXT("Weapon3"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot3);
+	Bind(TEXT("Swap"),    ETriggerEvent::Started,   &APlayerCharacter::SwapToLastWeapon);
 	Bind(TEXT("Throw"),    ETriggerEvent::Started,   &APlayerCharacter::StartGrenadeThrow);
 	Bind(TEXT("Throw"),    ETriggerEvent::Completed, &APlayerCharacter::ReleaseGrenadeThrow);
 	Bind(TEXT("Interact"), ETriggerEvent::Started,   &APlayerCharacter::TryPickupNearbyWeapon);
@@ -172,6 +173,14 @@ void APlayerCharacter::Tick(float DeltaTime)
 	if (bIsPreparingThrow)
 	{
 		UpdateTrajectory();
+	}
+	else if (bIsFiring && CurrentWeapon && CurrentWeapon->ShowsArcTrajectory())
+	{
+		UpdateWeaponTrajectory();
+	}
+	else if (!bIsPreparingThrow && !(bIsFiring && CurrentWeapon && CurrentWeapon->ShowsArcTrajectory()))
+	{
+		ClearTrajectory();
 	}
 	UpdateCoverPeek(DeltaTime);
 
