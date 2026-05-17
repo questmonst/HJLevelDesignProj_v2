@@ -20,11 +20,9 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    /** 지면으로부터 유지할 호버 높이 (cm). BT에서 이동 목표 Z 보정에 사용 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AirUnit")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AirUnit", meta=(ToolTip="지면으로부터 유지할 호버 높이 (cm). BT에서 이동 목표 Z 보정에 사용"))
     float HoverHeight = 400.f;
 
-    /** 공중 이동 속도 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AirUnit")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AirUnit", meta=(ToolTip="공중 이동 속도 (cm/s)"))
     float FlySpeed = 600.f;
 };

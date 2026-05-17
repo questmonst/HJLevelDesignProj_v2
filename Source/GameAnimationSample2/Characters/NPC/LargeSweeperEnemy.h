@@ -12,7 +12,6 @@ class GAMEANIMATIONSAMPLE2_API ALargeSweeperEnemy : public AEnemyCharacter
 public:
     ALargeSweeperEnemy();
 
-    /** 근접 스윕 반경 (cm) — BT에서 이 범위 내 플레이어에게 근접 공격 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sweeper|Combat")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sweeper|Combat", meta=(ToolTip="근접 스윕 반경 (cm). BT에서 이 범위 내 플레이어에게 근접 공격"))
     float MeleeSwipeRadius = 300.f;
 };

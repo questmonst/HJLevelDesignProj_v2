@@ -15,13 +15,13 @@ public:
 	AAkiraEnemy();
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted", meta=(ToolTip="스크립트 이동 중 이동 속도 (cm/s)"))
 	float ScriptedMoveSpeed = 600.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Akira|Scripted", meta=(ToolTip="기본 이동 속도 (cm/s)"))
 	float DefaultMoveSpeed = 400.f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Akira|Scripted")
+	UPROPERTY(BlueprintReadOnly, Category = "Akira|Scripted", meta=(ToolTip="스크립트 이동 중인지 여부"))
 	bool bIsInScriptedMove = false;
 
 public:

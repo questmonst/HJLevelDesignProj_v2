@@ -19,22 +19,21 @@ public:
 	ADestructibleCover();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cover")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cover", meta=(ToolTip="엄폐물 스태틱 메시 컴포넌트"))
 	UStaticMeshComponent* MeshComp;
 
 	// --- 체력 ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cover|Health")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cover|Health", meta=(ToolTip="최대 체력"))
 	float MaxHealth = 100.f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Cover|Health")
+	UPROPERTY(BlueprintReadOnly, Category = "Cover|Health", meta=(ToolTip="현재 체력"))
 	float CurrentHealth;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Cover|Health")
+	UPROPERTY(BlueprintReadOnly, Category = "Cover|Health", meta=(ToolTip="파괴 여부. true면 이미 파괴된 상태"))
 	bool bIsDestroyed = false;
 
-	/** 파괴 후 액터 제거까지 대기 시간 (Chaos 연출 재생 시간) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cover|Health")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cover|Health", meta=(ToolTip="파괴 후 액터 제거까지 대기 시간 (초). Chaos 연출 재생 시간"))
 	float DestroyDelay = 2.f;
 
 	virtual void BeginPlay() override;
@@ -42,7 +41,6 @@ protected:
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent,
 		AController* EventInstigator, AActor* DamageCauser) override;
 
-	/** 파괴 시 호출 — BP에서 Chaos GC 스폰·이펙트 처리 */
 	UFUNCTION(BlueprintNativeEvent, Category = "Cover")
 	void OnCoverDestroyed();
 	virtual void OnCoverDestroyed_Implementation();
@@ -54,7 +52,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Cover|Health")
 	bool IsDestroyed() const { return bIsDestroyed; }
 
-	/** IDestructibleObject — 미카 펀치 즉각 파괴 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Destructible")
 	void DestroyByPunch(AActor* PunchInstigator);
 	virtual void DestroyByPunch_Implementation(AActor* PunchInstigator) override;

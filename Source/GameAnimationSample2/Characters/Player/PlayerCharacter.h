@@ -36,26 +36,26 @@ protected:
 
 	// --- Components ---
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Camera")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Camera", meta=(ToolTip="스프링 암 컴포넌트"))
 	USpringArmComponent* SpringArmComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Camera")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Camera", meta=(ToolTip="카메라 컴포넌트"))
 	UCameraComponent* CameraComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal", meta=(ToolTip="트래버설 컴포넌트"))
 	UTraversalComponent* TraversalComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Traversal", meta=(ToolTip="모션 워핑 컴포넌트"))
 	UMotionWarpingComponent* MotionWarpingComponent;
 
 	// --- HUD Data ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|HUD")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|HUD", meta=(ToolTip="HUD 설정 데이터 에셋"))
 	UHUDDataAsset* HUDData = nullptr;
 
 	// --- Input ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Input", meta=(ToolTip="기본 입력 매핑 컨텍스트"))
 	UInputMappingContext* IMC_Default;
 
 	// --- Input Handlers ---
@@ -66,125 +66,107 @@ protected:
 	void StartCrouch();
 	void StopCrouch();
 
-	/** 트래버설 감지 후 가능하면 트래버설, 불가능하면 일반 점프 */
 	virtual void Jump() override;
 
 	// --- Action Permission ---
 
-	/** 현재 허용된 행동 비트마스크. ABP/BP에서 읽기 가능. */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Action")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Action", meta=(ToolTip="현재 허용된 행동 비트마스크. ABP/BP에서 읽기 가능"))
 	int32 AllowedActions;
 
-	/** 해당 행동이 현재 허용되어 있는지 확인 */
 	UFUNCTION(BlueprintPure, Category = "Character|Action")
 	bool CanDo(ECharacterAction Action) const;
 
-	/** 특정 행동을 허용 (AnimNotify, 상태 종료 시 호출) */
 	UFUNCTION(BlueprintCallable, Category = "Character|Action")
 	void Allow(ECharacterAction Action);
 
-	/** 특정 행동을 금지 (상태 진입 시 호출) */
 	UFUNCTION(BlueprintCallable, Category = "Character|Action")
 	void Block(ECharacterAction Action);
 
 	// --- Movement ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement", meta=(ToolTip="걷기 속도 (cm/s)"))
 	float WalkSpeed;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement", meta=(ToolTip="달리기 속도 (cm/s)"))
 	float SprintSpeed;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement", meta=(ToolTip="조준 중 걷기 속도 (cm/s)"))
 	float AimWalkSpeed;
 
 	// --- Crosshair ---
 
-	/** WBP에서 크로스헤어 크기/퍼짐에 사용 */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|HUD")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|HUD", meta=(ToolTip="WBP에서 크로스헤어 크기·퍼짐에 사용"))
 	float CurrentCrosshairSpread = 0.f;
 
 	// --- Aim ---
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Aim")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Aim", meta=(ToolTip="조준 방향 화살표 컴포넌트. BP 뷰포트에서 머즐 소켓 위치에 배치"))
 	UArrowComponent* AimArrow;
 
-	/** AnimBP에서 읽어 spine Transform Modify Bone에 적용할 피치 값 */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Aim", meta=(ToolTip="AnimBP에서 spine Transform Modify Bone에 적용할 피치 값"))
 	float AimSpinePitch = 0.f;
 
-	/** AimSpinePitch 클램프 범위 (±도) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Aim")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Aim", meta=(ToolTip="AimSpinePitch 클램프 범위 (±도). 상하 조준 제한각"))
 	float AimSpinePitchClamp = 60.f;
 
-	/** AimSpinePitch 보간 속도 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Aim")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Aim", meta=(ToolTip="AimSpinePitch 보간 속도. 클수록 상하 조준이 빠르게 반응"))
 	float AimSpineInterpSpeed = 15.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="기본 카메라 시야각 (도)"))
 	float NormalFOV;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="조준 시 카메라 시야각 (도). 낮을수록 줌인"))
 	float AimFOV;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Combat", meta=(ToolTip="현재 조준(ADS) 상태 여부"))
 	bool bIsAiming;
 
 	// --- Turn In Place ---
 
-	/** 캐릭터 액터 Yaw와 카메라 Yaw의 차이 (-180~180). ABP Rotate Root Bone에 사용. */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace", meta=(ToolTip="캐릭터 액터 Yaw와 카메라 Yaw의 차이 (-180~180). ABP Rotate Root Bone에 사용"))
 	float AimYaw = 0.f;
 
-	/** 오른쪽 Turn 발동 각도 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="오른쪽 Turn 발동 각도 (도). 카메라가 이 각도 이상 오른쪽으로 벌어지면 회전 시작"))
 	float TurnRightThreshold = 90.f;
 
-	/** 왼쪽 Turn 발동 각도 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="왼쪽 Turn 발동 각도 (도)"))
 	float TurnLeftThreshold = 90.f;
 
-	/** Turn 애니 중 액터 회전 속도 (도/초) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="Turn 애니 중 액터 회전 속도 (도/초)"))
 	float TurnRotationSpeed = 200.f;
 
-	/** 임계값 미만일 때 카메라를 따라가는 속도 (도/초). 0이면 비활성화. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="임계값 미만일 때 카메라를 따라가는 속도 (도/초). 0이면 비활성화"))
 	float SoftTurnSpeed = 60.f;
 
-	/** ABP에서 AimTurnR 애니메이션 트리거 */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace", meta=(ToolTip="ABP에서 AimTurnR 애니메이션 트리거"))
 	bool bIsTurningRight = false;
 
-	/** ABP에서 AimTurnL 애니메이션 트리거 */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace", meta=(ToolTip="ABP에서 AimTurnL 애니메이션 트리거"))
 	bool bIsTurningLeft = false;
 
 	void UpdateAimTurn(float DeltaTime);
 
 	// --- Cover Peek ---
 
-	/** 좌우 엄폐물 감지 거리 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="좌우 엄폐물 감지 거리 (cm)"))
 	float CoverTraceDistance = 80.f;
 
-	/** 엄폐 시 카메라 오프셋 크기 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="엄폐 시 카메라가 옆으로 이동하는 거리 (cm)"))
 	float CoverPeekOffset = 80.f;
 
-	/** 카메라 오프셋 보간 속도 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="엄폐 카메라 이동 보간 속도. 클수록 빠르게 전환"))
 	float CoverPeekInterpSpeed = 8.f;
 
-	/** 기본 카메라 좌우 오프셋 (양수 = 오른쪽) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="기본 카메라 소켓 좌우 오프셋 (양수=오른쪽, cm)"))
 	float DefaultSocketOffsetY = 60.f;
 
 	void UpdateCoverPeek(float DeltaTime);
 	void UpdateAimSpinePitch(float DeltaTime);
 	void UpdateCrosshairSpread(float DeltaTime);
+	void UpdateRecoil(float DeltaTime);
 
-	float SpreadAdditive = 0.f;
+	float SpreadAdditive   = 0.f;
+	float RecoilPitchAccum = 0.f;
 
 private:
 	float NormalSocketOffsetY = 0.f;
@@ -193,25 +175,25 @@ protected:
 
 	// --- Grenade ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="스폰할 수류탄 클래스"))
 	TSubclassOf<AGrenadeBase> GrenadeClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="수류탄 초기 투사 속도 (cm/s)"))
 	float GrenadeThrowSpeed = 1200.f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Grenade")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Grenade", meta=(ToolTip="현재 수류탄 보유 개수"))
 	int32 GrenadeCount = 4;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="수류탄 궤적 시각화에 사용할 스태틱 메시"))
 	UStaticMesh* TrajectoryMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="수류탄 궤적 메시에 적용할 머티리얼"))
 	UMaterialInterface* TrajectoryMaterial;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="궤적 메시 스케일"))
 	float TrajectoryMeshScale = 0.1f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Grenade")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Grenade", meta=(ToolTip="수류탄 궤적 스플라인 컴포넌트"))
 	USplineComponent* TrajectorySpline;
 
 	bool bIsPreparingThrow = false;
@@ -228,33 +210,35 @@ protected:
 
 	// --- Weapon ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="초기 장착할 무기 클래스 목록"))
 	TArray<TSubclassOf<AWeaponBase>> DefaultWeaponClasses;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon", meta=(ToolTip="범위 안에 있는 픽업 가능한 무기. HUD에서 프롬프트 표시에 사용"))
+	AWeaponBase* PendingPickupWeapon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon", meta=(ToolTip="픽업 프롬프트 표시 여부. WBP에서 바인딩"))
+	bool bShowPickupPrompt = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon", meta=(ToolTip="현재 무기 인벤토리"))
 	TArray<AWeaponBase*> WeaponInventory;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon", meta=(ToolTip="현재 장착된 무기"))
 	AWeaponBase* CurrentWeapon;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Weapon", meta=(ToolTip="현재 장착 무기 인덱스"))
 	int32 CurrentWeaponIndex;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="최대 무기 슬롯 수"))
 	int32 MaxWeaponSlots;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
-	FName WeaponAttachSocket;
+	FName WeaponAttachSocket  = TEXT("WeaponSocketRight");
+	FName WeaponHolsterSocket = TEXT("WeaponSocketRight");
 
-	/** 수납 시 붙일 소켓 (등, 허리 등) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
-	FName WeaponHolsterSocket;
-
-	/** 무기 교체 딜레이 (초) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="무기 교체 딜레이 (초). 이 시간 후 새 무기가 장착됨"))
 	float WeaponSwapDelay = 0.3f;
 
 	bool  bIsSwapping        = false;
+	bool  bIsFiring          = false;
 	int32 PendingWeaponIndex = -1;
 
 	FTimerHandle SwapTimerHandle;
@@ -266,6 +250,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
 	void AddCrosshairSpread(float Amount);
+
+	void ApplyRecoilShot();
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Movement")
 	void StartSprint();
@@ -302,60 +288,51 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
 	bool PickupWeapon(AWeaponBase* Weapon);
 
+	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
+	void DropCurrentWeapon();
+
+	void OnWeaponPickupRangeEnter(AWeaponBase* Weapon);
+	void OnWeaponPickupRangeExit(AWeaponBase* Weapon);
+
+	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
+	void TryPickupNearbyWeapon();
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Character|Weapon")
+	void OnPickupPromptChanged(bool bShow, AWeaponBase* Weapon);
+	virtual void OnPickupPromptChanged_Implementation(bool bShow, AWeaponBase* Weapon);
+
 	UFUNCTION(BlueprintPure, Category = "Character|Weapon")
 	AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
 
 	// --- Gravity ---
 
-	/**
-	 * 중력 방향을 변경합니다.
-	 * 레벨 블루프린트에서 Sequencer 특정 타이밍에 호출.
-	 * @param NewDirection  새 중력 방향 벡터 (정규화 불필요, 내부에서 처리)
-	 *                      예) (0,0,-1) = 기본, (0,0,1) = 천장이 바닥, (1,0,0) = 오른쪽 벽이 바닥
-	 */
 	UFUNCTION(BlueprintCallable, Category = "Character|Gravity")
 	void SetGravityDirection(FVector NewDirection);
 
-	/** 중력을 기본값 (0, 0, -1) 으로 복원합니다. */
 	UFUNCTION(BlueprintCallable, Category = "Character|Gravity")
 	void ResetGravity();
 
-	// ────────────────────────────────────────────────
-	// Fall / Landing (AnimBP 연동)
-	// ────────────────────────────────────────────────
+	// --- Fall / Landing ---
 
-	/** 현재 공중에서 낙하 중인지 (점프 상승 포함) — AnimBP에서 읽기 */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="현재 공중에서 낙하 중인지 (점프 상승 포함). AnimBP에서 읽기"))
 	bool bIsFalling = false;
 
-	/** 낙하 속도 (cm/s, 양수). 상승 중이면 0. AnimBP 블렌딩에 사용 */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="낙하 속도 (cm/s, 양수). 상승 중이면 0. AnimBP 블렌딩에 사용"))
 	float CurrentFallSpeed = 0.f;
 
-	/** 이 속도(cm/s) 이상으로 착지하면 하드 랜딩 판정 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="이 속도(cm/s) 이상으로 착지하면 하드 랜딩 판정"))
 	float HardLandingSpeedThreshold = 600.f;
 
-	/** 하드 랜딩 직후 true. ResetHardLanding() 호출 전까지 유지. */
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="하드 랜딩 직후 true. ResetHardLanding() 호출 전까지 유지"))
 	bool bIsHardLanding = false;
 
-	/**
-	 * 착지 이벤트. BP에서 오버라이드하여 랜딩 몽타주 재생.
-	 * @param bHardLanding  하드 랜딩이면 true (HardLandingSpeedThreshold 이상 속도)
-	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Character|Fall")
 	void OnLanding(bool bHardLanding);
 	virtual void OnLanding_Implementation(bool bHardLanding);
 
-	/**
-	 * 하드 랜딩 애니메이션이 끝난 뒤 AnimNotify에서 호출.
-	 * bIsHardLanding 플래그를 리셋한다.
-	 */
 	UFUNCTION(BlueprintCallable, Category = "Character|Fall")
 	void ResetHardLanding();
 
 protected:
-	/** ACharacter 기본 착지 콜백 — 내부에서 OnLanding 발동 */
 	virtual void Landed(const FHitResult& Hit) override;
 };

@@ -21,17 +21,16 @@ protected:
     virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
         AController* EventInstigator, AActor* DamageCauser) override;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shield")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shield", meta=(ToolTip="쉴드 최대 체력"))
     float ShieldMaxHealth = 150.f;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Shield")
+    UPROPERTY(BlueprintReadOnly, Category = "Shield", meta=(ToolTip="현재 쉴드 체력"))
     float ShieldCurrentHealth;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Shield")
+    UPROPERTY(BlueprintReadOnly, Category = "Shield", meta=(ToolTip="쉴드 활성화 여부. false면 쉴드 파괴 상태"))
     bool bShieldActive = true;
 
-    /** 전면 쉴드 차단 각도 (도, 이 각도 이내의 전방 공격을 쉴드가 흡수) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shield")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shield", meta=(ToolTip="전면 쉴드 차단 각도 (도). 이 각도 이내의 전방 공격을 쉴드가 흡수"))
     float ShieldBlockAngle = 60.f;
 
 public:
@@ -41,7 +40,6 @@ public:
     UFUNCTION(BlueprintPure, Category = "Shield")
     float GetShieldPercent() const;
 
-    /** 쉴드가 파괴됐을 때 BP에서 오버라이드 (이펙트, 사운드 등) */
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Shield")
     void OnShieldBreak();
     virtual void OnShieldBreak_Implementation();

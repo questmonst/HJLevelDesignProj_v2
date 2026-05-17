@@ -12,7 +12,6 @@ class GAMEANIMATIONSAMPLE2_API AMGEnemy : public AEnemyCharacter
 public:
     AMGEnemy();
 
-    /** true면 BT가 PatrolOrigin 근처에서 이동하지 않음 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MG|AI")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MG|AI", meta=(ToolTip="true면 BT가 PatrolOrigin 근처에서 이동하지 않음"))
     bool bHoldPosition = true;
 };

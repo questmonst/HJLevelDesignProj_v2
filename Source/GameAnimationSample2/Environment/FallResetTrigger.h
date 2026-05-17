@@ -10,7 +10,7 @@ class UBoxComponent;
 class AFallResetTarget;
 
 /**
- * 낙사 리셋 트리거 (Actor A).
+ * 낙사 리셋 트리거.
  * 이 액터의 콜리전에 플레이어가 닿으면 연결된 AFallResetTarget 위치로 순간이동.
  *
  * 사용법:
@@ -29,23 +29,19 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FallReset")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FallReset", meta=(ToolTip="낙사 감지 박스 컴포넌트"))
     UBoxComponent* TriggerBox;
 
-    /** 이동할 목표 위치 액터 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="이동할 목표 위치 액터"))
     AFallResetTarget* ResetTarget;
 
-    /** 텔레포트 전 화면 페이드 아웃 시간 (0 = 즉시) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="텔레포트 전 화면 페이드 아웃 시간 (초). 0이면 즉시"))
     float FadeOutDuration = 0.2f;
 
-    /** 텔레포트 후 화면 페이드 인 시간 (0 = 즉시) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="텔레포트 후 화면 페이드 인 시간 (초). 0이면 즉시"))
     float FadeInDuration = 0.3f;
 
-    /** 텔레포트 시 속도 초기화 여부 */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="텔레포트 시 속도 초기화 여부"))
     bool bResetVelocity = true;
 
 private:

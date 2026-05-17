@@ -25,23 +25,19 @@ protected:
 
     // --- Perception ---
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception", meta=(ToolTip="AI 감지 컴포넌트"))
     UAIPerceptionComponent* AIPerception;
 
-    /** 시야 반경 (cm) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception", meta=(ToolTip="시야 반경 (cm)"))
     float SightRadius = 2000.f;
 
-    /** 시야 상실 반경 (cm, SightRadius보다 커야 함) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception", meta=(ToolTip="시야 상실 반경 (cm). SightRadius보다 커야 함"))
     float LoseSightRadius = 2500.f;
 
-    /** 주변 시야각 (도, 양쪽 합산) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception", meta=(ToolTip="주변 시야각 (도, 양쪽 합산)"))
     float PeripheralVisionAngleDeg = 60.f;
 
-    /** 청각 반경 (cm) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Perception", meta=(ToolTip="청각 반경 (cm)"))
     float HearingRange = 1200.f;
 
 public:

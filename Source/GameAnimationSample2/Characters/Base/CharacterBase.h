@@ -20,16 +20,16 @@ protected:
 
 	// --- Stats ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats", meta=(ToolTip="최대 체력"))
 	float MaxHealth;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats", meta=(ToolTip="현재 체력. BeginPlay에서 MaxHealth로 초기화"))
 	float CurrentHealth;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Stats", meta=(ToolTip="팀 ID. 0=플레이어·아군, 1=적. AIPerception 팀 감지에 사용"))
 	int32 TeamID;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats")
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats", meta=(ToolTip="사망 여부. true면 OnDeath 이후 상태"))
 	bool bIsDead = false;
 
 	// --- Internal ---

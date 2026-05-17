@@ -40,7 +40,6 @@ APlayerCharacter::APlayerCharacter()
 	AimFOV        = 60.0f;
 	bIsAiming     = false;
 
-	// 기본적으로 모든 행동 허용
 	AllowedActions = 0xFF;
 
 	bUseControllerRotationYaw                              = false;
@@ -51,7 +50,7 @@ APlayerCharacter::APlayerCharacter()
 	TraversalComponent    = CreateDefaultSubobject<UTraversalComponent>(TEXT("TraversalComponent"));
 	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarpingComponent"));
 
-	// AimArrow — BP 뷰포트에서 머즐 소켓 위치에 배치
+	// AimArrow
 	AimArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("AimArrow"));
 	AimArrow->SetupAttachment(GetMesh());
 	AimArrow->SetArrowColor(FColor::Cyan);
@@ -90,7 +89,7 @@ void APlayerCharacter::BeginPlay()
 		SplineMeshPool.Add(SMC);
 	}
 
-	// Spawn default weapons (최대 MaxWeaponSlots개, 첫 번째 자동 장착)
+	// Spawn default weapons
 	for (int32 i = 0; i < DefaultWeaponClasses.Num() && i < MaxWeaponSlots; ++i)
 	{
 		if (!DefaultWeaponClasses[i]) continue;
@@ -103,7 +102,6 @@ void APlayerCharacter::BeginPlay()
 
 void APlayerCharacter::Jump()
 {
-	// 트래버설 가능하면 트래버설 시작 (점프 소비)
 	if (TraversalComponent && TraversalComponent->TryTraversal()) return;
 	Super::Jump();
 }
@@ -115,7 +113,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EIC) return;
 
-	// IMC 등록
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
@@ -128,7 +125,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		}
 	}
 
-	// IMC에서 이름으로 자동 탐색해 바인딩
 	auto Bind = [&](const FString& Name, ETriggerEvent Event, auto Func)
 	{
 		if (const UInputAction* IA = FindActionInIMC(Name))
@@ -151,8 +147,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	Bind(TEXT("Weapon1"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot1);
 	Bind(TEXT("Weapon2"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot2);
 	Bind(TEXT("Weapon3"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot3);
-	Bind(TEXT("Throw"),   ETriggerEvent::Started,   &APlayerCharacter::StartGrenadeThrow);
-	Bind(TEXT("Throw"),   ETriggerEvent::Completed, &APlayerCharacter::ReleaseGrenadeThrow);
+	Bind(TEXT("Throw"),    ETriggerEvent::Started,   &APlayerCharacter::StartGrenadeThrow);
+	Bind(TEXT("Throw"),    ETriggerEvent::Completed, &APlayerCharacter::ReleaseGrenadeThrow);
+	Bind(TEXT("Interact"), ETriggerEvent::Started,   &APlayerCharacter::TryPickupNearbyWeapon);
 }
 
 const UInputAction* APlayerCharacter::FindActionInIMC(const FString& NameContains) const
@@ -185,13 +182,12 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	UpdateAimSpinePitch(DeltaTime);
 	UpdateCrosshairSpread(DeltaTime);
+	UpdateRecoil(DeltaTime);
 
-	// ── 낙하 상태 추적 (AnimBP에서 bIsFalling, CurrentFallSpeed 읽음) ──
 	bIsFalling = GetCharacterMovement()->IsFalling();
 	if (bIsFalling)
 	{
 		const float ZVel = GetVelocity().Z;
-		// 상승 중(ZVel > 0)이면 FallSpeed는 0, 하강 중이면 양수 값으로 노출
 		CurrentFallSpeed = (ZVel < 0.f) ? -ZVel : 0.f;
 	}
 	else
@@ -217,16 +213,14 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 		bool bRightCover = GetWorld()->LineTraceSingleByChannel(RightHit, Origin, Origin + Right * CoverTraceDistance, ECC_WorldStatic, Params);
 
 		if (bLeftCover && !bRightCover)
-			TargetY = NormalSocketOffsetY + CoverPeekOffset;   // 왼쪽 엄폐 → 오른쪽으로
+			TargetY = NormalSocketOffsetY + CoverPeekOffset;
 		else if (bRightCover && !bLeftCover)
-			TargetY = NormalSocketOffsetY - CoverPeekOffset;   // 오른쪽 엄폐 → 왼쪽으로
+			TargetY = NormalSocketOffsetY - CoverPeekOffset;
 	}
 
 	SpringArmComponent->SocketOffset.Y = FMath::FInterpTo(
 		SpringArmComponent->SocketOffset.Y, TargetY, DeltaTime, CoverPeekInterpSpeed);
 }
-
-// --- Turn In Place ---
 
 void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 {
@@ -234,7 +228,6 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 	const float ActorYaw   = GetActorRotation().Yaw;
 	AimYaw = FMath::UnwindDegrees(ControlYaw - ActorYaw);
 
-	// 이동 중에는 즉시 카메라 방향으로 스냅 (AimWalk 블렌드스페이스가 처리)
 	if (GetVelocity().SizeSquared2D() > 1.f)
 	{
 		SetActorRotation(FRotator(0.f, ControlYaw, 0.f));
@@ -244,7 +237,6 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 		return;
 	}
 
-	// Turn 진행 중: 액터를 카메라 방향으로 회전
 	if (bIsTurningRight || bIsTurningLeft)
 	{
 		const float Delta     = FMath::UnwindDegrees(ControlYaw - GetActorRotation().Yaw);
@@ -257,7 +249,6 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 
 		AimYaw = FMath::UnwindDegrees(ControlYaw - NewRot.Yaw);
 
-		// AimYaw가 충분히 줄어들면 Turn 완료
 		if (FMath::Abs(AimYaw) < 5.f)
 		{
 			bIsTurningRight = false;
@@ -266,11 +257,9 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 		return;
 	}
 
-	// 임계값 초과 시 Turn 시작
 	if (AimYaw >  TurnRightThreshold) { bIsTurningRight = true; return; }
 	if (AimYaw < -TurnLeftThreshold)  { bIsTurningLeft  = true; return; }
 
-	// 임계값 미만: SoftTurnSpeed로 천천히 카메라 따라가기
 	if (SoftTurnSpeed > 0.f && FMath::Abs(AimYaw) > 0.1f)
 	{
 		const float RotStep   = SoftTurnSpeed * DeltaTime;
@@ -283,8 +272,6 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 		AimYaw = FMath::UnwindDegrees(ControlYaw - NewRot.Yaw);
 	}
 }
-
-// --- Crosshair Spread ---
 
 void APlayerCharacter::UpdateCrosshairSpread(float DeltaTime)
 {
@@ -310,13 +297,10 @@ void APlayerCharacter::AddCrosshairSpread(float Amount)
 	SpreadAdditive += Amount;
 }
 
-// --- Aim Spine Pitch ---
-
 void APlayerCharacter::UpdateAimSpinePitch(float DeltaTime)
 {
 	float TargetPitch = 0.f;
 
-	// 회전 중에는 스파인 피치를 0으로 수렴 (회전과 스파인 동시 적용 시 충돌 방지)
 	if (bIsTurningRight || bIsTurningLeft)
 	{
 		AimSpinePitch = FMath::FInterpTo(AimSpinePitch, 0.f, DeltaTime, AimSpineInterpSpeed);
@@ -346,119 +330,6 @@ void APlayerCharacter::UpdateAimSpinePitch(float DeltaTime)
 	AimSpinePitch = FMath::FInterpTo(AimSpinePitch, TargetPitch, DeltaTime, AimSpineInterpSpeed);
 }
 
-// --- Grenade ---
-
-void APlayerCharacter::StartGrenadeThrow()
-{
-	if (!GrenadeClass) return;
-	bIsPreparingThrow = true;
-}
-
-void APlayerCharacter::ReleaseGrenadeThrow()
-{
-	if (!bIsPreparingThrow) return;
-	bIsPreparingThrow = false;
-	ClearTrajectory();
-
-	if (!GrenadeClass || GrenadeCount <= 0) return;
-	GrenadeCount--;
-
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return;
-
-	FVector ViewLocation;
-	FRotator ViewRotation;
-	PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
-
-	FVector ThrowStart    = GetMesh()->GetSocketLocation(WeaponAttachSocket);
-	FVector ThrowVelocity = ViewRotation.Vector() * GrenadeThrowSpeed;
-
-	FActorSpawnParameters Params;
-	Params.Owner     = this;
-	Params.Instigator = GetInstigator();
-
-	AGrenadeBase* Grenade = GetWorld()->SpawnActor<AGrenadeBase>(
-		GrenadeClass, ThrowStart, ViewRotation, Params);
-	if (Grenade)
-	{
-		Grenade->Launch(ThrowVelocity);
-	}
-}
-
-void APlayerCharacter::UpdateTrajectory()
-{
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return;
-
-	FVector ViewLocation;
-	FRotator ViewRotation;
-	PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
-
-	FVector ThrowStart    = ViewLocation + ViewRotation.Vector() * 50.f;
-	FVector ThrowVelocity = ViewRotation.Vector() * GrenadeThrowSpeed;
-
-	FPredictProjectilePathParams PredictParams(
-		5.f, ThrowStart, ThrowVelocity, 3.f, ECC_WorldDynamic, this);
-	PredictParams.bTraceWithCollision = true;
-	PredictParams.SimFrequency        = 15.f;
-
-	FPredictProjectilePathResult Result;
-	UGameplayStatics::PredictProjectilePath(this, PredictParams, Result);
-
-	// 스플라인 포인트 갱신
-	TrajectorySpline->ClearSplinePoints(false);
-	for (const FPredictProjectilePathPointData& PointData : Result.PathData)
-	{
-		TrajectorySpline->AddSplinePoint(PointData.Location, ESplineCoordinateSpace::World, false);
-	}
-	TrajectorySpline->UpdateSpline();
-
-	// 스플라인 메시 풀 갱신
-	int32 NumSegments = FMath::Min(TrajectorySpline->GetNumberOfSplinePoints() - 1, MaxTrajectorySegments);
-
-	for (int32 i = 0; i < SplineMeshPool.Num(); ++i)
-	{
-		USplineMeshComponent* SMC = SplineMeshPool[i];
-		if (i < NumSegments)
-		{
-			if (TrajectoryMesh && SMC->GetStaticMesh() != TrajectoryMesh)
-			{
-				SMC->SetStaticMesh(TrajectoryMesh);
-				if (TrajectoryMaterial) SMC->SetMaterial(0, TrajectoryMaterial);
-			}
-
-			FVector StartPos, StartTangent, EndPos, EndTangent;
-			TrajectorySpline->GetLocationAndTangentAtSplinePoint(i,     StartPos, StartTangent, ESplineCoordinateSpace::World);
-			TrajectorySpline->GetLocationAndTangentAtSplinePoint(i + 1, EndPos,   EndTangent,   ESplineCoordinateSpace::World);
-
-			float SegmentLength = FVector::Dist(StartPos, EndPos);
-			StartTangent = StartTangent.GetSafeNormal() * SegmentLength;
-			EndTangent   = EndTangent.GetSafeNormal()   * SegmentLength;
-
-			// 컴포넌트를 시작점으로 이동 후 로컬 상대좌표로 넘김
-			SMC->SetWorldLocation(StartPos);
-			SMC->SetWorldRotation(FRotator::ZeroRotator);
-			SMC->SetStartAndEnd(FVector::ZeroVector, StartTangent, EndPos - StartPos, EndTangent);
-			SMC->SetStartScale(FVector2D(TrajectoryMeshScale, TrajectoryMeshScale));
-			SMC->SetEndScale(FVector2D(TrajectoryMeshScale, TrajectoryMeshScale));
-			SMC->SetVisibility(true);
-		}
-		else
-		{
-			SMC->SetVisibility(false);
-		}
-	}
-}
-
-void APlayerCharacter::ClearTrajectory()
-{
-	for (USplineMeshComponent* SMC : SplineMeshPool)
-	{
-		SMC->SetVisibility(false);
-	}
-	TrajectorySpline->ClearSplinePoints();
-}
-
 void APlayerCharacter::HandleMove(const FInputActionValue& Value)
 {
 	FVector2D Axis = Value.Get<FVector2D>();
@@ -478,8 +349,6 @@ void APlayerCharacter::HandleLook(const FInputActionValue& Value)
 	AddControllerPitchInput(Axis.Y);
 }
 
-// --- Action Permission ---
-
 bool APlayerCharacter::CanDo(ECharacterAction Action) const
 {
 	return (AllowedActions & static_cast<int32>(Action)) != 0;
@@ -495,8 +364,6 @@ void APlayerCharacter::Block(ECharacterAction Action)
 	AllowedActions &= ~static_cast<int32>(Action);
 }
 
-// --- Movement ---
-
 void APlayerCharacter::StartSprint()
 {
 	if (!CanDo(ECharacterAction::Sprint)) return;
@@ -507,8 +374,6 @@ void APlayerCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : WalkSpeed;
 }
-
-// --- Aim ---
 
 void APlayerCharacter::StartAim()
 {
@@ -534,99 +399,8 @@ void APlayerCharacter::StopAim()
 	AimYaw          = 0.f;
 }
 
-// --- Weapon ---
-
-bool APlayerCharacter::PickupWeapon(AWeaponBase* Weapon)
-{
-	if (!Weapon) return false;
-	if (WeaponInventory.Num() >= MaxWeaponSlots) return false;
-
-	WeaponInventory.Add(Weapon);
-	Weapon->SetOwner(this);
-
-	// 첫 무기면 바로 장착, 아니면 홀스터 소켓에 수납
-	if (WeaponInventory.Num() == 1)
-	{
-		Weapon->AttachToComponent(GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			WeaponAttachSocket);
-		CurrentWeaponIndex = 0;
-		CurrentWeapon      = Weapon;
-	}
-	else
-	{
-		const FName HolsterSocket = WeaponHolsterSocket.IsNone() ? WeaponAttachSocket : WeaponHolsterSocket;
-		Weapon->AttachToComponent(GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			HolsterSocket);
-		Weapon->SetActorHiddenInGame(WeaponHolsterSocket.IsNone());
-	}
-
-	return true;
-}
-
-void APlayerCharacter::EquipWeapon(int32 Index)
-{
-	if (!WeaponInventory.IsValidIndex(Index)) return;
-	if (Index == CurrentWeaponIndex) return;
-	if (bIsSwapping) return;
-
-	bIsSwapping        = true;
-	PendingWeaponIndex = Index;
-
-	// 현재 무기 홀스터로 이동
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->StopFire();
-		const FName HolsterSocket = WeaponHolsterSocket.IsNone() ? WeaponAttachSocket : WeaponHolsterSocket;
-		CurrentWeapon->AttachToComponent(GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			HolsterSocket);
-		if (WeaponHolsterSocket.IsNone())
-			CurrentWeapon->SetActorHiddenInGame(true);
-	}
-
-	GetWorldTimerManager().SetTimer(SwapTimerHandle, this, &APlayerCharacter::FinishEquipWeapon, WeaponSwapDelay, false);
-}
-
-void APlayerCharacter::FinishEquipWeapon()
-{
-	bIsSwapping = false;
-
-	if (!WeaponInventory.IsValidIndex(PendingWeaponIndex)) return;
-
-	CurrentWeaponIndex = PendingWeaponIndex;
-	CurrentWeapon      = WeaponInventory[CurrentWeaponIndex];
-
-	CurrentWeapon->SetActorHiddenInGame(false);
-	CurrentWeapon->AttachToComponent(GetMesh(),
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		WeaponAttachSocket);
-}
-
 void APlayerCharacter::StartCrouch() { Crouch(); }
 void APlayerCharacter::StopCrouch()  { UnCrouch(); }
-
-void APlayerCharacter::EquipWeaponSlot1() { EquipWeapon(0); }
-void APlayerCharacter::EquipWeaponSlot2() { EquipWeapon(1); }
-void APlayerCharacter::EquipWeaponSlot3() { EquipWeapon(2); }
-
-void APlayerCharacter::StartFire()
-{
-	if (CurrentWeapon) CurrentWeapon->StartFire();
-}
-
-void APlayerCharacter::StopFire()
-{
-	if (CurrentWeapon) CurrentWeapon->StopFire();
-}
-
-void APlayerCharacter::Reload()
-{
-	if (CurrentWeapon) CurrentWeapon->Reload();
-}
-
-// --- Gravity ---
 
 void APlayerCharacter::SetGravityDirection(FVector NewDirection)
 {
@@ -639,12 +413,8 @@ void APlayerCharacter::ResetGravity()
 	GetCharacterMovement()->SetGravityDirection(FVector(0.f, 0.f, -1.f));
 }
 
-// --- Fall / Landing ---
-
 void APlayerCharacter::Landed(const FHitResult& Hit)
 {
-	// Landed()는 실제 착지 직전 프레임의 속도를 가지고 있지 않으므로
-	// Tick에서 추적한 CurrentFallSpeed를 착지 판정에 사용한다.
 	const float LandingSpeed = CurrentFallSpeed;
 	const bool  bHard        = LandingSpeed >= HardLandingSpeedThreshold;
 
@@ -652,7 +422,6 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	bIsFalling       = false;
 	bIsHardLanding   = bHard;
 
-	// AnimBP 이벤트 발동
 	OnLanding(bHard);
 
 	Super::Landed(Hit);
@@ -660,10 +429,6 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 
 void APlayerCharacter::OnLanding_Implementation(bool bHardLanding)
 {
-	// BP에서 오버라이드:
-	//   if bHardLanding → PlayAnimMontage(HardLandMontage)
-	//   else            → PlayAnimMontage(SoftLandMontage)
-	// 몽타주 끝 Anim Notify에서 ResetHardLanding() 호출
 }
 
 void APlayerCharacter::ResetHardLanding()

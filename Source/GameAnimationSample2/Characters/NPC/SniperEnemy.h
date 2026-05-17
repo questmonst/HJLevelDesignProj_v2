@@ -12,7 +12,6 @@ class GAMEANIMATIONSAMPLE2_API ASniperEnemy : public AEnemyCharacter
 public:
     ASniperEnemy();
 
-    /** true면 BT가 PatrolOrigin 근처에 고정 (이동 안 함) */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sniper|AI")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sniper|AI", meta=(ToolTip="true면 BT가 PatrolOrigin 근처에 고정 (이동 안 함)"))
     bool bHoldPosition = true;
 };
