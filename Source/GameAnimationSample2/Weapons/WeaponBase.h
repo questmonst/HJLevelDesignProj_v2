@@ -10,6 +10,7 @@
 
 class UNiagaraSystem;
 class USphereComponent;
+class AGrenadeBase;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API AWeaponBase : public AActor
@@ -119,6 +120,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile", meta=(ToolTip="Hitscan 모드에서 시각 효과용으로 스폰할 투사체 클래스 (충돌·피해 없음)"))
 	TSubclassOf<AProjectileBase> CosmeticProjectileClass;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile", meta=(ToolTip="설정 시 Projectile 모드에서 ProjectileClass 대신 이 수류탄(AGrenadeBase)을 발사 — 유탄 발사기. DataAsset에서 설정"))
+	TSubclassOf<AGrenadeBase> GrenadeClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile", meta=(ToolTip="투사체 속도 덮어쓰기 (cm/s). 0이면 투사체 기본값 사용"))
 	float ProjectileSpeedOverride = 0.f;
 
@@ -186,6 +190,7 @@ protected:
 
 	void HitscanFire();
 	void ProjectileFire();
+	void GrenadeFire();	// 유탄 발사기: AGrenadeBase를 스폰해 조준 방향으로 Launch
 	void FinishReload();
 	void ResetSemiFireCooldown();
 	void FireNextPelletInBurst();

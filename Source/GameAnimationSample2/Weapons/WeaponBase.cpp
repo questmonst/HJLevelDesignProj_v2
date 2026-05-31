@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WeaponBase.h"
+#include "GrenadeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "PlayerCharacter.h"
@@ -63,6 +64,7 @@ void AWeaponBase::BeginPlay()
 		bAmmoPerPellet          = WeaponData->bAmmoPerPellet;
 		ProjectileClass         = WeaponData->ProjectileClass;
 		CosmeticProjectileClass = WeaponData->CosmeticProjectileClass;
+		GrenadeClass            = WeaponData->GrenadeClass;
 		// --- Stats ---
 		Damage                  = WeaponData->Damage;
 		FireRate                = WeaponData->FireRate;
@@ -349,6 +351,9 @@ void AWeaponBase::HitscanFire()
 
 void AWeaponBase::ProjectileFire()
 {
+	// 유탄 발사기: GrenadeClass가 설정돼 있으면 일반 투사체 대신 수류탄을 발사
+	if (GrenadeClass) { GrenadeFire(); return; }
+
 	if (!ProjectileClass) return;
 
 	const FVector MuzzleLoc = WeaponMesh->DoesSocketExist(MuzzleSocketName)
@@ -421,6 +426,47 @@ void AWeaponBase::ProjectileFire()
 			if (ProjectileSpeedOverride > 0.f)
 				Projectile->OverrideSpeed(ProjectileSpeedOverride);
 		}
+	}
+
+	FHitResult DummyHit;
+	OnFire(DummyHit);
+}
+
+void AWeaponBase::GrenadeFire()
+{
+	if (!GrenadeClass) return;
+
+	const FVector MuzzleLoc = WeaponMesh->DoesSocketExist(MuzzleSocketName)
+		? WeaponMesh->GetSocketLocation(MuzzleSocketName)
+		: GetActorLocation();
+
+	APawn* OwnerPawn      = Cast<APawn>(GetOwner());
+	AController* OwnerCtrl = OwnerPawn ? OwnerPawn->GetController() : nullptr;
+
+	FVector  CamLoc;
+	FRotator CamRot;
+	if (APlayerController* PC = Cast<APlayerController>(OwnerCtrl))
+		PC->GetPlayerViewPoint(CamLoc, CamRot);
+	else if (OwnerPawn)
+	{
+		CamLoc = OwnerPawn->GetActorLocation();
+		CamRot = OwnerPawn->GetActorRotation();
+	}
+	else return;
+
+	// 머즐에서 카메라 정면 방향으로 발사 (궤도 미리보기와 동일 기준). 포물선은 수류탄 자체 중력으로.
+	const FVector AimDir = CamRot.Vector();
+	const float   Speed  = (ProjectileSpeedOverride > 0.f) ? ProjectileSpeedOverride : 3000.f;
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner      = GetOwner();
+	SpawnParams.Instigator = OwnerPawn;
+
+	AGrenadeBase* Grenade = GetWorld()->SpawnActor<AGrenadeBase>(
+		GrenadeClass, MuzzleLoc, AimDir.Rotation(), SpawnParams);
+	if (Grenade)
+	{
+		Grenade->Launch(AimDir * Speed);
 	}
 
 	FHitResult DummyHit;

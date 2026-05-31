@@ -8,6 +8,7 @@
 #include "WeaponDataAsset.generated.h"
 
 class UNiagaraSystem;
+class AGrenadeBase;
 
 UENUM(BlueprintType)
 enum class EWeaponFireMode : uint8
@@ -89,8 +90,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta=(ToolTip="Hitscan 모드에서 시각 효과용으로 스폰할 투사체 클래스 (충돌·피해 없음)"))
 	TSubclassOf<AProjectileBase> CosmeticProjectileClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta=(ToolTip="투사체 속도 덮어쓰기 (cm/s). 0이면 투사체 기본값 사용"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta=(ToolTip="투사체 속도 덮어쓰기 (cm/s). 0이면 투사체 기본값 사용. 유탄 발사기는 발사 속도로도 사용"))
 	float ProjectileSpeedOverride = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta=(ToolTip="설정 시 Projectile 모드에서 ProjectileClass 대신 이 수류탄을 발사 (유탄 발사기). ProjectileSpeedOverride를 발사 속도로 사용"))
+	TSubclassOf<AGrenadeBase> GrenadeClass;
 
 	// --- Spread ---
 
