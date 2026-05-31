@@ -28,6 +28,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="투사체 수명 (초). 이 시간 후 자동 소멸"))
 	float LifeSpanSeconds = 3.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="true면 충돌 시 점 피해 대신 범위 폭발 피해를 적용 (수류탄 등)"))
+	bool bRadialDamage = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="범위 폭발 반경 (cm). bRadialDamage=true일 때만 사용", EditCondition="bRadialDamage"))
+	float DamageRadius = 300.f;
+
 	// --- Audio ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta=(ToolTip="충돌 시 재생할 사운드 에셋"))

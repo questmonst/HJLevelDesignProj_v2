@@ -40,6 +40,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Stats", meta=(ToolTip="투사체 수명 (초). 이 시간 후 자동 소멸"))
 	float LifeSpanSeconds;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Stats", meta=(ToolTip="true면 충돌 시 점 피해 대신 범위 폭발 피해를 적용 (수류탄 등)"))
+	bool bRadialDamage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Stats", meta=(ToolTip="범위 폭발 반경 (cm). bRadialDamage=true일 때만 사용", EditCondition="bRadialDamage"))
+	float DamageRadius;
+
 	// --- Data ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Data", meta=(ToolTip="할당 시 BeginPlay에서 Stats·Audio·VFX 값을 덮어씀"))

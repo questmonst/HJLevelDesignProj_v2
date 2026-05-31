@@ -29,6 +29,8 @@ AProjectileBase::AProjectileBase()
 	InitialSpeed    = 3000.0f;
 	GravityScale    = 0.1f;
 	LifeSpanSeconds = 3.0f;
+	bRadialDamage   = false;
+	DamageRadius    = 300.0f;
 }
 
 void AProjectileBase::BeginPlay()
@@ -45,6 +47,8 @@ void AProjectileBase::BeginPlay()
 		InitialSpeed    = ProjectileData->InitialSpeed;
 		GravityScale    = ProjectileData->GravityScale;
 		LifeSpanSeconds = ProjectileData->LifeSpanSeconds;
+		bRadialDamage   = ProjectileData->bRadialDamage;
+		DamageRadius    = ProjectileData->DamageRadius;
 		HitSound        = ProjectileData->HitSound;
 		FlightVFX       = ProjectileData->FlightVFX;
 		FlightVFXScale  = ProjectileData->FlightVFXScale;
@@ -72,9 +76,22 @@ void AProjectileBase::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetOwner()) return;
 
-	UGameplayStatics::ApplyPointDamage(
-		OtherActor, Damage, GetActorForwardVector(), Hit,
-		GetInstigatorController(), this, nullptr);
+	if (bRadialDamage)
+	{
+		// 폭발 지점 기준 반경 내 모든 액터에 거리 감쇠 피해 (수류탄 등).
+		// 충돌 대상(OtherActor)이 벽·바닥이어도 그 지점에서 폭발해야 하므로
+		// 점 피해 대신 위치 기반 ApplyRadialDamage를 사용한다.
+		UGameplayStatics::ApplyRadialDamage(
+			GetWorld(), Damage, Hit.ImpactPoint, DamageRadius,
+			nullptr, TArray<AActor*>(), this, GetInstigatorController(),
+			false /*bDoFullDamage: false=거리 감쇠*/);
+	}
+	else
+	{
+		UGameplayStatics::ApplyPointDamage(
+			OtherActor, Damage, GetActorForwardVector(), Hit,
+			GetInstigatorController(), this, nullptr);
+	}
 
 	if (HitSound)
 	{

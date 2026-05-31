@@ -12,7 +12,7 @@
 AMikaCharacter::AMikaCharacter()
 {
 	PunchHitbox = CreateDefaultSubobject<UBoxComponent>(TEXT("PunchHitbox"));
-	PunchHitbox->SetupAttachment(GetMesh(), TEXT("hand_r"));
+	PunchHitbox->SetupAttachment(GetMesh(), TEXT("WeaponSocketRight"));	// "hand_r"은 ValveBiped 스켈레톤에 없는 소켓이라 루트로 폴백됐었음. 오른손 소켓 사용.
 	PunchHitbox->SetBoxExtent(FVector(20.f, 20.f, 20.f));
 	PunchHitbox->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 	PunchHitbox->SetGenerateOverlapEvents(false);

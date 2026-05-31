@@ -233,7 +233,9 @@ protected:
 	int32 MaxWeaponSlots;
 
 	FName WeaponAttachSocket  = TEXT("WeaponSocketRight");
-	FName WeaponHolsterSocket = TEXT("WeaponSocketRight");
+	// None이면 비장착(홀스터) 무기를 숨김 — 손에 든 무기만 표시.
+	// 몸에 무기를 보이게 하려면 등·허리 등 별도 홀스터 소켓 이름을 지정.
+	FName WeaponHolsterSocket = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="무기 교체 딜레이 (초). 이 시간 후 새 무기가 장착됨"))
 	float WeaponSwapDelay = 0.3f;

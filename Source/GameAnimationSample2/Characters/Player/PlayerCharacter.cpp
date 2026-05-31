@@ -63,7 +63,7 @@ APlayerCharacter::APlayerCharacter()
 	CurrentWeapon      = nullptr;
 	CurrentWeaponIndex = -1;
 	MaxWeaponSlots     = 3;
-	WeaponAttachSocket = TEXT("WeaponSocket");
+	WeaponAttachSocket = TEXT("WeaponSocketRight");	// 미카 오른손 본 소켓 (메시에 실제 존재). "WeaponSocket"은 없는 소켓이라 루트로 폴백됐었음.
 }
 
 void APlayerCharacter::BeginPlay()
