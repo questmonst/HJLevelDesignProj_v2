@@ -59,6 +59,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="본체(생성·투사체 VFX) 시각 배율. 유탄용은 0.5로 일반 수류탄의 절반 크기"))
 	float VisualScale = 1.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="손에 들 때: 생성 FX 재생 후 본체(투사체) VFX가 손에 붙기까지의 시간(초). 생성 FX 길이에 맞춰 조절"))
+	float SpawnToProjectileDelay = 0.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="NS_Bomb_Explosion이 제작된 기준 반경(cm). ExplosionRadius와의 비율로 폭발 VFX 스케일 계산"))
 	float ExplosionVFXReferenceRadius = 300.f;
 };

@@ -174,11 +174,12 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		UpdateTrajectory();
 	}
-	else if (bIsFiring && CurrentWeapon && CurrentWeapon->ShowsArcTrajectory())
+	else if (bIsAiming && CurrentWeapon && CurrentWeapon->ShowsArcTrajectory())
 	{
+		// 유탄 발사기: 발사 중이 아니라 조준하는 동안 계속 궤도 표시
 		UpdateWeaponTrajectory();
 	}
-	else if (!bIsPreparingThrow && !(bIsFiring && CurrentWeapon && CurrentWeapon->ShowsArcTrajectory()))
+	else
 	{
 		ClearTrajectory();
 	}

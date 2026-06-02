@@ -19,6 +19,7 @@ class UInputAction;
 class USplineComponent;
 class USplineMeshComponent;
 class UTraversalComponent;
+class UAnimMontage;
 class UMotionWarpingComponent;
 
 UCLASS(Blueprintable, BlueprintType)
@@ -199,14 +200,18 @@ protected:
 	bool bIsPreparingThrow = false;
 
 	UPROPERTY()
+	AGrenadeBase* HeldGrenade = nullptr;	// 조준 중 오른손에 들고 있는 수류탄 (Release 시 발사)
+
+	UPROPERTY()
 	TArray<USplineMeshComponent*> SplineMeshPool;
 
 	static const int32 MaxTrajectorySegments = 20;
 
 	void StartGrenadeThrow();
 	void ReleaseGrenadeThrow();
-	void UpdateTrajectory();
-	void UpdateWeaponTrajectory();
+	void UpdateTrajectory();			// 수류탄 투척 궤도 (시작점·속도 계산 후 RenderTrajectory 호출)
+	void UpdateWeaponTrajectory();		// 유탄 발사기 궤도 (시작점·속도 계산 후 RenderTrajectory 호출)
+	void RenderTrajectory(const FVector& Start, const FVector& Velocity);	// 공용 궤도 렌더러
 	void ClearTrajectory();
 
 	// --- Weapon ---
@@ -239,6 +244,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="무기 교체 딜레이 (초). 이 시간 후 새 무기가 장착됨"))
 	float WeaponSwapDelay = 0.3f;
+
+	// 발사(반동) 몽타주 — 무기별이 아닌 캐릭터 공통. MikaData에서 주입 (UpperBody 슬롯)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="발사(반동) 시 재생할 몽타주. 모든 무기 공통"))
+	UAnimMontage* FireMontage = nullptr;
 
 	bool  bIsSwapping        = false;
 	bool  bIsFiring          = false;
@@ -297,6 +306,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
 	void DropCurrentWeapon();
+
+	// 슬롯이 꽉 찼을 때: 현재 든 무기를 같은 슬롯에서 땅의 무기와 교체 (인덱스 유지)
+	void SwapCurrentWeaponWith(AWeaponBase* NewWeapon);
 
 	void OnWeaponPickupRangeEnter(AWeaponBase* Weapon);
 	void OnWeaponPickupRangeExit(AWeaponBase* Weapon);

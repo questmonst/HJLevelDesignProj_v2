@@ -94,8 +94,6 @@ void AWeaponBase::BeginPlay()
 		HitVFX                  = WeaponData->HitVFX;
 		MuzzleVFX               = WeaponData->MuzzleVFX;
 		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
-		// --- Animation ---
-		FireMontage             = WeaponData->FireMontage;
 	}
 
 	RefreshMeshTransform();

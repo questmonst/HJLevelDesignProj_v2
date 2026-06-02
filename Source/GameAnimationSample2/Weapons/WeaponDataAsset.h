@@ -140,10 +140,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pickup", meta=(ToolTip="주울 때 재생할 SFX"))
 	USoundBase* PickupSound = nullptr;
 
-	// --- Animation ---
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="발사 시 캐릭터에 재생할 몽타주 (UpperBody 슬롯). 자동화기는 루프 설정 권장"))
-	UAnimMontage* FireMontage = nullptr;
+	// 발사(반동) 몽타주는 무기별이 아닌 캐릭터 공통이라 MikaDataAsset로 이동됨.
 
 	// --- Audio ---
 

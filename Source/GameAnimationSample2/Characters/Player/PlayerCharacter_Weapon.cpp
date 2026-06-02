@@ -117,10 +117,12 @@ void APlayerCharacter::TryPickupNearbyWeapon()
 	PendingPickupWeapon = nullptr;
 	bShowPickupPrompt   = false;
 
-	// 슬롯 꽉 차면 현재 무기 드롭 후 픽업
+	// 슬롯 꽉 차면: 현재 든 무기를 같은 슬롯에서 땅의 무기와 교체 (인덱스 유지)
 	if (WeaponInventory.Num() >= MaxWeaponSlots)
 	{
-		DropCurrentWeapon();
+		SwapCurrentWeaponWith(Weapon);
+		OnPickupPromptChanged(false, nullptr);
+		return;
 	}
 
 	if (!PickupWeapon(Weapon))
@@ -131,6 +133,44 @@ void APlayerCharacter::TryPickupNearbyWeapon()
 	else
 	{
 		OnPickupPromptChanged(false, nullptr);
+	}
+}
+
+void APlayerCharacter::SwapCurrentWeaponWith(AWeaponBase* NewWeapon)
+{
+	if (!NewWeapon || !CurrentWeapon || !WeaponInventory.IsValidIndex(CurrentWeaponIndex)) return;
+
+	AWeaponBase* OldWeapon = CurrentWeapon;
+	const bool   bFromWorld = NewWeapon->IsDropped();
+
+	// 1) 현재 무기를 발 앞에 드롭 (DropCurrentWeapon과 동일한 드롭 처리, 단 인벤토리에서 제거하지 않고 교체)
+	OldWeapon->StopFire();
+	const FVector DropLocation = GetActorLocation()
+		+ GetActorForwardVector() * 80.f
+		- FVector(0.f, 0.f, 90.f);
+	OldWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	OldWeapon->SetActorLocation(DropLocation);
+	OldWeapon->SetActorRotation(FRotator::ZeroRotator);
+	OldWeapon->SetOwner(nullptr);
+	OldWeapon->SetDropped(true);
+
+	// 2) 같은 슬롯에 새 무기 배치 + 즉시 장착
+	WeaponInventory[CurrentWeaponIndex] = NewWeapon;
+	CurrentWeapon = NewWeapon;
+	NewWeapon->SetOwner(this);
+	NewWeapon->SetActorHiddenInGame(false);
+	NewWeapon->AttachToComponent(GetMesh(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		WeaponAttachSocket);
+	NewWeapon->RefreshMeshTransform();
+
+	if (bFromWorld)
+	{
+		NewWeapon->SetDropped(false);
+		if (USoundBase* Sound = NewWeapon->GetPickupSound())
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation());
+		}
 	}
 }
 
@@ -195,8 +235,8 @@ void APlayerCharacter::StartFire()
 	if (!CurrentWeapon) return;
 	bIsFiring = true;
 	CurrentWeapon->StartFire();
-	if (UAnimMontage* Montage = CurrentWeapon->GetFireMontage())
-		PlayAnimMontage(Montage);
+	if (FireMontage)
+		PlayAnimMontage(FireMontage);
 }
 
 void APlayerCharacter::StopFire()
@@ -207,8 +247,8 @@ void APlayerCharacter::StopFire()
 	// 자동화기만 릴리즈 시 몽타주 중단 (단발은 자연스럽게 끝남)
 	if (CurrentWeapon->IsAutoFire())
 	{
-		if (UAnimMontage* Montage = CurrentWeapon->GetFireMontage())
-			StopAnimMontage(Montage);
+		if (FireMontage)
+			StopAnimMontage(FireMontage);
 	}
 }
 

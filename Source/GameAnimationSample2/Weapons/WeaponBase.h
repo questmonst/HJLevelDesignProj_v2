@@ -151,10 +151,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil", meta=(ToolTip="초당 반동 회복 속도 (도/초)"))
 	float RecoilRecoverySpeed = 10.f;
 
-	// --- Animation ---
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Animation", meta=(ToolTip="발사 시 캐릭터에 재생할 몽타주 (UpperBody 슬롯)"))
-	UAnimMontage* FireMontage = nullptr;
+	// 발사(반동) 몽타주는 캐릭터 공통이라 APlayerCharacter::FireMontage(MikaData)로 이동됨.
 
 	// --- Audio ---
 
@@ -233,9 +230,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void RefreshMeshTransform();
-
-	UFUNCTION(BlueprintPure, Category = "Weapon|Animation")
-	UAnimMontage* GetFireMontage() const { return FireMontage; }
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Animation")
 	FTransform GetLeftHandGripTransform() const;

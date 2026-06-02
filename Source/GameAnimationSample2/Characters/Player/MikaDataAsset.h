@@ -6,6 +6,8 @@
 #include "Engine/DataAsset.h"
 #include "MikaDataAsset.generated.h"
 
+class UAnimMontage;
+
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UMikaDataAsset : public UDataAsset
 {
@@ -160,4 +162,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Landing", meta=(ToolTip="랜딩 다이브 낙하 속도 (cm/s). 클수록 빠르게 내려꽂힘"))
 	float LandingDiveSpeed = 2000.f;
+
+	// --- Animation ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="발사(반동) 시 캐릭터에 재생할 몽타주 (UpperBody 슬롯). 모든 무기 공통"))
+	UAnimMontage* FireMontage = nullptr;
 };

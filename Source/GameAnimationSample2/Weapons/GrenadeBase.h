@@ -20,7 +20,15 @@ class GAMEANIMATIONSAMPLE2_API AGrenadeBase : public AActor
 public:
 	AGrenadeBase();
 
+	// 발사. 아직 손 부착 연출이 끝나지 않았으면(준비 전) 준비 완료 시점에 자동 발사된다.
 	void Launch(const FVector& Velocity);
+
+	// 손에 드는 연출 모드. SpawnActorDeferred로 BeginPlay 전에 호출해야 함.
+	// true면 생성 FX가 끝난 뒤에야 본체 VFX 부착 + 던지기 가능.
+	void SetHeldPresentation(bool bHeld) { bHeldPresentation = bHeld; }
+
+	// 손 부착 연출이 완료돼 던질 수 있는 상태인지
+	bool IsReadyToThrow() const { return bReadyToThrow; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -80,6 +88,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|VFX", meta=(ToolTip="NS_Bomb_Explosion이 제작된 기준 반경(cm). ExplosionRadius와의 비율로 폭발 VFX 스케일 계산"))
 	float ExplosionVFXReferenceRadius = 300.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|VFX", meta=(ToolTip="손에 들 때: 생성 FX 재생 후 본체 VFX가 손에 붙기까지의 시간(초). DA에서 조절"))
+	float SpawnToProjectileDelay = 0.5f;
+
 	void Explode();
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Grenade")
@@ -95,9 +106,22 @@ private:
 	void OnCollision(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	                 FVector NormalImpulse, const FHitResult& Hit);
 
-	bool bArmed    = false;	// Impact 모드 장전 완료 여부
-	bool bExploded = false;	// 중복 폭발 방지
+	// SpawnToProjectileDelay 후 호출돼 본체 VFX 부착 + 던지기 가능 상태로 전환
+	void BecomeReady();
+
+	// 실제 발사 처리 (분리 + 이동 활성 + 폭발 타이머)
+	void DoLaunch(const FVector& Velocity);
+
+	bool bHeldPresentation = false;	// 손에 드는 연출 모드
+	bool bReadyToThrow     = false;	// 손 부착 완료(던지기 가능) 여부
+	bool bThrowRequested   = false;	// 준비 전 들어온 던지기 요청 보류
+	bool bArmed            = false;	// Impact 모드 장전 완료 여부
+	bool bExploded         = false;	// 중복 폭발 방지
+	bool bLaunched         = false;	// Launch 1회만 폭발 타이머 시작
+
+	FVector PendingThrowVelocity = FVector::ZeroVector;
 
 	FTimerHandle FuseTimerHandle;
 	FTimerHandle ArmingTimerHandle;
+	FTimerHandle SpawnReadyTimerHandle;	// 생성 FX 종료 fallback
 };

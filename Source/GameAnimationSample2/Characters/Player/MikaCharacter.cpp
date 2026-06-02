@@ -78,6 +78,7 @@ void AMikaCharacter::BeginPlay()
 		LandingDownAngle           = MikaData->LandingDownAngle;
 		LandingMinHeight           = MikaData->LandingMinHeight;
 		LandingDiveSpeed           = MikaData->LandingDiveSpeed;
+		FireMontage                = MikaData->FireMontage;
 	}
 
 	PunchHitbox->OnComponentBeginOverlap.AddDynamic(this, &AMikaCharacter::OnPunchHitboxOverlap);
