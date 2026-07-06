@@ -141,8 +141,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	Bind(TEXT("Aim"),     ETriggerEvent::Completed, &APlayerCharacter::StopAim);
 	Bind(TEXT("Shoot"),   ETriggerEvent::Started,   &APlayerCharacter::StartFire);
 	Bind(TEXT("Shoot"),   ETriggerEvent::Completed, &APlayerCharacter::StopFire);
-	Bind(TEXT("Crouch"),  ETriggerEvent::Started,   &APlayerCharacter::StartCrouch);
-	Bind(TEXT("Crouch"),  ETriggerEvent::Completed, &APlayerCharacter::StopCrouch);
+	Bind(TEXT("Crouch"),  ETriggerEvent::Started,   &APlayerCharacter::ToggleCrouch);
 	Bind(TEXT("Reload"),  ETriggerEvent::Started,   &APlayerCharacter::Reload);
 	Bind(TEXT("Weapon1"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot1);
 	Bind(TEXT("Weapon2"), ETriggerEvent::Started,   &APlayerCharacter::EquipWeaponSlot2);
@@ -409,8 +408,14 @@ void APlayerCharacter::StopAim()
 	AimYaw          = 0.f;
 }
 
-void APlayerCharacter::StartCrouch() { Crouch(); }
-void APlayerCharacter::StopCrouch()  { UnCrouch(); }
+void APlayerCharacter::ToggleCrouch()
+{
+	// bIsCrouched는 엔진이 Crouch/UnCrouch로 세팅하는 단일 진실 공급원
+	if (bIsCrouched)
+		UnCrouch();
+	else
+		Crouch();
+}
 
 void APlayerCharacter::SetGravityDirection(FVector NewDirection)
 {

@@ -26,21 +26,18 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 
 ---
 
-## 3. `[ ]` 앉기(Crouch) 비주얼 — ABP 작업만 남음
+## 3. `[x]` 앉기(Crouch) — 완료
 
-**C++/입력은 이미 완성**돼 있음 (조사 완료):
+**C++/입력:**
 - `bCanCrouch=true`, `bCrouchMaintainsBaseLocation=true` (PlayerCharacter.cpp 생성자)
-- `Crouch` 입력 → `StartCrouch()`=`Crouch()` / `StopCrouch()`=`UnCrouch()` (PlayerCharacter.cpp:411~412)
-- → C키 누르면 **캡슐이 줄고 카메라가 내려옴 = 실제 앉기 작동 중**. 메시가 서 있는 건 ABP에 앉기 포즈가 없어서일 뿐.
+- 앉기 **토글**로 변경 — `Crouch` 입력(Started) → `ToggleCrouch()`가 `bIsCrouched` 보고 앉기<->서기 전환 (한 번 누르면 앉고 다시 누르면 일어섬)
 
-비주얼로 보이게 하려면 (ABP_Mika에서):
-- [ ] 이동 상태에서 `Get Is Crouched`(Movement Component) 또는 캐릭터의 crouch 여부를 bool로 읽기
-- [ ] 그 bool로 **Idle/Walk ↔ CrouchIdle/CrouchWalk** 블렌드(상태머신 분기 또는 Blendspace)
-- [ ] 앉기용 애님(CrouchIdle, CrouchWalk) 에셋 확보 후 연결
-- [ ] 앉아서 사격: 상체 사격 몽타주는 그대로 UpperBody 슬롯에 재생되므로 하체만 crouch면 OK — 확인
-- [ ] 앉아서 턴: turn-in-place도 crouch 포즈 버전 필요하면 추가 (없으면 일반 turn 재생)
+**애니메이션:**
+- 앉기 애니 12종 `RTG_RifleGirl2Mika`로 리타겟 → 스케일 축소버그는 `fix_mika_root_scale.py`로 픽스
+- `BS_Mika_AimWalkCrouch`, `BS_Mika_Walk2RunCrouch` 앉기 블렌드스페이스 제작
+- `ABP_Riflegirl2_mika`: `isCrouching` bool 기반 앉기 포즈 분기 추가 (`Get Is Crouched → SET isCrouching`)
 
-> 요약: **코드 추가 불필요, ABP에 앉기 포즈/상태 분기만 추가하면 됨.**
+> PIE 확인 완료 — 토글 앉기 + 앉기 애니 정상 동작.
 
 ---
 

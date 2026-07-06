@@ -64,8 +64,8 @@ protected:
 	const UInputAction* FindActionInIMC(const FString& NameContains) const;
 	void HandleMove(const FInputActionValue& Value);
 	void HandleLook(const FInputActionValue& Value);
-	void StartCrouch();
-	void StopCrouch();
+	// 앉기는 홀드가 아닌 토글: 누를 때마다 앉기<->서기 전환
+	void ToggleCrouch();
 
 	virtual void Jump() override;
 
