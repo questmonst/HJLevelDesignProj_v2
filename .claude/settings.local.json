@@ -9,7 +9,11 @@
       "WebFetch(domain:gemini.google.com)",
       "PowerShell(& \"E:\\\\unreal\\\\UE_5.7\\\\Engine\\\\Build\\\\BatchFiles\\\\Build.bat\" GameAnimationSample2Editor Win64 Development \"E:\\\\unreal\\\\Projects\\\\GameAnimationSample2\\\\GameAnimationSample2.uproject\" 2>&1)",
       "PowerShell(& \"E:\\\\unreal\\\\UE_5.7\\\\Engine\\\\Build\\\\BatchFiles\\\\Build.bat\" GameAnimationSample2Editor Win64 Development \"E:\\\\unreal\\\\Projects\\\\GameAnimationSample2\\\\GameAnimationSample2.uproject\" -waitmutex 2>&1)",
-      "PowerShell(& \"E:\\\\unreal\\\\UE_5.7\\\\Engine\\\\Build\\\\BatchFiles\\\\Build.bat\" GameAnimationSample2 Win64 Development -Project=\"E:\\\\unreal\\\\Projects\\\\GameAnimationSample2\\\\GameAnimationSample2.uproject\" 2>&1)"
+      "PowerShell(& \"E:\\\\unreal\\\\UE_5.7\\\\Engine\\\\Build\\\\BatchFiles\\\\Build.bat\" GameAnimationSample2 Win64 Development -Project=\"E:\\\\unreal\\\\Projects\\\\GameAnimationSample2\\\\GameAnimationSample2.uproject\" 2>&1)",
+      "mcp__mcp-unreal__status",
+      "mcp__mcp-unreal__search_assets",
+      "mcp__mcp-unreal__execute_script",
+      "mcp__mcp-unreal__get_output_log"
     ]
   }
 }
