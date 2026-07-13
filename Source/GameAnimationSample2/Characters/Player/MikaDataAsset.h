@@ -30,6 +30,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta=(ToolTip="조준 중 걷기 속도 (cm/s)"))
 	float AimWalkSpeed = 250.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta=(ToolTip="앉아서 이동하는 속도 (cm/s)"))
+	float CrouchWalkSpeed = 200.f;
+
 	// --- Camera ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ToolTip="기본 카메라 시야각 (도)"))
@@ -55,6 +58,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ToolTip="기본 카메라 소켓 좌우 오프셋 (양수=오른쪽, cm)"))
 	float DefaultSocketOffsetY = 60.f;
+
+	// --- Camera (Crouch) ---
+	// 앉으면 캡슐이 낮아져 시점이 내려가는 것을 스프링암 TargetOffset.Z로 보정한다.
+	// TargetOffset.Z는 다른 전투 카메라 로직(FOV·암 길이·SocketOffset.Y)과 독립적이라 얽힘 없음.
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Crouch", meta=(ToolTip="앉기 시 카메라를 위로 올리는 높이 (cm, 월드 기준)"))
+	float CrouchCameraZOffset = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Crouch", meta=(ToolTip="true=앉기 카메라 높이를 보간(부드럽게), false=즉시 전환"))
+	bool bSmoothCrouchCamera = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Crouch", meta=(ToolTip="앉기 카메라 보간 속도. bSmoothCrouchCamera=true일 때만 사용. 클수록 빠르게 전환"))
+	float CrouchCameraInterpSpeed = 10.f;
 
 	// --- TurnInPlace ---
 

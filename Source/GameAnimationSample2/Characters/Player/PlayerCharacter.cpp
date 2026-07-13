@@ -70,7 +70,8 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	CameraComponent->FieldOfView         = NormalFOV;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeed         = WalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchWalkSpeed;
 
 	SpringArmComponent->SocketOffset.Y = DefaultSocketOffsetY;
 	NormalSocketOffsetY                 = DefaultSocketOffsetY;
@@ -183,6 +184,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 		ClearTrajectory();
 	}
 	UpdateCoverPeek(DeltaTime);
+	UpdateCrouchCamera(DeltaTime);
 
 	if (bIsAiming)
 	{
@@ -415,6 +417,32 @@ void APlayerCharacter::ToggleCrouch()
 		UnCrouch();
 	else
 		Crouch();
+}
+
+// 앉기 카메라 보정 — 스프링암 TargetOffset.Z(월드 상하)만 사용.
+// 즉시 전환(bSmoothCrouchCamera=false)은 OnStartCrouch/OnEndCrouch에서 처리하고,
+// 보간 모드는 이 Tick 함수가 bIsCrouched 상태로 목표값을 향해 부드럽게 이동시킨다.
+void APlayerCharacter::UpdateCrouchCamera(float DeltaTime)
+{
+	if (!bSmoothCrouchCamera || !SpringArmComponent) return;
+
+	const float TargetZ = bIsCrouched ? CrouchCameraZOffset : 0.f;
+	SpringArmComponent->TargetOffset.Z = FMath::FInterpTo(
+		SpringArmComponent->TargetOffset.Z, TargetZ, DeltaTime, CrouchCameraInterpSpeed);
+}
+
+void APlayerCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	if (!bSmoothCrouchCamera && SpringArmComponent)
+		SpringArmComponent->TargetOffset.Z = CrouchCameraZOffset;
+}
+
+void APlayerCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	if (!bSmoothCrouchCamera && SpringArmComponent)
+		SpringArmComponent->TargetOffset.Z = 0.f;
 }
 
 void APlayerCharacter::SetGravityDirection(FVector NewDirection)

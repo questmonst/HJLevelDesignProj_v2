@@ -94,6 +94,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement", meta=(ToolTip="조준 중 걷기 속도 (cm/s)"))
 	float AimWalkSpeed;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement", meta=(ToolTip="앉아서 이동하는 속도 (cm/s). CharacterMovement.MaxWalkSpeedCrouched에 적용"))
+	float CrouchWalkSpeed = 200.f;
+
 	// --- Crosshair ---
 
 	UPROPERTY(BlueprintReadOnly, Category = "Character|HUD", meta=(ToolTip="WBP에서 크로스헤어 크기·퍼짐에 사용"))
@@ -165,6 +168,24 @@ protected:
 	void UpdateAimSpinePitch(float DeltaTime);
 	void UpdateCrosshairSpread(float DeltaTime);
 	void UpdateRecoil(float DeltaTime);
+
+	// --- Crouch Camera ---
+	// 앉기 시 시점 보정. 스프링암 TargetOffset.Z(월드 상하)만 사용해 다른 전투 카메라와 독립.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="앉기 시 카메라를 위로 올리는 높이 (cm, 월드 기준)"))
+	float CrouchCameraZOffset = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="true=앉기 카메라 높이 보간, false=즉시 전환"))
+	bool bSmoothCrouchCamera = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="앉기 카메라 보간 속도. bSmoothCrouchCamera=true일 때만 사용"))
+	float CrouchCameraInterpSpeed = 10.f;
+
+	void UpdateCrouchCamera(float DeltaTime);
+
+	// 앉기/서기 전환 시 카메라 높이 적용 (엔진이 Crouch/UnCrouch에서 호출)
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 
 	float SpreadAdditive   = 0.f;
 	float RecoilPitchAccum = 0.f;

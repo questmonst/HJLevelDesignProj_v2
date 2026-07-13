@@ -30,9 +30,14 @@ void AMikaCharacter::BeginPlay()
 		WalkSpeed                  = MikaData->WalkSpeed;
 		SprintSpeed                = MikaData->SprintSpeed;
 		AimWalkSpeed               = MikaData->AimWalkSpeed;
-		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+		CrouchWalkSpeed            = MikaData->CrouchWalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed         = WalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchWalkSpeed;
 		// Camera
 		NormalFOV                  = MikaData->NormalFOV;
+		CrouchCameraZOffset        = MikaData->CrouchCameraZOffset;
+		bSmoothCrouchCamera        = MikaData->bSmoothCrouchCamera;
+		CrouchCameraInterpSpeed    = MikaData->CrouchCameraInterpSpeed;
 		AimFOV                     = MikaData->AimFOV;
 		CoverTraceDistance         = MikaData->CoverTraceDistance;
 		CoverPeekOffset            = MikaData->CoverPeekOffset;
