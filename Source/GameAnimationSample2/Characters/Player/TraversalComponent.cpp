@@ -2,6 +2,7 @@
 
 #include "TraversalComponent.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 
@@ -95,6 +96,13 @@ bool UTraversalComponent::DetectTraversal(FVector& OutLandingPos) const
         WallHit, SweepStart, SweepEnd,
         FQuat::Identity, ECC_WorldStatic,
         FCollisionShape::MakeSphere(Radius * 0.5f), Params))
+    {
+        return false;
+    }
+
+    // 폰(적·NPC)은 WorldStatic 채널을 Block해 장애물로 감지되지만, 캐릭터 위로
+    // 올라타는 트래버설은 원치 않는다. 전방이 폰이면 미발동 → 일반 점프로 폴백.
+    if (WallHit.GetActor() && WallHit.GetActor()->IsA(APawn::StaticClass()))
     {
         return false;
     }

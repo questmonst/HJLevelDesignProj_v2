@@ -17,6 +17,9 @@ AEnemyCharacter::AEnemyCharacter()
     AIControllerClass = AEnemyAIController::StaticClass();
     AutoPossessAI     = EAutoPossessAI::PlacedInWorldOrSpawned;
     TeamID            = 1;
+
+    // 적은 머리 위 체력바를 기본 표시 (피격 시 나타났다 일정 시간 후 숨김)
+    bShowFloatingHealthBar = true;
 }
 
 void AEnemyCharacter::BeginPlay()
