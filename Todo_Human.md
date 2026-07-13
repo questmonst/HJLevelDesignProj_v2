@@ -52,13 +52,35 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 
 ---
 
-## 5. `[ ]` 적 캐릭터 추가
+## 5. `[~]` 적 캐릭터 추가 — AR 적 1종 진행중
 
-기본 적 + 아키라(보스) 등 적 캐릭터 제작 시작.
+기본 적 + 아키라(보스) 등 적 캐릭터 제작.
 
-- [ ] 적 BP 자식 클래스 생성 (AEnemyCharacter 계열: AR/Shotgun/Sniper/MG/Shield/LargeSweeper 등)
-- [ ] 적 메시·ABP·DataAsset 연결
+**AR 적 (완료된 부분):**
+- [x] `BP_AREnemy` 생성 (`/Game/V2_HJContents/V2Character/Enemy/`, 부모 `AAREnemy`)
+- [x] 마네킹 메시(`SK_Mannequin_Animstarter`) + `ABP_AREnemy`(AnimStarterPack 복제) + `BP_Weapon_AR` 자동 장착
+- [x] 히트/사망 = C++ 완비 (`TakeDamage→Die→OnDeath`), TeamID=1
+
+**AR 적 (사람 할 일):**
+- [ ] `BP_AREnemy` 테스트 레벨에 배치 → 미카가 쏴서 히트/사망 확인
 - [ ] AIController / BehaviorTree / Blackboard 연결
-- [ ] 테스트 레벨에 배치해 전투 확인
+- [ ] **적 앉기 ABP 배선(수동)** — `ABP_AREnemy` EventGraph의 `Cast To BP_EnemyBase`(구세대, 우리 적에선 실패)를 `Cast To Character → Is Crouched`로 교체. locomotion은 이미 동작하므로 **AI 붙일 때 같이 처리**. (MCP는 DynamicCast 타깃 클래스 지정 불가라 수동)
 
-> 상세 목록·BT·BB 키는 [progress_human.md](progress_human.md) §1·§7·§8 참고. 우선 기본 적 1종(AR)부터.
+**나머지 적:**
+- [ ] Shotgun/Sniper/MG/Shield/LargeSweeper 등 자식 클래스 + 에셋 연결
+
+> 상세 목록·BT·BB 키는 [progress_human.md](progress_human.md) §1·§7·§8 참고.
+
+---
+
+## 6. `[ ]` 미카 앉기 카메라 DA 조정
+
+앉기 카메라 보정 C++ 완료 (스프링암 `TargetOffset.Z`, 전투 카메라와 독립).
+
+- [ ] `DA_Mika`(UMikaDataAsset)에서 **Camera > Crouch** 값 조정:
+  - `CrouchCameraZOffset` — 앉기 시 카메라 올리는 높이 (기본 40)
+  - `bSmoothCrouchCamera` — 보간(true)/즉시(false) 선택
+  - `CrouchCameraInterpSpeed` — 보간 속도
+- [ ] `Movement > CrouchWalkSpeed` — 앉아 이동 속도 (기본 200) 조정
+
+> C++ 완료(빌드 반영됨). DA 값만 만지면 됨.
