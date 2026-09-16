@@ -5,8 +5,11 @@
 #include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/DamageEvents.h"
 #include "DamageNumberActor.h"
+#include "EnemyHealthBarWidget.h"
+#include "Blueprint/UserWidget.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -24,7 +27,9 @@ ACharacterBase::ACharacterBase()
 	// 머리 위 체력바 (기본 숨김, 적 클래스에서 bShowFloatingHealthBar로 활성화)
 	HealthBarWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarWidgetComp->SetupAttachment(GetCapsuleComponent());
-	HealthBarWidgetComp->SetWidgetSpace(EWidgetSpace::World);
+	// Screen 스페이스 — 항상 지오메트리 위에 그려져 벽·캐릭터에 파묻히지 않고,
+	// 위젯 크기가 월드 cm가 아니라 픽셀로 해석된다. (플레이어 UI로 취급)
+	HealthBarWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarWidgetComp->SetDrawAtDesiredSize(true);
 	HealthBarWidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HealthBarWidgetComp->SetRelativeLocation(FVector(0.f, 0.f, HealthBarHeightOffset));
@@ -39,7 +44,17 @@ void ACharacterBase::BeginPlay()
 	if (bShowFloatingHealthBar && HealthBarWidgetClass)
 	{
 		HealthBarWidgetComp->SetWidgetClass(HealthBarWidgetClass);
+
+		// WidgetComponent가 만든 위젯은 자기를 띄운 액터를 알 수 없다(GetOwningPlayerPawn은 플레이어).
+		// 여기서 인스턴스를 즉시 만들어 소유자를 주입해야 WBP가 체력을 읽을 수 있다.
+		HealthBarWidgetComp->InitWidget();
+		if (UEnemyHealthBarWidget* Bar = Cast<UEnemyHealthBarWidget>(HealthBarWidgetComp->GetUserWidgetObject()))
+		{
+			Bar->BindToCharacter(this);
+		}
 	}
+
+	HealthBarAlpha = 0.f;
 	HealthBarWidgetComp->SetVisibility(false);
 }
 
@@ -71,6 +86,16 @@ void ACharacterBase::ShowHealthBar()
 {
 	if (!bShowFloatingHealthBar) return;
 
+	// 위젯이 새 인스턴스로 재생성됐다면 소유자 주입이 통째로 날아간 상태다.
+	// 피격마다 다시 주입해둔다(BindToCharacter는 중복 구독을 스스로 정리한다).
+	if (HealthBarWidgetComp)
+	{
+		if (UEnemyHealthBarWidget* Bar = Cast<UEnemyHealthBarWidget>(HealthBarWidgetComp->GetUserWidgetObject()))
+		{
+			Bar->BindToCharacter(this);
+		}
+	}
+
 	bHealthBarActive = true;
 	GetWorldTimerManager().SetTimer(
 		HealthBarHideTimer, this, &ACharacterBase::HideHealthBar, HealthBarHideDelay, false);
@@ -81,33 +106,98 @@ void ACharacterBase::HideHealthBar()
 	bHealthBarActive = false;
 }
 
-void ACharacterBase::UpdateHealthBar(float /*DeltaTime*/)
+void ACharacterBase::UpdateHealthBar(float DeltaTime)
 {
 	if (!bShowFloatingHealthBar || !HealthBarWidgetComp) return;
 
+	// bHealthBarActive(최근 피격/사망) + 거리 + 화면 안 조건을 매 프레임 재평가해
+	// 목표 알파를 정하고, 그 값으로 보간한다. (즉시 껐다 켜지 않고 페이드)
+	// → 화면 밖으로 나가면 사라지고, 다시 들어오면(피격 후 유지시간 내) 다시 나타난다.
 	bool bShouldShow = bHealthBarActive;
+	float DesiredScale = 1.f;
 
 	if (bShouldShow)
 	{
-		if (APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
+		APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+		if (!PC)
 		{
-			const FVector BarLoc = HealthBarWidgetComp->GetComponentLocation();
-			const FVector CamLoc = Cam->GetCameraLocation();
+			ApplyHealthBarAlpha(0.f);
+			return;
+		}
 
-			if (HealthBarMaxDrawDistance > 0.f && FVector::Dist(CamLoc, BarLoc) > HealthBarMaxDrawDistance)
+		const FVector BarLoc = HealthBarWidgetComp->GetComponentLocation();
+		FVector CamLoc; FRotator CamRot;
+		PC->GetPlayerViewPoint(CamLoc, CamRot);
+		const float CamDist = FVector::Dist(CamLoc, BarLoc);
+
+		// 거리 체크
+		if (HealthBarMaxDrawDistance > 0.f && CamDist > HealthBarMaxDrawDistance)
+		{
+			bShouldShow = false;
+		}
+		else
+		{
+			// 화면(프러스텀) 안 체크 — 뷰포트 밖이거나 카메라 뒤면 숨김
+			FVector2D ScreenPos;
+			int32 VX = 0, VY = 0;
+			PC->GetViewportSize(VX, VY);
+			const bool bOnScreen =
+				PC->ProjectWorldLocationToScreen(BarLoc, ScreenPos, false)
+				&& ScreenPos.X >= 0.f && ScreenPos.X <= VX
+				&& ScreenPos.Y >= 0.f && ScreenPos.Y <= VY;
+
+			if (!bOnScreen)
 			{
-				bShouldShow = false;   // 너무 멀면 이번 프레임엔 숨김 (재접근 시 다시 표시)
+				bShouldShow = false;
 			}
-			else
+			else if (HealthBarRefDistance > 0.f)
 			{
-				// 카메라를 향해 Yaw 빌보드. 글자가 뒤집히면 +180.f 제거.
-				const FVector ToCam = CamLoc - BarLoc;
-				HealthBarWidgetComp->SetWorldRotation(FRotator(0.f, ToCam.Rotation().Yaw + 180.f, 0.f));
+				// Screen 스페이스는 거리와 무관하게 같은 픽셀 크기라, 먼 적의 체력바까지
+				// 크게 떠서 화면이 지저분해진다. 거리에 따라 줄이되 MinScale로 하한을 둬
+				// 가독성을 보장한다. (MinScale=1.0이면 항상 같은 크기)
+				DesiredScale = FMath::Clamp(
+					HealthBarRefDistance / FMath::Max(CamDist, 1.f), HealthBarMinScale, 1.f);
 			}
 		}
 	}
 
-	HealthBarWidgetComp->SetVisibility(bShouldShow);
+	// 나타날 때는 즉시 — 피격 피드백이 늦으면 타격감이 죽고, 대미지 숫자가 즉시 뜨는 것과
+	// 어긋나 체력 감소가 느린 것처럼 보인다. 페이드는 사라질 때만 적용한다.
+	// (마지막 피격 후 HealthBarHideDelay=3초 경과 → HealthBarFadeDuration 동안 서서히)
+	const float TargetAlpha = bShouldShow ? 1.f : 0.f;
+	if (TargetAlpha > HealthBarAlpha || HealthBarFadeDuration <= 0.f)
+	{
+		HealthBarAlpha = TargetAlpha;
+	}
+	else
+	{
+		HealthBarAlpha = FMath::FInterpConstantTo(
+			HealthBarAlpha, TargetAlpha, DeltaTime, 1.f / HealthBarFadeDuration);
+	}
+
+	if (bShouldShow)
+	{
+		if (UUserWidget* Bar = HealthBarWidgetComp->GetUserWidgetObject())
+		{
+			Bar->SetRenderScale(FVector2D(DesiredScale, DesiredScale));
+		}
+	}
+
+	ApplyHealthBarAlpha(HealthBarAlpha);
+}
+
+// 알파를 위젯 RenderOpacity에 반영하고, 완전히 투명하면 렌더에서 뺀다.
+void ACharacterBase::ApplyHealthBarAlpha(float Alpha)
+{
+	if (!HealthBarWidgetComp) return;
+
+	HealthBarAlpha = Alpha;
+
+	if (UUserWidget* Bar = HealthBarWidgetComp->GetUserWidgetObject())
+	{
+		Bar->SetRenderOpacity(Alpha);
+	}
+	HealthBarWidgetComp->SetVisibility(Alpha > UE_KINDA_SMALL_NUMBER);
 }
 
 void ACharacterBase::SpawnDamageNumber(float Amount, const FVector& WorldLocation)
@@ -128,7 +218,36 @@ void ACharacterBase::SpawnDamageNumber(float Amount, const FVector& WorldLocatio
 
 void ACharacterBase::OnDeath_Implementation()
 {
-	// Default: destroy actor. Override in Blueprint for death animations, ragdoll, etc.
+	// 체력바를 강제로 켜둔 채(숨김 타이머 취소, 알파 1) 사망 연출 재생 시간을 확보한다.
+	if (bShowFloatingHealthBar && HealthBarWidgetComp)
+	{
+		GetWorldTimerManager().ClearTimer(HealthBarHideTimer);
+		bHealthBarActive = true;
+		ApplyHealthBarAlpha(1.f);
+
+		// 위젯의 Anim_Death 재생 (BindWidgetAnim으로 자동 연결 — BP 배선 불필요)
+		if (UEnemyHealthBarWidget* Bar = Cast<UEnemyHealthBarWidget>(HealthBarWidgetComp->GetUserWidgetObject()))
+		{
+			Bar->PlayDeathEffect();
+		}
+	}
+
+	OnDeathEffect();   // BP: 체력바 위젯의 확대·소멸 애니 재생
+
+	// 연출 시간 후 실제 제거. (즉시 Destroy하면 연출이 재생될 틈이 없음)
+	if (DeathEffectDuration > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(
+			DeathDestroyTimer, this, &ACharacterBase::FinishDeath, DeathEffectDuration, false);
+	}
+	else
+	{
+		Destroy();
+	}
+}
+
+void ACharacterBase::FinishDeath()
+{
 	Destroy();
 }
 
