@@ -61,15 +61,74 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 - [x] 마네킹 메시(`SK_Mannequin_Animstarter`) + `ABP_AREnemy`(AnimStarterPack 복제) + `BP_Weapon_AR` 자동 장착
 - [x] 히트/사망 = C++ 완비 (`TakeDamage→Die→OnDeath`), TeamID=1
 
-**AR 적 (사람 할 일):**
-- [ ] `BP_AREnemy` 테스트 레벨에 배치 → 미카가 쏴서 히트/사망 확인
-- [ ] AIController / BehaviorTree / Blackboard 연결
-- [ ] **적 앉기 ABP 배선(수동)** — `ABP_AREnemy` EventGraph의 `Cast To BP_EnemyBase`(구세대, 우리 적에선 실패)를 `Cast To Character → Is Crouched`로 교체. locomotion은 이미 동작하므로 **AI 붙일 때 같이 처리**. (MCP는 DynamicCast 타깃 클래스 지정 불가라 수동)
+**AR 적 — 완료:**
+- [x] `BP_AREnemy` 테스트 레벨에 배치 → 미카가 쏴서 히트/사망 확인
+- [x] 머리 위 체력바 + 대미지 숫자 (ADR-004)
+
+### AR 적 AI — 진행할 순서
+
+> C++은 전부 완성돼 있다. Perception(시야 2000 / 청각 1200 / 시야각 60°), 블랙보드 키 기록,
+> 팀 ID까지 `AEnemyAIController`에 구현됨. **에셋만 만들면 된다.**
+
+**① 테스트 레벨에 NavMesh 배치**
+- [ ] `NavMeshBoundsVolume`을 적이 움직일 범위에 씌우고 `P` 키로 초록 영역 확인
+- 이게 없으면 BT의 모든 이동 태스크가 **조용히 실패**한다. 반드시 먼저
+
+**② `BB_Enemy` 생성** (`/Game/V2_HJContents/V2AI/`)
+- [ ] 키 5개 추가. 이름은 `EnemyCharacter.cpp`의 `BBKey_*` 상수와 **철자까지 정확히** 일치해야 함
+
+  | 키 | 타입 |
+  |---|---|
+  | `TargetActor` | Object (Base Class = Actor) |
+  | `TargetLocation` | Vector |
+  | `bCanSeeTarget` | Bool |
+  | `bIsAlerted` | Bool |
+  | `PatrolOrigin` | Vector |
+
+**③ `BT_AREnemy` 생성**
+- [ ] 블랙보드에 `BB_Enemy` 지정
+- [ ] 최소 구조:
+
+  ```
+  Selector
+   ├ [Blackboard: bCanSeeTarget == true] Sequence
+   │    → Move To (TargetActor, Acceptable Radius = 사거리)
+   │    → Rotate to face BB entry (TargetActor)
+   │    → Wait (사격 간격)
+   └ Sequence
+        → Move To (PatrolOrigin)
+        → Wait
+  ```
+
+**④ `BP_AREnemy` 연결**
+- [ ] `AI Controller Class` = `AEnemyAIController`
+- [ ] `Auto Possess AI` = `Placed in World or Spawned`
+- [ ] BehaviorTree 슬롯에 `BT_AREnemy`
+
+**⑤ 적 앉기 ABP 배선**
+- [ ] `ABP_AREnemy` EventGraph의 `Cast To BP_EnemyBase`(구세대, 우리 적에선 실패)를
+      `Cast To Character → Is Crouched`로 교체. locomotion은 이미 동작함
+      (MCP는 DynamicCast 타깃 클래스 지정 불가라 수동)
+
+**⑥ PIE 테스트**
+- [ ] 적이 미카를 발견하면 접근하는지
+- [ ] 안 되면 `P`(Show Navigation), `'`(AI Debug)로 블랙보드 값이 실제로 채워지는지 확인
 
 **나머지 적:**
 - [ ] Shotgun/Sniper/MG/Shield/LargeSweeper 등 자식 클래스 + 에셋 연결
+      (AR 적 BT 구조가 검증되면 복제해서 파라미터만 바꾸는 식으로)
 
 > 상세 목록·BT·BB 키는 [progress_human.md](progress_human.md) §1·§7·§8 참고.
+
+---
+
+## 7. `[x]` 적 체력바 / 대미지 숫자 — 완료
+
+`WBP_EnemyHealthBar`(부모 `UEnemyHealthBarWidget`) 제작 완료. 검정 빈칸 → 빨강 지연바 →
+초록 현재체력 3겹 구성, `Anim_Death` 사망 연출까지 동작 확인.
+
+> 수치 조정은 `BP_AREnemy` 디테일의 `Character|UI` 카테고리에서.
+> 설계·함정은 [Record.md](Record.md) ADR-004 참고.
 
 ---
 

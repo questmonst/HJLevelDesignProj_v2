@@ -15,5 +15,9 @@
       "mcp__mcp-unreal__execute_script",
       "mcp__mcp-unreal__get_output_log"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "mcp-unreal"
+  ],
+  "enableAllProjectMcpServers": true
 }
