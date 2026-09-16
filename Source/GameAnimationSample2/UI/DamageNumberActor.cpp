@@ -42,8 +42,9 @@ void ADamageNumberActor::Tick(float DeltaTime)
 		if (APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
 		{
 			const FVector ToCam = Cam->GetCameraLocation() - GetActorLocation();
-			// Yaw만 맞춰 텍스트를 수평으로 유지. 글자가 뒤집혀 보이면 +180.f를 제거.
-			SetActorRotation(FRotator(0.f, ToCam.Rotation().Yaw + 180.f, 0.f));
+			// 위젯 컴포넌트의 정면(+X)이 카메라를 향하도록 Yaw 정렬 (FindLookAtRotation과 동일).
+			// Yaw만 맞춰 텍스트는 수평 유지.
+			SetActorRotation(FRotator(0.f, ToCam.Rotation().Yaw, 0.f));
 		}
 	}
 }
