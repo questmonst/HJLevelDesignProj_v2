@@ -25,8 +25,9 @@
   - `PunchChargeMontage` = `Attack_Hand_Ready_Mika` — Blend In 0.05, **Enable Auto Blend Out 해제**(마지막 준비 자세 유지)
   - `PunchDashMontage` = `Attack_Hand_PwR_Mika` — 세그먼트 Anim Start/End Time으로 앞 딜레이·뒤 멈춤 제거, 주먹이 대시 0.1~0.15초에 뻗도록 Play Rate 조정
   - 랜딩 2종은 애니 확보 후
-- [ ] **빌드 필요** — 총 복구 시점을 대시 종료(0.25초) → **펀치·착지 몽타주 길이만큼 대기 후**로 변경 (2026-09-17, "총이 안 사라진다" 대응)
-- [ ] 충전 중 하체 = 앉기 이동(A안 채택): ABP EventGraph `isCrouching = Is Crouched OR bIsChargingPunch`
+- [x] **빌드 완료** — 대시 길이 = 펀치 몽타주 실제 재생 길이(Rate Scale 반영). `MikaData` › Punch › `bDashDurationFromMontage`(기본 true), 끄면 기존 `DashDuration`. 대시가 길어지면 히트박스·대시 카메라(FOV/스프링암)도 그만큼 유지되니 몽타주 Anim End Time으로 길이 조절 (2026-09-17)
+- [x] **빌드 완료** — 총 복구 시점을 대시 종료(0.25초) → **펀치·착지 몽타주 길이만큼 대기 후**로 변경 (2026-09-17, "총이 안 사라진다" 대응)
+- [ ] 충전·펀치 중 하체 = **조준 걷기 블렌드스페이스** (앉기 A안 대신 채택, 2026-09-17): ABP EventGraph의 **ABP 변수** `Is Aiming = 캐릭터 bIsAiming OR bIsChargingPunch OR bIsDashing`. A안(`isCrouching` OR 충전)을 적용했다면 되돌릴 것. **C++ 캐릭터의 bIsAiming은 건드리지 말 것**(펀치↔사격 분기·조준 카메라). 상체가 카메라 쪽으로 비틀리면 척추 조준 ModifyBone 2개 Alpha를 충전 중 0으로
 - [ ] 충전 중 고개 들기: ABP AnimGraph 출력 직전에 `Transform (Modify) Bone` — Bone `ValveBiped_Bip01_Head1`(부족하면 `Neck1`에도 절반), Rotation Mode **Add to Existing**, Space **Bone Space**, Alpha Bool = `bIsChargingPunch`(Blend In/Out 0.15). 회전 축은 기존 척추 조준 노드처럼 **Roll**이 상하(피치) — -15~-25도부터 부호 바꿔가며 조정
 - [ ] PIE: 충전 시작 시 총 숨김 → 펀치 몽타주 끝날 때 / 착지 몽타주 끝날 때 / 짧게 눌러 미발동 시 총 복구
 - [ ] ABP 전신/상체 분기 — 대시 중(또는 제자리 충전)엔 전신, 이동하며 충전할 땐 상체만: `Slot 'UpperBody'` 출력을 Save Cached Pose `SlotPose` → `Layered blend per bone`(Blend 0 = SlotPose) → `Blend Poses by bool`(True = SlotPose, False = Layered 결과, Blend Time 0.1) → 출력 포즈. bool = `bIsDashing OR (bIsChargingPunch AND NOT ShouldMove)` (BP_Mika 변수를 ABP EventGraph에서 읽기, C++ 불필요)
