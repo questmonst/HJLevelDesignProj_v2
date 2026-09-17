@@ -331,11 +331,11 @@ C++ 로직, 블루프린트 수치 조정 방식
 2. 무기 특성 — 이름, 획득(줍기·슬롯), 반동, 캐릭터 반동 회복, 저격총 위치
 3. 앉기 — 토글 앉기, 앉아 사격, 앉아 턴, 앉기 카메라 보정
 4. 적 체력바 / 대미지 숫자 — Record.md ADR-004
+5. 미카 발사 몽타주 — Additive + UpperBody 슬롯, 앉아쏴 분기 — Record.md ADR-006
 
 # 진행중
-1. 적 AI — AR 적부터 (C++ 완료, BB/BT 에셋만 남음)
-   → 진행 순서는 Todo_Human.md §5 참고
-2. 발사 몽타주 연결 — C++ 완료, DA_Mika의 FireMontage 슬롯만 (Todo_Human.md §4)
+1. 적 AI — AR 적: 감지·이동 완료, 사격(Fire At Target) PIE 확인 필요
+   → Todo_Human.md §5 ⑦ / Record.md ADR-005
 
 ---
 인간이 해야하는 것. 임시.

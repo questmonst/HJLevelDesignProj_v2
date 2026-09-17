@@ -41,12 +41,14 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 
 ---
 
-## 4. `[ ]` 캐릭터 DA에 반동(발사) 모션 할당
+## 4. `[x]` 캐릭터 DA에 반동(발사) 모션 할당 — 완료
 
 발사 몽타주를 무기별 → **캐릭터 공통**으로 옮김 (`MikaDataAsset.FireMontage`).
 
-- [ ] `DA_Mika`(UMikaDataAsset)의 **Animation > FireMontage** 슬롯에 발사(반동) 몽타주 할당
-- [ ] 모든 무기 공통으로 적용되는지 확인 (StartFire 시 캐릭터 FireMontage 재생)
+- [x] `MikaData`의 **FireMontage** = `AM_Shoot_mika`, **FireMontageCrouch** = `AM_Shoot_Crouch_mika`
+- [x] 서서/앉아/걸으며/위아래 조준 사격 모두 확인
+- 구조: 시퀀스를 **Additive(Local Space)** 로 두고 ABP 최종 포즈 직전 `Slot 'UpperBody'`에서 얹음 (ADR-006)
+- [ ] `Crouch_AimIdle_Shoot_mika1` — 참조 0개인 복제본. 확인 후 삭제
 
 > C++ 완료. 무기 DA의 FireMontage는 제거됨 — 이제 캐릭터 DA에서만 설정.
 
@@ -71,11 +73,13 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 > 팀 ID까지 `AEnemyAIController`에 구현됨. **에셋만 만들면 된다.**
 
 **① 테스트 레벨에 NavMesh 배치**
-- [ ] `NavMeshBoundsVolume`을 적이 움직일 범위에 씌우고 `P` 키로 초록 영역 확인
+- [x] `NavMeshBoundsVolume`을 적이 움직일 범위에 씌우고 `P` 키로 초록 영역 확인
 - 이게 없으면 BT의 모든 이동 태스크가 **조용히 실패**한다. 반드시 먼저
 
-**② `BB_Enemy` 생성** (`/Game/V2_HJContents/V2AI/`)
-- [ ] 키 5개 추가. 이름은 `EnemyCharacter.cpp`의 `BBKey_*` 상수와 **철자까지 정확히** 일치해야 함
+**② `BB_Enemy` 생성** (`/Game/V2_HJContents/V2AI/`) — **[x] MCP로 생성 완료**
+- [x] 키 5개 추가 (이름은 `EnemyCharacter.cpp`의 `BBKey_*` 상수와 일치 확인됨)
+- [ ] **`TargetActor`의 Base Class를 `Actor`로 지정** — 이 필드만 Python에 노출이 안 돼
+      수동. 블랙보드 에디터에서 `TargetActor` 선택 → Key Type ▸ Base Class 드롭다운
 
   | 키 | 타입 |
   |---|---|
@@ -86,8 +90,8 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
   | `PatrolOrigin` | Vector |
 
 **③ `BT_AREnemy` 생성**
-- [ ] 블랙보드에 `BB_Enemy` 지정
-- [ ] 최소 구조:
+- [x] 블랙보드에 `BB_Enemy` 지정
+- [x] 최소 구조 (이동까지 동작 확인):
 
   ```
   Selector
@@ -101,18 +105,24 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
   ```
 
 **④ `BP_AREnemy` 연결**
-- [ ] `AI Controller Class` = `AEnemyAIController`
-- [ ] `Auto Possess AI` = `Placed in World or Spawned`
-- [ ] BehaviorTree 슬롯에 `BT_AREnemy`
+- [x] `AI Controller Class` = `AEnemyAIController`
+- [x] `Auto Possess AI` = `Placed in World or Spawned`
+- [x] BehaviorTree 슬롯에 `BT_AREnemy`
 
 **⑤ 적 앉기 ABP 배선**
-- [ ] `ABP_AREnemy` EventGraph의 `Cast To BP_EnemyBase`(구세대, 우리 적에선 실패)를
+- [x] `ABP_AREnemy` EventGraph의 `Cast To BP_EnemyBase`(구세대, 우리 적에선 실패)를
       `Cast To Character → Is Crouched`로 교체. locomotion은 이미 동작함
       (MCP는 DynamicCast 타깃 클래스 지정 불가라 수동)
 
 **⑥ PIE 테스트**
-- [ ] 적이 미카를 발견하면 접근하는지
+- [x] 적이 미카를 발견하면 접근하는지
 - [ ] 안 되면 `P`(Show Navigation), `'`(AI Debug)로 블랙보드 값이 실제로 채워지는지 확인
+
+**⑦ 적 사격 — C++ 완료, PIE 확인 필요** (ADR-005)
+- [ ] `BT_AREnemy`의 발견 Sequence에서 `Wait` 자리를 **`Fire At Target`**(Target Key = `TargetActor`)으로 교체
+- [ ] Move To의 Acceptable Radius < `AttackRange`(1200) — 넘으면 사거리 밖이라 태스크가 계속 실패
+- [ ] 적이 사거리 안에서 사격 / 벽 뒤에서는 안 쏨 / 높은 곳의 미카를 올려다보며 쏨
+- [ ] (정리) `ABP_AREnemy` Jump 그래프의 `Cast To Ue4ASP_Character → SET Jump Button Down` 죽은 노드 삭제
 
 **나머지 적:**
 - [ ] Shotgun/Sniper/MG/Shield/LargeSweeper 등 자식 클래스 + 에셋 연결

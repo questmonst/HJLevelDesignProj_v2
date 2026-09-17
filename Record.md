@@ -133,6 +133,56 @@ WBP의 동명 애니메이션을 UMG가 자동 바인딩한다. `ACharacterBase:
 
 ---
 
+### ADR-005: 적 사격 — C++ BT 태스크 + AI 조준을 컨트롤러 시점으로
+
+**날짜**: 2026-09-17
+
+**결정**: `UBTTask_FireAtTarget`(C++)이 `AEnemyCharacter::FireAtTarget/StopFiring`을 호출하고,
+`AWeaponBase`의 AI 조준을 `GetActorEyesViewPoint()` 기준으로 바꾼다.
+
+**이유**:
+- 사격 로직은 `AEnemyCharacter::FireAtTarget()`에 이미 있었다. 빠진 건 BT에서 부를 경로뿐.
+  BP 태스크로 만들면 캐릭터마다 Cast 노드 배선이 필요하고, MCP는 Cast 타깃 지정이 불가능하다.
+  C++ 태스크는 BT 노드 목록에 바로 뜬다
+- 기존 AI 조준은 `GetActorLocation/GetActorRotation` — 액터 로테이션은 **피치가 항상 0**이라
+  위아래를 못 쏘고, 발사 지점이 캡슐 중심(허리)이었다. 수직 구조가 핵심인 이 게임에서 치명적.
+  `HitscanFire` / `ProjectileFire` / `GrenadeFire` 3경로 모두 수정
+
+**태스크 동작**: 사거리(`AttackRange`)·시야(`LineOfSightTo`) 확인 → 사격 + `OnAttack()` BP 훅 →
+`FireDuration`(0이면 `AttackCooldown`) 유지 → `StopFiring`. 실패 시 상위 Sequence가 끊겨 접근 단계로 복귀.
+`AbortTask`에서도 반드시 `StopFiring` — 총구가 안 멈추는 사고 방지.
+조준은 태스크 책임이 아니다 — 앞선 `Rotate to face BB entry`/`Move To`가 폰을 타겟으로 돌린다.
+
+---
+
+### ADR-006: 발사 몽타주 — Additive 시퀀스 + ABP 최종단 UpperBody 슬롯
+
+**날짜**: 2026-09-17
+
+**결정**: 발사 시퀀스를 **Additive(Local Space, Base = 자기 자신 0프레임)** 로 두고,
+`ABP_Riflegirl2_mika` AnimGraph의 최종 `BlendListByBool` → `Slot 'UpperBody'` → `Output Pose`로 얹는다.
+앉은 상태는 `APlayerCharacter::SelectFireMontage()`가 `FireMontageCrouch`로 분기(비어 있으면 기본값).
+
+**이유**:
+- 몽타주가 안 보였던 원인은 재생 코드가 아니라 **AnimGraph에 Slot 노드가 없던 것**이었다.
+  슬롯 매니저에 `UpperBody`가 등록돼 있는 것과 ABP가 그 슬롯을 읽는 것은 별개
+- 일반(비 Additive) 애니를 슬롯에 넣으면 전신을 덮어써 걷기·앉기·조준 피치(ModifyBone)가 풀린다.
+  Additive는 0프레임 대비 차이만 더하므로 **Layered blend per bone 없이도** 하체와 조준 자세가 유지된다
+- `Apply Additive` 노드는 쓰지 않는다 — Slot 노드가 Additive 몽타주를 입력 포즈 위에 자동으로 얹는다.
+  별도 분기로 만들면 비어 있는 입력이 레퍼런스 포즈가 되어 오히려 꼬인다
+- 미유처럼 BP에서 `Play Anim Montage`를 분기하는 방식은 캐릭터마다 그래프 복사가 필요하고
+  C++ 분기와 중복되므로 채택하지 않음 (재생 속도 노출 아이디어만 추후 DA로 흡수 가능)
+
+**함정 — 루트 본 스케일 (중요)**: 미카 리타겟 애니는 루트 본 `survivor_teenangst_arm`의 스케일이
+1.0으로 구워져 있으면 캐릭터가 **1/100로 축소**된다(7월 `fix_mika_root_scale.py`로 앉기 12종 픽스).
+앉아쏴가 작아졌던 원인은 몽타주가 픽스 이후 만든 복제본 `Crouch_AimIdle_Shoot_mika1`을 참조했기 때문.
+Additive는 기준 프레임과 상쇄돼 증상이 가려지므로, 서서쏴 `AimIdle_Shoot_mika`의 루트 트랙도 제거해
+`ThuggedAnims` 시퀀스 24개 전부 루트 트랙 없음으로 통일. **새로 리타겟/복제한 애니는 반드시 확인할 것.**
+
+**미유 참고**: 미유는 `APlayerCharacter`가 아니라 `SelectFireMontage()`를 못 쓴다. 우선순위 6에서 같은 구조로 이전.
+
+---
+
 ## 작업 이력
 
 | 날짜 | 작업 | 비고 |
@@ -147,3 +197,5 @@ WBP의 동명 애니메이션을 UMG가 자동 바인딩한다. `ACharacterBase:
 | 2026-09-16 | 체력바 Screen 스페이스 전환 + 지연바(chip damage) 추가 | ADR-004 갱신 |
 | 2026-09-16 | 페이드인 즉시화 + Anim_Death 자동 바인딩 재생 | ADR-004 갱신 |
 | 2026-09-16 | 체력바 재구성 시 구독 유실 버그 픽스(3중 방어) | ADR-004 갱신 |
+| 2026-09-17 | 적 사격 BT 태스크 + AI 조준 눈높이·피치 | ADR-005 |
+| 2026-09-17 | 발사 몽타주 Additive + UpperBody 슬롯, 앉아쏴, 루트 트랙 정리 | ADR-006 |
