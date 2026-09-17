@@ -116,6 +116,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Landing", meta=(ToolTip="랜딩 다이브 낙하 속도 (cm/s). 클수록 빠르게 내려꽂힘"))
 	float LandingDiveSpeed = 2000.0f;
 
+	// --- Punch Animation ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Animation", meta=(ToolTip="펀치 충전 몽타주. MikaData에서 설정"))
+	UAnimMontage* PunchChargeMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Animation", meta=(ToolTip="대시 펀치 몽타주. MikaData에서 설정"))
+	UAnimMontage* PunchDashMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Animation", meta=(ToolTip="랜딩 다이브 낙하 몽타주. MikaData에서 설정"))
+	UAnimMontage* LandingDiveMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Animation", meta=(ToolTip="랜딩 착지 공격 몽타주. MikaData에서 설정"))
+	UAnimMontage* LandingImpactMontage = nullptr;
+
 	// --- State ---
 
 	UPROPERTY(BlueprintReadOnly, Category = "Mika|State", meta=(ToolTip="펀치 사용 가능 여부. 쿨타임 중이면 false"))
@@ -141,6 +155,7 @@ protected:
 	FTimerHandle DashEndTimerHandle;
 	FTimerHandle PunchCooldownTimerHandle;
 	FTimerHandle AutoReleaseTimerHandle;
+	FTimerHandle WeaponRestoreTimerHandle;   // 펀치·착지 몽타주가 끝난 뒤 총 복구
 
 	// --- Overrides ---
 
@@ -155,6 +170,14 @@ protected:
 	void StartPunchCooldown();
 	void ResetPunchCooldown();
 	bool CanTriggerLanding() const;
+
+	// 맨손 공격 동안 총을 숨긴다 — 펀치 애니가 총을 쥔 손과 겹쳐 보이지 않도록. 충전 시작에 숨기고 공격 종료 시 복구
+	void SetWeaponHiddenForPunch(bool bHideWeapon);
+
+	// 몽타주 길이만큼 기다렸다 총 복구 — 대시(0.25초)보다 펀치 애니가 길어 대시 종료 시점에 복구하면 총이 거의 안 숨는다
+	void RestoreWeaponAfter(float Delay);
+	void RestoreWeapon() { SetWeaponHiddenForPunch(false); }
+	float PunchMontageEndTime = 0.f;
 
 	UFUNCTION()
 	void OnPunchHitboxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

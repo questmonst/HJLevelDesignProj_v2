@@ -200,4 +200,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="앉은 상태 발사 몽타주. 비워두면 FireMontage를 그대로 쓴다"))
 	UAnimMontage* FireMontageCrouch = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="펀치 충전 중 몽타주 (UpperBody 슬롯 — ABP에서 Layered blend per bone으로 상체만 적용). 충전이 길어질 수 있으니 반복 섹션으로 구성"))
+	UAnimMontage* PunchChargeMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="대시 펀치 몽타주. 제자리(비 Root) 애니 사용 — 이동은 LaunchCharacter가 담당"))
+	UAnimMontage* PunchDashMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="랜딩 다이브 낙하 중 몽타주. 낙하 시간이 가변이라 반복 섹션으로 구성"))
+	UAnimMontage* LandingDiveMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="랜딩 착지 공격 몽타주"))
+	UAnimMontage* LandingImpactMontage = nullptr;
 };

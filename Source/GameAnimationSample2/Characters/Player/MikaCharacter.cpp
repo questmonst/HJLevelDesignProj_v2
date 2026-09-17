@@ -3,6 +3,7 @@
 #include "MikaCharacter.h"
 #include "IDestructible.h"
 #include "HealthRegenComponent.h"
+#include "WeaponBase.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -89,6 +90,10 @@ void AMikaCharacter::BeginPlay()
 		LandingDiveSpeed           = MikaData->LandingDiveSpeed;
 		FireMontage                = MikaData->FireMontage;
 		FireMontageCrouch          = MikaData->FireMontageCrouch;
+		PunchChargeMontage         = MikaData->PunchChargeMontage;
+		PunchDashMontage           = MikaData->PunchDashMontage;
+		LandingDiveMontage         = MikaData->LandingDiveMontage;
+		LandingImpactMontage       = MikaData->LandingImpactMontage;
 	}
 
 	PunchHitbox->OnComponentBeginOverlap.AddDynamic(this, &AMikaCharacter::OnPunchHitboxOverlap);
@@ -158,6 +163,10 @@ void AMikaCharacter::StartFire()
 	GetCharacterMovement()->BrakingDecelerationWalking   = ChargeBrakingDeceleration;
 	GetCharacterMovement()->BrakingDecelerationFalling   = ChargeAirBrakingDeceleration;
 	GetWorldTimerManager().SetTimer(AutoReleaseTimerHandle, this, &AMikaCharacter::StopFire, ForcedMaxChargeTime, false);
+
+	GetWorldTimerManager().ClearTimer(WeaponRestoreTimerHandle);
+	SetWeaponHiddenForPunch(true);
+	if (PunchChargeMontage) PlayAnimMontage(PunchChargeMontage);
 }
 
 void AMikaCharacter::StopFire()
@@ -176,8 +185,14 @@ void AMikaCharacter::StopFire()
 	GetCharacterMovement()->BrakingDecelerationWalking   = DefaultBrakingDeceleration;
 	GetCharacterMovement()->BrakingDecelerationFalling   = DefaultBrakingDecelerationFall;
 
+	if (PunchChargeMontage) StopAnimMontage(PunchChargeMontage);
+
 	float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
-	if (HeldTime < MinChargeTime) return;
+	if (HeldTime < MinChargeTime)
+	{
+		SetWeaponHiddenForPunch(false);   // 미발동 — 총 복구
+		return;
+	}
 
 	// 랜딩 조건 충족 시 다이브
 	if (CanTriggerLanding())
@@ -185,6 +200,7 @@ void AMikaCharacter::StopFire()
 		bCanPunch        = false;
 		bIsDivingLanding = true;
 		LaunchCharacter(FVector(0.f, 0.f, -LandingDiveSpeed), false, true);
+		if (LandingDiveMontage) PlayAnimMontage(LandingDiveMontage);
 		return;
 	}
 
@@ -229,7 +245,10 @@ void AMikaCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 	if (!bIsDivingLanding) return;
 	bIsDivingLanding = false;
+	if (LandingDiveMontage) StopAnimMontage(LandingDiveMontage);
+	const float ImpactLength = LandingImpactMontage ? PlayAnimMontage(LandingImpactMontage) : 0.f;
 	MikaLanding();
+	RestoreWeaponAfter(ImpactLength);
 }
 
 // --- 대시 ---
@@ -261,6 +280,8 @@ void AMikaCharacter::StartDash(float ChargeRatio)
 	LaunchCharacter(DashDir * Speed, true, true);
 
 	PunchHitbox->SetGenerateOverlapEvents(true);
+	const float DashMontageLength = PunchDashMontage ? PlayAnimMontage(PunchDashMontage) : 0.f;
+	PunchMontageEndTime = GetWorld()->GetTimeSeconds() + DashMontageLength;
 
 	GetWorldTimerManager().SetTimer(DashEndTimerHandle, this, &AMikaCharacter::EndDash, DashDuration, false);
 }
@@ -279,7 +300,25 @@ void AMikaCharacter::EndDash()
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}
 
+	RestoreWeaponAfter(PunchMontageEndTime - GetWorld()->GetTimeSeconds());
 	StartPunchCooldown();
+}
+
+void AMikaCharacter::RestoreWeaponAfter(float Delay)
+{
+	if (Delay > KINDA_SMALL_NUMBER)
+	{
+		GetWorldTimerManager().SetTimer(WeaponRestoreTimerHandle, this, &AMikaCharacter::RestoreWeapon, Delay, false);
+	}
+	else
+	{
+		RestoreWeapon();
+	}
+}
+
+void AMikaCharacter::SetWeaponHiddenForPunch(bool bHideWeapon)
+{
+	if (CurrentWeapon) CurrentWeapon->SetActorHiddenInGame(bHideWeapon);
 }
 
 // --- 히트박스 오버랩 ---
