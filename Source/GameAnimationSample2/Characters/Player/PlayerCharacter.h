@@ -270,6 +270,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="발사(반동) 시 재생할 몽타주. 모든 무기 공통"))
 	UAnimMontage* FireMontage = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="앉은 상태 발사 몽타주. 비어 있으면 FireMontage를 쓴다"))
+	UAnimMontage* FireMontageCrouch = nullptr;
+
+	// 실제로 재생 중인 발사 몽타주. 사격 도중 앉기/서기가 바뀌어도
+	// StopFire가 엉뚱한 몽타주를 멈추지 않도록 시작 시점의 것을 들고 있는다.
+	UPROPERTY(Transient)
+	UAnimMontage* ActiveFireMontage = nullptr;
+
 	bool  bIsSwapping        = false;
 	bool  bIsFiring          = false;
 	int32 PendingWeaponIndex = -1;
@@ -302,6 +310,10 @@ public:
 	void StopAim();
 
 	// --- Weapon ---
+
+	// 현재 자세에 맞는 발사 몽타주를 고른다 (앉기 전용이 없으면 기본값)
+	UFUNCTION(BlueprintPure, Category = "Character|Animation")
+	UAnimMontage* SelectFireMontage() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Weapon")
 	virtual void StartFire();

@@ -183,4 +183,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="발사(반동) 시 캐릭터에 재생할 몽타주 (UpperBody 슬롯). 모든 무기 공통"))
 	UAnimMontage* FireMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="앉은 상태 발사 몽타주. 비워두면 FireMontage를 그대로 쓴다"))
+	UAnimMontage* FireMontageCrouch = nullptr;
 };

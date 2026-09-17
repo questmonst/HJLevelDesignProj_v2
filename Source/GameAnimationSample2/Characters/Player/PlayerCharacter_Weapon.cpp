@@ -230,13 +230,22 @@ void APlayerCharacter::SwapToLastWeapon()
 		EquipWeapon(LastWeaponIndex);
 }
 
+UAnimMontage* APlayerCharacter::SelectFireMontage() const
+{
+	// 앉기 전용 몽타주가 지정돼 있을 때만 교체 — 비어 있으면 기존 동작 그대로
+	if (bIsCrouched && FireMontageCrouch) return FireMontageCrouch;
+	return FireMontage;
+}
+
 void APlayerCharacter::StartFire()
 {
 	if (!CurrentWeapon) return;
 	bIsFiring = true;
 	CurrentWeapon->StartFire();
-	if (FireMontage)
-		PlayAnimMontage(FireMontage);
+
+	ActiveFireMontage = SelectFireMontage();
+	if (ActiveFireMontage)
+		PlayAnimMontage(ActiveFireMontage);
 }
 
 void APlayerCharacter::StopFire()
@@ -247,9 +256,10 @@ void APlayerCharacter::StopFire()
 	// 자동화기만 릴리즈 시 몽타주 중단 (단발은 자연스럽게 끝남)
 	if (CurrentWeapon->IsAutoFire())
 	{
-		if (FireMontage)
-			StopAnimMontage(FireMontage);
+		if (ActiveFireMontage)
+			StopAnimMontage(ActiveFireMontage);
 	}
+	ActiveFireMontage = nullptr;
 }
 
 void APlayerCharacter::Reload()
