@@ -118,11 +118,56 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 - [x] 적이 미카를 발견하면 접근하는지
 - [ ] 안 되면 `P`(Show Navigation), `'`(AI Debug)로 블랙보드 값이 실제로 채워지는지 확인
 
-**⑦ 적 사격 — C++ 완료, PIE 확인 필요** (ADR-005)
-- [ ] `BT_AREnemy`의 발견 Sequence에서 `Wait` 자리를 **`Fire At Target`**(Target Key = `TargetActor`)으로 교체
-- [ ] Move To의 Acceptable Radius < `AttackRange`(1200) — 넘으면 사거리 밖이라 태스크가 계속 실패
-- [ ] 적이 사거리 안에서 사격 / 벽 뒤에서는 안 쏨 / 높은 곳의 미카를 올려다보며 쏨
+**⑦ 적 사격** (ADR-005)
+- [x] `BT_AREnemy`의 발견 Sequence에서 `Wait` 자리를 **`Fire At Target`**(Target Key = `TargetActor`)으로 교체
+- [x] Move To의 Acceptable Radius < `AttackRange`(1200) — 넘으면 사거리 밖이라 태스크가 계속 실패
+- [x] 적이 사거리 안에서 사격
+- [ ] 벽 뒤에서는 안 쏨 / 높은 곳의 미카를 올려다보며 쏨
 - [ ] (정리) `ABP_AREnemy` Jump 그래프의 `Cast To Ue4ASP_Character → SET Jump Button Down` 죽은 노드 삭제
+
+### AR 적 AI 패턴 — 단계별 (ADR-007, 2026-09-17)
+
+> 한 층씩 쌓고 PIE로 확인한 뒤 다음 단계로. 디버그: PIE에서 `'` → 넘버패드 1(BT)·2(EQS)·3(Perception).
+> 사람이 넣을 데이터·AI가 고칠 C++은 [TODO_AI.md](TODO_AI.md).
+
+- [x] **0단계 준비** — EnemyData_AR 연결, Use Controller Rotation Yaw, BB TargetActor Base Class, NavMesh, 재장전 몽타주 슬롯(UpperBody)
+- [x] **1단계 기본 사격 + 순찰** — 사격 1초 / 휴식 4초(EnemyData), Find Patrol Location → Move To(Radius 50) → Wait
+- [x] **2단계 재장전** — `[bNeedsReload] Reload Weapon`, 재장전 사운드
+- [x] **3단계 EQS 에셋** — `EQS_IsInCover`, `EQS_FindCover` (V2AI)
+- [~] **4단계 엄폐 재장전** — `Selector_reload` 구성 완료. 제자리 재장전 재발 문제는 TODO_AI A 참고(레벨 디자인하며 확인)
+
+**5단계 — 경계 (피격 방향, 마지막 위치 추적, 제압 사격, 잊기)** — 전투와 순찰 **사이**에 추가
+```
+[bIsAlerted Is Set, aborts lower] Sequence_Alert      ← 서비스: Set default focus(TargetLocation)
+  Set Move Mode (Walk)
+  Selector [Force Success]
+    └ [Random Chance: Suppress] Fire At Target (Target Key = TargetLocation, Pattern = Suppress)
+  Move To (TargetLocation, Radius 100)                 ← 마지막 목격 위치로 추적
+  Wait (3 ± 1)
+```
+- [ ] 적이 "빨리 잊는" 문제의 주원인이 이 분기 부재 — 만들면 시야를 잃어도 마지막 위치로 추적함
+- [ ] 확인: 뒤에서 쏘면 돌아봄 / 숨으면 마지막 위치에 제압 사격(확률) / 마지막 위치까지 추적 / `ForgetTime` 후 순찰 복귀 / `LeashDistance` 넘게 끌고 가면 포기
+
+**6단계 — 전투 변주 (스트레이핑, 개활지 엄폐 이동)**
+- [ ] `EQS_Strafe` 생성 — Generator **Points: Donut**(Inner 200, Outer 450, Center Querier) / Pathfinding(Path Exist, Filter) / Trace(Context `EnvQueryContext_BlackboardTarget`, **Bool Match 해제** = 보이는 곳) / Dot(Querier→Item vs Querier→BlackboardTarget, Absolute, Filter Max 0.4) / Distance(To BlackboardTarget, Filter 600~1200). Run Mode = Single Random Item from Best 25%
+- [ ] 1단계의 `Fire At Target` 자리를 아래로 교체:
+```
+Selector_Combat
+ ├ Sequence (엄폐 중): Run EQS Query(EQS_IsInCover)
+ │    Selector
+ │     ├ [Random Chance: Strafe] Simple Parallel(메인 Fire At Target / 보조 Run EQS Query(EQS_Strafe→StrafeLocation) → Move To(Allow Strafe))
+ │     └ Fire At Target (Attack)
+ ├ [Random Chance: Seek Cover] Sequence (개활지):
+ │    Run EQS Query(EQS_FindCover→CoverLocation)
+ │    Simple Parallel(메인 Move To(CoverLocation, Allow Strafe) / 보조 [Loop] Fire At Target)
+ └ Fire At Target (Attack)
+```
+- [ ] BB_Enemy에 `StrafeLocation`(Vector) 키 추가
+- [ ] 확인: 개활지에서 엄폐물로 이동하며 사격 / 엄폐 중 가끔 옆으로 움직이며 사격 / 이동 애니가 미끄러지지 않는지(블렌드스페이스 방향 지원)
+
+**7단계 — 적 종류별 성향**
+- [ ] `EnemyData_AR` 복제 → `EnemyData_MG`, `EnemyData_DMR` 등. 사격 패턴(Burst/Rest)·확률(Strafe/Suppress/SeekCover)만 다르게 (예: MG = 사격 5초/휴식 1초/스트레이핑 0%)
+- [ ] BT는 공유 — 노드의 `Use Enemy Data`가 켜져 있으면 적마다 다르게 행동
 
 **나머지 적:**
 - [ ] Shotgun/Sniper/MG/Shield/LargeSweeper 등 자식 클래스 + 에셋 연결
