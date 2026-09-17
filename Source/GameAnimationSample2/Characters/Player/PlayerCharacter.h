@@ -387,4 +387,9 @@ public:
 
 protected:
 	virtual void Landed(const FHitResult& Hit) override;
+
+public:
+	// 플레이어는 사망해도 Destroy하지 않는다 — HUD 위젯(크로스헤어 등)이 파괴된 캐릭터를 읽어 에러가 나고,
+	// 체크포인트 재시작 시 같은 캐릭터를 되살려 쓰기 위해서다. 지금은 입력·사격·이동만 멈춘다.
+	virtual void OnDeath_Implementation() override;
 };

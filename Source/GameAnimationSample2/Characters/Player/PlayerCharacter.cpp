@@ -478,3 +478,15 @@ void APlayerCharacter::ResetHardLanding()
 {
 	bIsHardLanding = false;
 }
+
+void APlayerCharacter::OnDeath_Implementation()
+{
+	// TODO(체크포인트 재시작 미구현): 사망 연출·재시작 흐름이 생기면 여기서 호출
+	StopFire();
+	GetCharacterMovement()->StopMovementImmediately();
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+	OnDeathEffect();
+}
