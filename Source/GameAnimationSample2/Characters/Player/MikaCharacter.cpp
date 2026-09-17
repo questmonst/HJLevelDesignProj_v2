@@ -2,6 +2,7 @@
 
 #include "MikaCharacter.h"
 #include "IDestructible.h"
+#include "HealthRegenComponent.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -11,6 +12,8 @@
 
 AMikaCharacter::AMikaCharacter()
 {
+	HealthRegen = CreateDefaultSubobject<UHealthRegenComponent>(TEXT("HealthRegen"));
+
 	PunchHitbox = CreateDefaultSubobject<UBoxComponent>(TEXT("PunchHitbox"));
 	PunchHitbox->SetupAttachment(GetMesh(), TEXT("WeaponSocketRight"));	// "hand_r"은 ValveBiped 스켈레톤에 없는 소켓이라 루트로 폴백됐었음. 오른손 소켓 사용.
 	PunchHitbox->SetBoxExtent(FVector(20.f, 20.f, 20.f));
@@ -57,6 +60,7 @@ void AMikaCharacter::BeginPlay()
 			GrenadeCount               = MikaData->MaxGrenadeCount;
 		WeaponSwapDelay            = MikaData->WeaponSwapDelay;
 		CurrentHealth              = MaxHealth;
+		HealthRegen->Configure(MikaData->RegenDelay, MikaData->RegenInterval, MikaData->RegenAmount, MikaData->RegenCapRatio);
 		// Punch
 		PunchDamage                = MikaData->PunchDamage;
 		PunchCooldown              = MikaData->PunchCooldown;

@@ -94,6 +94,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Character|Stats")
 	float GetHealthPercent() const;
 
+	UFUNCTION(BlueprintPure, Category = "Character|Stats")
+	float GetCurrentHealth() const { return CurrentHealth; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Stats")
+	float GetMaxHealth() const { return MaxHealth; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Stats")
+	bool IsDead() const { return bIsDead; }
+
+	// 체력 회복의 유일한 경로 — 회복 컴포넌트·아이템 등이 CurrentHealth를 직접 바꾸지 않게 해서
+	// OnHealthChanged 방송이 누락되지 않도록 한다 (SSOT). 실제 회복된 양을 반환
+	UFUNCTION(BlueprintCallable, Category = "Character|Stats")
+	float Heal(float Amount);
+
 	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
 	FOnHealthChangedSignature OnHealthChanged;
 

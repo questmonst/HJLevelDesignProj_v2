@@ -19,6 +19,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="미카의 최대 체력"))
 	float MaxHealth = 100.f;
 
+	// --- Health Regen ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Regen", meta=(ClampMin="0", ToolTip="마지막 피격 후 회복 시작까지 대기 시간 (초)"))
+	float RegenDelay = 5.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Regen", meta=(ClampMin="0.01", ToolTip="회복 간격 N (초). N초마다 RegenAmount만큼 회복"))
+	float RegenInterval = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Regen", meta=(ClampMin="0", ToolTip="간격마다 회복량 M (체력 수치)"))
+	float RegenAmount = 5.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Regen", meta=(ClampMin="0", ClampMax="1", ToolTip="회복 상한 (최대 체력 대비 비율). 0.5면 50%까지만 차오르고, 그 위에서 맞으면 회복 없음"))
+	float RegenCapRatio = 0.5f;
+
 	// --- Movement ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta=(ToolTip="걷기 속도 (cm/s)"))

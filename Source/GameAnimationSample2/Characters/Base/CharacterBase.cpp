@@ -69,6 +69,21 @@ float ACharacterBase::GetHealthPercent() const
 	return MaxHealth > 0.f ? CurrentHealth / MaxHealth : 0.f;
 }
 
+float ACharacterBase::Heal(float Amount)
+{
+	if (bIsDead || Amount <= 0.f) return 0.f;
+
+	const float Before = CurrentHealth;
+	CurrentHealth = FMath::Min(CurrentHealth + Amount, MaxHealth);
+	const float Healed = CurrentHealth - Before;
+
+	if (Healed > 0.f)
+	{
+		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+	}
+	return Healed;
+}
+
 void ACharacterBase::TakeDamageCustom_Implementation(float Amount)
 {
 	CurrentHealth = FMath::Clamp(CurrentHealth - Amount, 0.0f, MaxHealth);

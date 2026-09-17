@@ -8,6 +8,7 @@
 #include "MikaCharacter.generated.h"
 
 class UBoxComponent;
+class UHealthRegenComponent;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API AMikaCharacter : public APlayerCharacter
@@ -26,6 +27,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Data", meta=(ToolTip="할당 시 BeginPlay에서 모든 스탯을 덮어씀"))
 	UMikaDataAsset* MikaData = nullptr;
 
+	// --- Health Regen ---
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mika|Regen", meta=(ToolTip="비전투 체력 회복. 수치는 MikaData의 Stats|Regen"))
+	UHealthRegenComponent* HealthRegen;
+
+public:
+	// 체력바 WBP가 OnRegenStarted/Stopped를 구독할 때 사용
+	UFUNCTION(BlueprintPure, Category = "Mika|Regen")
+	UHealthRegenComponent* GetHealthRegen() const { return HealthRegen; }
+
+protected:
 	// --- Punch ---
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mika|Punch", meta=(ToolTip="펀치 히트박스 컴포넌트"))
