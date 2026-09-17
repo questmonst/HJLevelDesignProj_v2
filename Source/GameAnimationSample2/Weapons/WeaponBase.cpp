@@ -255,8 +255,10 @@ void AWeaponBase::HitscanFire()
 		PC->GetPlayerViewPoint(CamLoc, CamRot);
 	else if (OwnerPawn)
 	{
-		CamLoc = OwnerPawn->GetActorLocation();
-		CamRot = OwnerPawn->GetActorRotation();
+		// AI는 컨트롤러 시점(눈높이 + 피치)을 쓴다. 액터 로테이션은 피치가 항상 0이라
+		// 위/아래를 못 쏘고, 액터 위치는 캡슐 중심이라 발사 지점이 허리높이가 된다.
+		// 수직 구조가 핵심인 레벨에서는 둘 다 문제가 된다.
+		OwnerPawn->GetActorEyesViewPoint(CamLoc, CamRot);
 	}
 	else return;
 
@@ -368,8 +370,10 @@ void AWeaponBase::ProjectileFire()
 		PC->GetPlayerViewPoint(CamLoc, CamRot);
 	else if (OwnerPawn)
 	{
-		CamLoc = OwnerPawn->GetActorLocation();
-		CamRot = OwnerPawn->GetActorRotation();
+		// AI는 컨트롤러 시점(눈높이 + 피치)을 쓴다. 액터 로테이션은 피치가 항상 0이라
+		// 위/아래를 못 쏘고, 액터 위치는 캡슐 중심이라 발사 지점이 허리높이가 된다.
+		// 수직 구조가 핵심인 레벨에서는 둘 다 문제가 된다.
+		OwnerPawn->GetActorEyesViewPoint(CamLoc, CamRot);
 	}
 	else return;
 
@@ -447,8 +451,10 @@ void AWeaponBase::GrenadeFire()
 		PC->GetPlayerViewPoint(CamLoc, CamRot);
 	else if (OwnerPawn)
 	{
-		CamLoc = OwnerPawn->GetActorLocation();
-		CamRot = OwnerPawn->GetActorRotation();
+		// AI는 컨트롤러 시점(눈높이 + 피치)을 쓴다. 액터 로테이션은 피치가 항상 0이라
+		// 위/아래를 못 쏘고, 액터 위치는 캡슐 중심이라 발사 지점이 허리높이가 된다.
+		// 수직 구조가 핵심인 레벨에서는 둘 다 문제가 된다.
+		OwnerPawn->GetActorEyesViewPoint(CamLoc, CamRot);
 	}
 	else return;
 
