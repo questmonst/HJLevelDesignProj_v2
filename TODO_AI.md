@@ -15,6 +15,22 @@
 - [x] 피격 즉시 감지 PIE 확인
 - [x] 미카 사망 PIE 확인
 
+### 미카 펀치 애니메이션 (2026-09-17)
+- [x] 빌드 (총 숨기기 + 펀치 몽타주 재생)
+- [x] ABP 상체 전용 레이어 (Layered blend per bone + UpperBody 슬롯)
+- [x] CLazyAnimpack(UE5 마네킹) → 미카 리타겟 (`RTG_Manny2Mika_v2`) — `ThuggedAnims/MikaPunch/`에 `Attack_Hand_Ready/1R/2L/PwR_Mika` 4종, 루트 스케일 트랙 제거 완료
+- [ ] **수직 펀치(랜딩)** — `JAttack_AirFront`(`Attack_Jump_Air/`)를 수정해 사용하기로 함(2026-09-17). `RTG_Manny2Mika_v2`로 리타겟 → `fix_mika_root_scale.py` → 구간 잘라 `LandingDiveMontage`(낙하, Auto Blend Out 해제)·`LandingImpactMontage`(착지). 필요 시 `JAttack_AirDrop_Keep/End`도 비교
+- [x] **상체만 적용** (CLazy 펀치는 달리기 하체가 섞여 있음): `ABP_Riflegirl2_mika` AnimGraph — 최종 `부울로 포즈 블렌딩` → Save Cached Pose `LocoPose` → `Layered blend per bone`(Base = LocoPose, Blend 0 = LocoPose → 기존 `Slot 'UpperBody'`, Bone `ValveBiped_Bip01_Spine1`, Mesh Space Rotation Blend 체크) → 출력 포즈. 현재 UpperBody 슬롯은 최종 포즈 전체 위라 일반 애니는 다리까지 덮음
+- [ ] 몽타주 생성(슬롯 `DefaultGroup.UpperBody`) → `MikaData` › **Animation › Punch**
+  - `PunchChargeMontage` = `Attack_Hand_Ready_Mika` — Blend In 0.05, **Enable Auto Blend Out 해제**(마지막 준비 자세 유지)
+  - `PunchDashMontage` = `Attack_Hand_PwR_Mika` — 세그먼트 Anim Start/End Time으로 앞 딜레이·뒤 멈춤 제거, 주먹이 대시 0.1~0.15초에 뻗도록 Play Rate 조정
+  - 랜딩 2종은 애니 확보 후
+- [ ] **빌드 필요** — 총 복구 시점을 대시 종료(0.25초) → **펀치·착지 몽타주 길이만큼 대기 후**로 변경 (2026-09-17, "총이 안 사라진다" 대응)
+- [ ] 충전 중 하체 = 앉기 이동(A안 채택): ABP EventGraph `isCrouching = Is Crouched OR bIsChargingPunch`
+- [ ] 충전 중 고개 들기: ABP AnimGraph 출력 직전에 `Transform (Modify) Bone` — Bone `ValveBiped_Bip01_Head1`(부족하면 `Neck1`에도 절반), Rotation Mode **Add to Existing**, Space **Bone Space**, Alpha Bool = `bIsChargingPunch`(Blend In/Out 0.15). 회전 축은 기존 척추 조준 노드처럼 **Roll**이 상하(피치) — -15~-25도부터 부호 바꿔가며 조정
+- [ ] PIE: 충전 시작 시 총 숨김 → 펀치 몽타주 끝날 때 / 착지 몽타주 끝날 때 / 짧게 눌러 미발동 시 총 복구
+- [ ] ABP 전신/상체 분기 — 대시 중(또는 제자리 충전)엔 전신, 이동하며 충전할 땐 상체만: `Slot 'UpperBody'` 출력을 Save Cached Pose `SlotPose` → `Layered blend per bone`(Blend 0 = SlotPose) → `Blend Poses by bool`(True = SlotPose, False = Layered 결과, Blend Time 0.1) → 출력 포즈. bool = `bIsDashing OR (bIsChargingPunch AND NOT ShouldMove)` (BP_Mika 변수를 ABP EventGraph에서 읽기, C++ 불필요)
+
 ### EQS 엄폐 판정 — 제자리 재장전 재발 (레벨 디자인 진행하며 확인)
 증상: 엄폐물로 이동하지 않고 제자리에서 재장전 후 앉았다 일어남 (`Sequence_AlreadyCover`가 항상 성공).
 확인된 것: Visibility 채널은 캐릭터 캡슐·메시가 Ignore, 무기 메시는 NoCollision → **자기 몸에 막히는 문제 아님**. Bullet 채널로 바꾸면 캐릭터가 Block이라 오히려 악화.
@@ -36,4 +52,5 @@
 
 ### 보류 (필요해지면)
 - [ ] 적 조준(Ironsights) 모션 — `bIsAiming` + `BTService_SetAiming` + ABP `Blend Poses by bool`·`Aim_Space_Ironsights`. 2026-09-17 "적은 디테일 불필요"로 보류
+- [ ] 미카 약/강 펀치 분기 — `MikaData`에 `PunchLightMontage`(`Attack_Hand_1R_Mika`)·`PunchPowerChargeRatio` 추가, 충전 비율 기준 미만이면 약펀치 몽타주. 2026-09-17 "충전·강펀치만 먼저"로 보류
 - [ ] EQS 대신 C++ 엄폐 태스크(`Find Cover Location` / `Is In Cover`) — EQS 판정 문제가 계속되면 전환 검토
