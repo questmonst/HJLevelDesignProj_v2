@@ -91,6 +91,7 @@ void AWeaponBase::BeginPlay()
 		// --- Audio / VFX ---
 		FireSound               = WeaponData->FireSound;
 		DryFireSound            = WeaponData->DryFireSound;
+		ReloadSound             = WeaponData->ReloadSound;
 		HitVFX                  = WeaponData->HitVFX;
 		MuzzleVFX               = WeaponData->MuzzleVFX;
 		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
@@ -484,6 +485,11 @@ void AWeaponBase::Reload()
 	bIsReloading = true;
 	StopFire();
 	OnReloadStart();
+
+	if (ReloadSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, GetActorLocation());
+	}
 
 	if (APlayerCharacter* PC = Cast<APlayerCharacter>(GetOwner()))
 	{

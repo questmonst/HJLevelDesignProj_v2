@@ -161,6 +161,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio", meta=(ToolTip="잔탄 없음·장전 중·행동 불가 상태에서 발사 시도 시 재생할 사운드"))
 	USoundBase* DryFireSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Audio", meta=(ToolTip="재장전 시작 시 재생할 사운드. DataAsset에서 설정"))
+	USoundBase* ReloadSound = nullptr;
+
 	// --- VFX ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|VFX", meta=(ToolTip="히트스캔 탄착점에 스폰할 나이아가라 시스템"))
