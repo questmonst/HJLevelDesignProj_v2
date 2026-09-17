@@ -42,8 +42,20 @@ protected:
 
 public:
     virtual FGenericTeamId GetGenericTeamId() const override;
+    virtual void Tick(float DeltaSeconds) override;
+
+    // 피격 시 AEnemyCharacter가 호출 — 공격자를 못 보고 있으면 그 위치를 TargetLocation에 써서
+    // BT가 그쪽을 바라보게 한다. 공격자를 직접 타겟으로 삼지 않는 이유: 시야 확인은 Perception의 몫
+    void NotifyDamagedBy(AActor* Attacker);
 
 private:
+    // 경계 상태에서 스폰 지점 이탈·장기간 미발견 시 타겟을 잊고 순찰로 복귀시킨다
+    void UpdateForget();
+    void ForgetTarget();
+
+    // 타겟 정보(시야·피격)를 마지막으로 얻은 시각. 잊기 판정 기준
+    float LastTargetInfoTime = 0.f;
+
     UAISenseConfig_Sight*   SightConfig   = nullptr;
     UAISenseConfig_Hearing* HearingConfig = nullptr;
 

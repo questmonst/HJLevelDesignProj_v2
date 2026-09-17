@@ -276,6 +276,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
 	bool IsReloading() const { return bIsReloading; }
 
+	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
+	int32 GetMagSize() const { return MagSize; }
+
+	// AI 무한 탄약용. 플레이어 탄약 획득 로직이 생기면 그쪽도 이 함수를 쓴다
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Ammo")
+	void SetReserveAmmo(int32 NewReserve) { ReserveAmmo = FMath::Max(NewReserve, 0); }
+
+	// 지금 방아쇠를 당기면 실제로 탄이 나가는가 — 단발 무기를 AI가 연사 속도에 맞춰 다시 당길 때 사용.
+	// (StartFire를 쿨다운 중에 부르면 빈 총 소리가 나므로 미리 확인한다)
+	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
+	bool IsFireReady() const { return CanFire() && !bFireCooldown; }
+
 	UFUNCTION(BlueprintPure, Category = "Weapon|Recoil")
 	float GetRecoilPitch() const { return RecoilPitch; }
 
