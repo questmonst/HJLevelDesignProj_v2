@@ -86,6 +86,12 @@ public:
     UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
     float GetAttackRange() const { return AttackRange; }
 
+    UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
+    float GetAttackCooldown() const { return AttackCooldown; }
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
+    float GetAttackDamage() const { return AttackDamage; }
+
     // --- Combat ---
 
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
