@@ -181,6 +181,90 @@ Additive는 기준 프레임과 상쇄돼 증상이 가려지므로, 서서쏴 `
 
 **미유 참고**: 미유는 `APlayerCharacter`가 아니라 `SelectFireMontage()`를 못 쓴다. 우선순위 6에서 같은 구조로 이전.
 
+### ADR-007: 적 재장전·엄폐 — C++ BT 노드 모음 + UEnemyDataAsset
+
+**날짜**: 2026-09-17
+
+**결정**: 적 AI 전용 BT 노드를 `Source/.../AI/`에 모으고(FireAtTarget도 이동), 적 행동 수치는
+`UEnemyDataAsset`(클래스 1개, 적 종류마다 에셋 1개)로 뺀다. 재장전 판단은 서비스가 블랙보드 `bNeedsReload`에
+올리고, BT는 기본 `Blackboard Based Condition`으로 분기한다. 엄폐 위치는 EQS로 찾는다.
+
+**추가된 노드**
+| 노드 | 역할 |
+|---|---|
+| `Fire At Target` (수정) | `FireDuration`(기본 5초) 동안 사격. 연사 무기는 무기 타이머, 단발·점사는 `IsFireReady()`마다 재발사. 탄창 비면 실패 + `bNeedsReload=true` |
+| `Reload Weapon` | 재장전 시작 → 완료까지 대기 → `bNeedsReload=false` |
+| `Set Move Mode` | Walk / Run / Crouch. 속도는 캐릭터(EnemyData) 값 |
+| `Clear Blackboard Value` | 키 비우기 (엔진 기본 노드 없음) |
+| `Find Patrol Location` | PatrolOrigin 주변 NavMesh 랜덤 지점 → PatrolLocation |
+| `Update Weapon State` (서비스) | 잔탄 비율 → `bNeedsReload`. 루트 Selector에 부착 |
+| `EnvQueryContext_BlackboardTarget` | EQS에서 "타겟(미카)" 컨텍스트. 엄폐 판정 트레이스의 기준 |
+
+**이유**
+- **DA 분리 기준**: 연사 속도·대미지·탄창은 이미 `UWeaponDataAsset`에 있다. 적 DA에는 "행동"(이동 속도, 교전 거리,
+  재장전 기준)만 둔다. 통합 DA 하나는 적 6종에서 비대해지고, 무기별 DA는 무기 DA와 중복된다
+- **서비스 + BB 키**: 데코레이터가 무기 액터를 직접 보게 하려면 C++ 데코레이터 + 재평가 요청 코드가 필요하다.
+  BB에 올리면 Observer aborts가 엔진 기본 동작으로 처리된다. 서비스 틱 간격(0.2초) 공백은
+  사격 태스크가 탄이 비는 순간 키를 직접 세워서 메운다
+- **장전 중 키 유지**: 서비스는 장전 중에 `bNeedsReload`를 내리지 않는다. 내리면 재장전 분기가 abort되어
+  엄폐 중에 뛰쳐나간다. 내리는 건 `Reload Weapon` 완료 시점 하나뿐
+- **무한 예비탄**: 적이 탄약 부족으로 무력화되면 전투가 김빠진다. `bInfiniteReserveAmmo`로 장전 직전 예비탄 보충
+- **FireAtTarget 기본값 0→5초**: 기존 0은 "AttackCooldown 동안"이라는 오해 소지 있는 동작이었다. 사격 유지 시간은
+  BT 노드에서 직접 정한다. `AttackCooldown`·`AttackDamage`는 이제 어디서도 쓰지 않는다
+  (TODO(무기 DA와 중복): 자식 적 생성자 정리 시 함께 제거)
+
+**권장 BT 구조** (루트 Selector에 `Update Weapon State` 서비스)
+```
+Selector
+ ├ [bNeedsReload Is Set, aborts both] Sequence_Reload
+ │    Set Move Mode(Run) → Run EQS Query(EQS_FindCover → CoverLocation)
+ │    → Move To(CoverLocation) → Set Move Mode(Crouch) → Reload Weapon
+ │    → Set Move Mode(Walk) → Clear Blackboard Value(CoverLocation)
+ ├ [bCanSeeTarget Is Set, aborts both] Sequence_Fire   (+ Set default focus 서비스 = TargetActor)
+ │    Set Move Mode(Walk) → Move To(TargetActor, 반경 < AttackRange) → Fire At Target
+ └ Sequence_Patrol
+      Find Patrol Location → Move To(PatrolLocation) → Wait
+```
+Reload 분기를 Fire보다 **왼쪽(우선순위 높음)** 에 둬야 사격 중 탄이 떨어졌을 때 abort된다.
+
+**사격 패턴 (추가)**: 3초 사격 / 2초 휴식은 코드 없이 `Fire At Target(3) → Wait(2)`. 확률 스트레이핑은
+`BTDecorator_RandomChance`(엔진에 확률 데코레이터 없음) + `Simple Parallel`(메인 = Fire At Target, 보조 = EQS_Strafe → Move To, Allow Strafe).
+RandomChance는 진입 시 한 번만 굴린다 — Observer aborts를 막아 실행 중인 분기가 재판정으로 끊기지 않게 함.
+
+**행동 성향 (추가)**: 사격/휴식 시간(일반·제압 따로)과 확률(스트레이핑·제압·엄폐 이동)은 `UEnemyDataAsset`에 둔다.
+`Fire At Target`·`Random Chance`의 `Use Enemy Data`가 켜져 있으면 적 종류별 값을 읽어, 같은 BT로 AR·MG·DMR 성향 차이를 낸다.
+무기 DA가 아닌 적 DA에 두는 이유: 무기 DA는 미카도 공유하고, 적 1종 = 무기 1종이라 결과가 같다.
+- `Fire At Target`은 "사격 → 휴식"을 한 번 수행한다(별도 Wait 불필요). Vector 키(`TargetLocation`)면 제압 사격 — 시야 확인 생략
+- **잊기**: `AEnemyAIController::Tick`에서 경계 중 ① 스폰 지점에서 `LeashDistance` 초과 ② `ForgetTime` 동안 타겟 정보 없음이면
+  `TargetActor`·`TargetLocation`·경계를 지운다 → 순찰 분기가 스폰 지점 주변으로 복귀시킨다.
+  Leash로 잊은 직후 미카가 계속 보이는 상태면 Perception이 새 이벤트를 안 보내 재감지되지 않는다(시야를 잃었다 다시 잡으면 재감지) — 추격 한계로 의도된 동작
+- **피격 방향**: `AEnemyCharacter::TakeDamage` → `NotifyDamagedBy`. 공격자를 못 보고 있으면 `TargetLocation`에 공격자 위치를 쓰고 경계.
+  공격자를 바로 `TargetActor`로 삼지 않는다 — 시야 판정은 Perception 한 곳에서만
+- 시야를 잃을 때 `TargetLocation`을 `Stimulus.StimulusLocation`(마지막 목격 위치)으로 갱신 — 제압 사격 조준점
+
+**함정**
+- EQS 엄폐 트레이스는 Item Height Offset을 **앉은 눈높이(~60)**, Context Height Offset을 타겟 가슴 높이(~120)로.
+  서 있는 높이로 재면 앉았을 때 머리 위로 넘어오는 낮은 엄폐물을 못 고른다
+- EQS 실패(엄폐물 없음) 시 Sequence가 끊긴다. 제자리 재장전 폴백은 Reload 분기 안에 Selector를 한 겹 더 둔다
+
+### ADR-008: 비전투 체력 회복 — UHealthRegenComponent + ACharacterBase::Heal
+
+**날짜**: 2026-09-17
+
+**결정**: 마지막 피격 후 `RegenDelay`초가 지나면 `RegenInterval`(N)초마다 `RegenAmount`(M)씩,
+최대 체력 × `RegenCapRatio`까지만 회복한다. 상한 위에서 맞으면 회복하지 않는다. 수치는 `DA_Mika`의 `Stats|Regen`.
+회복 중에는 `OnRegenStarted` / `OnRegenStopped` 델리게이트로 UI가 체력바를 깜빡인다.
+
+**이유**
+- **컴포넌트**: `PlayerCharacter.cpp`가 480줄로 한도에 가깝고, 미유·적에게도 재사용 가능해야 한다
+- **`Heal()` 단일 경로**: 회복이 `CurrentHealth`를 직접 바꾸면 `OnHealthChanged` 방송이 빠질 수 있다.
+  감소는 `TakeDamageCustom`, 증가는 `Heal` — 체력 변경 경로를 둘로 고정 (SSOT)
+- **타이머 기반**: 틱 없이 `OnDamaged` 구독 → 지연 타이머 → 반복 타이머. 피격마다 둘 다 리셋
+- **깜빡임은 UI 몫**: 컴포넌트는 상태만 알린다. 연출(UMG 애니)은 WBP가 결정 — C++이 위젯 구조를 모르게
+
+**UI 연결**: `WBP_PlayerHealthBar`에서 `Get Owning Player Pawn → Cast To BP_Mika → Get Health Regen`
+→ `Bind Event to OnRegenStarted`(Play Animation, Loop 0) / `OnRegenStopped`(Stop Animation).
+
 ---
 
 ## 작업 이력
@@ -199,3 +283,6 @@ Additive는 기준 프레임과 상쇄돼 증상이 가려지므로, 서서쏴 `
 | 2026-09-16 | 체력바 재구성 시 구독 유실 버그 픽스(3중 방어) | ADR-004 갱신 |
 | 2026-09-17 | 적 사격 BT 태스크 + AI 조준 눈높이·피치 | ADR-005 |
 | 2026-09-17 | 발사 몽타주 Additive + UpperBody 슬롯, 앉아쏴, 루트 트랙 정리 | ADR-006 |
+| 2026-09-17 | 적 재장전·엄폐 BT 노드 + UEnemyDataAsset, 사격 5초 유지·단발 재발사 | ADR-007 |
+| 2026-09-17 | 확률 데코레이터(스트레이핑 사격용) + 미카 비전투 체력 회복 컴포넌트 | ADR-007 보강, ADR-008 |
+| 2026-09-17 | 적 행동 성향 DA(사격 패턴·확률), 제압 사격, 타겟 잊기, 피격 방향 반응 | ADR-007 보강 |
