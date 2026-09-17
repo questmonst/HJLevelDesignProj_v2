@@ -156,6 +156,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch", meta=(ToolTip="대시 지속 시간 (초). 히트박스가 활성화되는 시간"))
 	float DashDuration = 0.25f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch", meta=(ToolTip="true면 대시 지속 시간을 PunchDashMontage 실제 재생 길이(Rate Scale 반영)로 맞춘다. 몽타주가 없으면 DashDuration 사용"))
+	bool bDashDurationFromMontage = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch", meta=(ToolTip="대시 중 공중 감속도. 클수록 짧게 날아감"))
 	float DashBrakingDeceleration = 800.f;
 

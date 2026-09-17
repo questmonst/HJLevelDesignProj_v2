@@ -4,6 +4,7 @@
 #include "IDestructible.h"
 #include "HealthRegenComponent.h"
 #include "WeaponBase.h"
+#include "Animation/AnimMontage.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -75,6 +76,7 @@ void AMikaCharacter::BeginPlay()
 		MinDashSpeed               = MikaData->MinDashSpeed;
 		MaxDashSpeed               = MikaData->MaxDashSpeed;
 		DashDuration               = MikaData->DashDuration;
+		bDashDurationFromMontage   = MikaData->bDashDurationFromMontage;
 		DashBrakingDeceleration    = MikaData->DashBrakingDeceleration;
 		// Punch Camera
 		ChargeSpringArmLength      = MikaData->ChargeSpringArmLength;
@@ -246,7 +248,7 @@ void AMikaCharacter::Landed(const FHitResult& Hit)
 	if (!bIsDivingLanding) return;
 	bIsDivingLanding = false;
 	if (LandingDiveMontage) StopAnimMontage(LandingDiveMontage);
-	const float ImpactLength = LandingImpactMontage ? PlayAnimMontage(LandingImpactMontage) : 0.f;
+	const float ImpactLength = PlayMontageForDuration(LandingImpactMontage);
 	MikaLanding();
 	RestoreWeaponAfter(ImpactLength);
 }
@@ -280,10 +282,12 @@ void AMikaCharacter::StartDash(float ChargeRatio)
 	LaunchCharacter(DashDir * Speed, true, true);
 
 	PunchHitbox->SetGenerateOverlapEvents(true);
-	const float DashMontageLength = PunchDashMontage ? PlayAnimMontage(PunchDashMontage) : 0.f;
+	const float DashMontageLength = PlayMontageForDuration(PunchDashMontage);
 	PunchMontageEndTime = GetWorld()->GetTimeSeconds() + DashMontageLength;
 
-	GetWorldTimerManager().SetTimer(DashEndTimerHandle, this, &AMikaCharacter::EndDash, DashDuration, false);
+	// 대시(히트박스·이동 제동) 길이를 펀치 모션과 일치시켜, 애니 도중 판정이 끝나는 어긋남을 없앤다
+	const float ActualDashDuration = (bDashDurationFromMontage && DashMontageLength > 0.f) ? DashMontageLength : DashDuration;
+	GetWorldTimerManager().SetTimer(DashEndTimerHandle, this, &AMikaCharacter::EndDash, ActualDashDuration, false);
 }
 
 void AMikaCharacter::EndDash()
@@ -302,6 +306,13 @@ void AMikaCharacter::EndDash()
 
 	RestoreWeaponAfter(PunchMontageEndTime - GetWorld()->GetTimeSeconds());
 	StartPunchCooldown();
+}
+
+float AMikaCharacter::PlayMontageForDuration(UAnimMontage* Montage)
+{
+	if (!Montage) return 0.f;
+	const float Length = PlayAnimMontage(Montage);
+	return Length / FMath::Max(Montage->RateScale, KINDA_SMALL_NUMBER);
 }
 
 void AMikaCharacter::RestoreWeaponAfter(float Delay)

@@ -79,6 +79,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="대시 지속 시간 (초). 히트박스가 활성화되는 시간"))
 	float DashDuration = 0.25f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="true면 대시 지속 시간 = 펀치 몽타주 재생 길이. MikaData에서 설정"))
+	bool bDashDurationFromMontage = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="대시 중 공중 제동력. 클수록 짧게 날아감 (UE 기본값 0)"))
 	float DashBrakingDeceleration = 800.f;
 
@@ -178,6 +181,9 @@ protected:
 	void RestoreWeaponAfter(float Delay);
 	void RestoreWeapon() { SetWeaponHiddenForPunch(false); }
 	float PunchMontageEndTime = 0.f;
+
+	// 몽타주를 재생하고 실제 재생 시간(초)을 돌려준다. PlayAnimMontage는 Rate Scale을 반영하지 않은 원본 길이를 돌려주므로 보정
+	float PlayMontageForDuration(UAnimMontage* Montage);
 
 	UFUNCTION()
 	void OnPunchHitboxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
