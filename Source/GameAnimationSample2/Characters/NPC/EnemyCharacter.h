@@ -56,7 +56,7 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    // 피격 시 공격자 방향을 컨트롤러에 알려 "그쪽을 보게" 한다
+    // 피격 시 Perception Damage 감각으로 보고 — 시야각 밖에서 맞아도 즉시 공격자를 인지하게 한다
     virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
                              AController* EventInstigator, AActor* DamageCauser) override;
 
@@ -167,8 +167,10 @@ protected:
     UPROPERTY(BlueprintReadOnly, Category = "Enemy|Weapon", meta=(ToolTip="현재 장착된 무기 레퍼런스"))
     AWeaponBase* EnemyWeapon = nullptr;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Weapon", meta=(ToolTip="무기를 부착할 소켓 이름"))
-    FName WeaponAttachSocket = TEXT("hand_r");
+    // 미카(APlayerCharacter)와 같은 소켓 이름으로 통일 — 적 스켈레톤에도 WeaponSocketRight/Left를 만들어 쓴다.
+    // 없는 소켓 이름이면 에러 없이 루트(발밑)에 붙으니 스켈레톤에 소켓이 있는지 반드시 확인
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Weapon", meta=(ToolTip="무기를 부착할 소켓 이름. 스켈레톤에 해당 소켓이 있어야 함"))
+    FName WeaponAttachSocket = TEXT("WeaponSocketRight");
 
 public:
     // --- Getters ---

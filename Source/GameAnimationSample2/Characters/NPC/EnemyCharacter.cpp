@@ -3,6 +3,7 @@
 #include "EnemyCharacter.h"
 #include "EnemyAIController.h"
 #include "EnemyDataAsset.h"
+#include "Perception/AISense_Damage.h"
 #include "WeaponBase.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -101,10 +102,8 @@ float AEnemyCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damage
     APawn* Attacker = EventInstigator ? EventInstigator->GetPawn() : nullptr;
     if (Actual > 0.f && !bIsDead && Attacker && !Attacker->IsA<AEnemyCharacter>())
     {
-        if (AEnemyAIController* AICon = Cast<AEnemyAIController>(GetController()))
-        {
-            AICon->NotifyDamagedBy(Attacker);
-        }
+        // Perception의 Damage 감각으로 보고 — 감지 처리는 컨트롤러의 퍼셉션 핸들러 한 곳에서
+        UAISense_Damage::ReportDamageEvent(this, this, Attacker, Actual, Attacker->GetActorLocation(), GetActorLocation());
     }
     return Actual;
 }

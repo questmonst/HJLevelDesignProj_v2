@@ -7,6 +7,10 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseConfig_Damage.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Damage.h"
+#include "Perception/AIPerceptionSystem.h"
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -28,8 +32,13 @@ AEnemyAIController::AEnemyAIController()
     HearingConfig->DetectionByAffiliation.bDetectNeutrals  = false;
     HearingConfig->DetectionByAffiliation.bDetectFriendlies = false;
 
+    // 피격 감각 — 시야각 밖(뒤·옆)에서 맞아도 즉시 공격자를 인지하게 한다
+    DamageConfig = CreateDefaultSubobject<UAISenseConfig_Damage>(TEXT("DamageConfig"));
+    DamageConfig->SetMaxAge(5.f);
+
     AIPerception->ConfigureSense(*SightConfig);
     AIPerception->ConfigureSense(*HearingConfig);
+    AIPerception->ConfigureSense(*DamageConfig);
     AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
 
     PrimaryActorTick.bCanEverTick = true;
@@ -73,21 +82,37 @@ void AEnemyAIController::OnUnPossess()
 void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
     UBlackboardComponent* BB = GetBlackboardComponent();
-    if (!BB) return;
+    if (!BB || !Actor) return;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
+    const TSubclassOf<UAISense> Sense = UAIPerceptionSystem::GetSenseClassForStimulus(this, Stimulus);
+    const bool bSight  = Sense == UAISense_Sight::StaticClass();
+    const bool bDamage = Sense == UAISense_Damage::StaticClass();
 
     if (Stimulus.WasSuccessfullySensed())
     {
         BB->SetValueAsObject(AEnemyCharacter::BBKey_TargetActor,   Actor);
         BB->SetValueAsVector(AEnemyCharacter::BBKey_TargetLocation, Actor->GetActorLocation());
-        BB->SetValueAsBool  (AEnemyCharacter::BBKey_bCanSeeTarget,  true);
         BB->SetValueAsBool  (AEnemyCharacter::BBKey_bIsAlerted,     true);
         LastTargetInfoTime = GetWorld()->GetTimeSeconds();
 
+        // "볼 수 있음"은 시야 감각이 결정한다. 청각은 경계·위치만 갱신.
+        // 피격은 공격자가 시선(LOS) 안에 있으면 즉시 교전 — 포커스가 돌아가면 시야 감각이 이어받는다
+        if (bSight)
+        {
+            BB->SetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget, true);
+            bDamageEngaged = false;
+        }
+        else if (bDamage && LineOfSightTo(Actor))
+        {
+            BB->SetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget, true);
+            bDamageEngaged   = true;
+            DamageEngageTime = GetWorld()->GetTimeSeconds();
+        }
+
         if (Enemy) Enemy->AlertEnemy(Actor);
     }
-    else
+    else if (bSight)
     {
         // 시야만 끊김. 마지막 목격 위치는 제압 사격(Fire At Target + TargetLocation)의 조준점
         BB->SetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget, false);
@@ -96,6 +121,7 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
             BB->SetValueAsVector(AEnemyCharacter::BBKey_TargetLocation, Stimulus.StimulusLocation);
         }
         LastTargetInfoTime = GetWorld()->GetTimeSeconds();
+        bDamageEngaged = false;
 
         if (Enemy) Enemy->StopFiring();
     }
@@ -104,20 +130,33 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 void AEnemyAIController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    UpdateDamageEngage();
     UpdateForget();
 }
 
-void AEnemyAIController::NotifyDamagedBy(AActor* Attacker)
+void AEnemyAIController::UpdateDamageEngage()
 {
+    if (!bDamageEngaged || GetWorld()->GetTimeSeconds() - DamageEngageTime < DamageEngageGraceTime) return;
+    bDamageEngaged = false;
+
     UBlackboardComponent* BB = GetBlackboardComponent();
-    if (!BB || !Attacker) return;
+    if (!BB) return;
 
-    // 이미 보고 있으면 사격 분기가 처리 중 — 건드리지 않는다
-    if (BB->GetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget)) return;
+    AActor* Target = Cast<AActor>(BB->GetValueAsObject(AEnemyCharacter::BBKey_TargetActor));
+    if (Target && IsSightSensing(Target)) return;   // 시야가 이어받음 — 이후 해제는 시야 감각이 처리
 
-    BB->SetValueAsVector(AEnemyCharacter::BBKey_TargetLocation, Attacker->GetActorLocation());
-    BB->SetValueAsBool  (AEnemyCharacter::BBKey_bIsAlerted,     true);
+    // 돌아봤는데 못 봤다: 교전 해제, 경계는 유지(TargetLocation 조사·잊기 타이머로 넘어감)
+    BB->SetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget, false);
+    if (Target) BB->SetValueAsVector(AEnemyCharacter::BBKey_TargetLocation, Target->GetActorLocation());
     LastTargetInfoTime = GetWorld()->GetTimeSeconds();
+    if (AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn())) Enemy->StopFiring();
+}
+
+bool AEnemyAIController::IsSightSensing(AActor* Actor) const
+{
+    TArray<AActor*> Seen;
+    AIPerception->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), Seen);
+    return Seen.Contains(Actor);
 }
 
 void AEnemyAIController::UpdateForget()

@@ -238,8 +238,10 @@ RandomChance는 진입 시 한 번만 굴린다 — Observer aborts를 막아 �
 - **잊기**: `AEnemyAIController::Tick`에서 경계 중 ① 스폰 지점에서 `LeashDistance` 초과 ② `ForgetTime` 동안 타겟 정보 없음이면
   `TargetActor`·`TargetLocation`·경계를 지운다 → 순찰 분기가 스폰 지점 주변으로 복귀시킨다.
   Leash로 잊은 직후 미카가 계속 보이는 상태면 Perception이 새 이벤트를 안 보내 재감지되지 않는다(시야를 잃었다 다시 잡으면 재감지) — 추격 한계로 의도된 동작
-- **피격 방향**: `AEnemyCharacter::TakeDamage` → `NotifyDamagedBy`. 공격자를 못 보고 있으면 `TargetLocation`에 공격자 위치를 쓰고 경계.
-  공격자를 바로 `TargetActor`로 삼지 않는다 — 시야 판정은 Perception 한 곳에서만
+- **피격 즉시 감지** (갱신): `AEnemyCharacter::TakeDamage` → `UAISense_Damage::ReportDamageEvent`. 컨트롤러에 Damage 감각 추가.
+  피격 시 `TargetActor`·경계를 세우고, 공격자가 시선(LOS) 안이면 `bCanSeeTarget`도 즉시 켜 교전에 들어간다(시야각 밖이어도).
+  Damage 감각은 일회성 이벤트라 "감지 해제"가 오지 않으므로, `DamageEngageGraceTime`(1초) 안에 시야 감각이 이어받지 못하면
+  컨트롤러가 `bCanSeeTarget`을 끈다. `bCanSeeTarget`은 시야 감각만 켜고 끈다 — 청각은 경계·위치만 갱신(기존엔 청각도 켜던 버그 수정)
 - 시야를 잃을 때 `TargetLocation`을 `Stimulus.StimulusLocation`(마지막 목격 위치)으로 갱신 — 제압 사격 조준점
 
 **함정**
@@ -286,3 +288,4 @@ RandomChance는 진입 시 한 번만 굴린다 — Observer aborts를 막아 �
 | 2026-09-17 | 적 재장전·엄폐 BT 노드 + UEnemyDataAsset, 사격 5초 유지·단발 재발사 | ADR-007 |
 | 2026-09-17 | 확률 데코레이터(스트레이핑 사격용) + 미카 비전투 체력 회복 컴포넌트 | ADR-007 보강, ADR-008 |
 | 2026-09-17 | 적 행동 성향 DA(사격 패턴·확률), 제압 사격, 타겟 잊기, 피격 방향 반응 | ADR-007 보강 |
+| 2026-09-17 | 적 피격 즉시 감지(AISense_Damage) + 시야 인계 확인, 청각이 bCanSeeTarget 켜던 버그 수정 | ADR-007 갱신 |
