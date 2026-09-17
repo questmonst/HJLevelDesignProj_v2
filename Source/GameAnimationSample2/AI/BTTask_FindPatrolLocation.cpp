@@ -15,6 +15,7 @@ UBTTask_FindPatrolLocation::UBTTask_FindPatrolLocation()
 	OriginKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_FindPatrolLocation, OriginKey));
 	ResultKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_FindPatrolLocation, ResultKey));
 	OriginKey.SelectedKeyName = AEnemyCharacter::BBKey_PatrolOrigin;
+	ResultKey.SelectedKeyName = TEXT("PatrolLocation");
 }
 
 FString UBTTask_FindPatrolLocation::GetStaticDescription() const

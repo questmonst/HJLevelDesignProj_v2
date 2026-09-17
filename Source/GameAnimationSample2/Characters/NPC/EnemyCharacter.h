@@ -113,10 +113,10 @@ protected:
     // --- Fire Pattern ---
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Fire Pattern", meta=(ToolTip="일반 사격 유지 시간 (초). EnemyData에서 설정"))
-    float FireBurstDuration = 3.f;
+    float FireBurstDuration = 1.f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Fire Pattern", meta=(ToolTip="일반 사격 후 휴식 (초). EnemyData에서 설정"))
-    float FireRestDuration = 2.f;
+    float FireRestDuration = 4.f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Fire Pattern", meta=(ToolTip="제압 사격 유지 시간 (초). EnemyData에서 설정"))
     float SuppressBurstDuration = 2.f;

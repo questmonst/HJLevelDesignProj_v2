@@ -50,10 +50,10 @@ public:
 	// BT의 Fire At Target(Use Enemy Data)이 읽는다. 무기 성격(AR·MG·DMR)은 적 종류별 에셋에서 이 값으로 표현
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire Pattern", meta=(ClampMin="0.1", ToolTip="일반 사격 유지 시간 (초)"))
-	float FireBurstDuration = 3.f;
+	float FireBurstDuration = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire Pattern", meta=(ClampMin="0", ToolTip="일반 사격 후 휴식 시간 (초)"))
-	float FireRestDuration = 2.f;
+	float FireRestDuration = 4.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire Pattern", meta=(ClampMin="0.1", ToolTip="제압 사격(마지막 발견 위치) 유지 시간 (초)"))
 	float SuppressBurstDuration = 2.f;
