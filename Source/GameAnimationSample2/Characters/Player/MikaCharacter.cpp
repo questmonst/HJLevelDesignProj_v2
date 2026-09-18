@@ -158,6 +158,9 @@ void AMikaCharacter::StartFire()
 	}
 	if (!bCanPunch) return;
 
+	// 조준 중 발사하다 조준을 풀고 펀치로 넘어오면 무기 타이머가 계속 돌 수 있다 — 충전 진입 시 확실히 멈춘다
+	Super::StopFire();
+
 	bIsChargingPunch = true;
 	ChargeStartTime  = GetWorld()->GetTimeSeconds();
 	GetCharacterMovement()->GravityScale                 = ChargeGravityScale;
@@ -173,12 +176,12 @@ void AMikaCharacter::StartFire()
 
 void AMikaCharacter::StopFire()
 {
-	if (bIsAiming && !bIsChargingPunch)
+	if (!bIsChargingPunch)
 	{
+		// 충전 중이 아니면 사격 릴리즈. 조준을 푼 채 버튼을 떼도 총구가 멈춰야 한다
 		Super::StopFire();
 		return;
 	}
-	if (!bIsChargingPunch) return;
 
 	bIsChargingPunch = false;
 	GetWorldTimerManager().ClearTimer(AutoReleaseTimerHandle);

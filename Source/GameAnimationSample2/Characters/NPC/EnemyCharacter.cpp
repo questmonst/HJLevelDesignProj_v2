@@ -7,6 +7,7 @@
 #include "WeaponBase.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Blackboard 키 이름 정의 (AEnemyAIController와 반드시 일치)
 const FName AEnemyCharacter::BBKey_TargetActor    = TEXT("TargetActor");
@@ -216,6 +217,28 @@ void AEnemyCharacter::AlertEnemy(AActor* Target)
 }
 
 // ---------------------------------------------------------------------------
+
+void AEnemyCharacter::OnDeath_Implementation()
+{
+    StopFiring();
+
+    // 캐릭터만 사라지면 무기가 공중에 남고 연사 타이머도 계속 돈다.
+    // 미카의 무기 버리기와 같은 경로(SetDropped)로 발밑에 내려놔 줍기도 가능하게 한다
+    if (EnemyWeapon)
+    {
+        const FVector DropLocation = GetActorLocation()
+            - FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())
+            + GetActorForwardVector() * 40.f;
+
+        EnemyWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+        EnemyWeapon->SetActorLocation(DropLocation);
+        EnemyWeapon->SetActorRotation(FRotator::ZeroRotator);
+        EnemyWeapon->SetOwner(nullptr);
+        EnemyWeapon->SetDropped(true);
+        EnemyWeapon = nullptr;
+    }
+    Super::OnDeath_Implementation();
+}
 
 void AEnemyCharacter::OnDetectPlayer_Implementation() {}
 void AEnemyCharacter::OnAttack_Implementation()       {}

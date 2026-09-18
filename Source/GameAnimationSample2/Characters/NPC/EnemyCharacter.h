@@ -261,4 +261,7 @@ public:
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Enemy|AI")
     void OnLoseSight();
     virtual void OnLoseSight_Implementation();
+
+    // 사망 즉시 총구를 멈추고 무기를 발밑에 떨어뜨린다 — 캐릭터만 사라지면 무기가 공중에 남고 발사가 이어진다
+    virtual void OnDeath_Implementation() override;
 };
