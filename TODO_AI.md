@@ -32,6 +32,14 @@
 - [ ] PIE: 충전 시작 시 총 숨김 → 펀치 몽타주 끝날 때 / 착지 몽타주 끝날 때 / 짧게 눌러 미발동 시 총 복구
 - [ ] ABP 전신/상체 분기 — 대시 중(또는 제자리 충전)엔 전신, 이동하며 충전할 땐 상체만: `Slot 'UpperBody'` 출력을 Save Cached Pose `SlotPose` → `Layered blend per bone`(Blend 0 = SlotPose) → `Blend Poses by bool`(True = SlotPose, False = Layered 결과, Blend Time 0.1) → 출력 포즈. bool = `bIsDashing OR (bIsChargingPunch AND NOT ShouldMove)` (BP_Mika 변수를 ABP EventGraph에서 읽기, C++ 불필요)
 
+### 미카 펀치 · 사격 정지 (2026-09-18)
+- [x] 빌드 (적 사망 시 사격 중단·무기 드롭, 미카 사격 릴리즈 처리)
+- [ ] PIE: 적 사망 시 무기가 발밑에 떨어져 주울 수 있는지 / 발사가 즉시 멈추는지 / 조준 사격 중 조준만 풀고 버튼을 떼도 총구가 멈추는지 / 사격 중 펀치 충전 진입 시 멈추는지
+- [ ] `MikaData` › Punch | Camera — 대시 중 확대: `DashFOV` 105 → **70**(조준과 동일), `DashSpringArmLength` 420 → **180~250**. 대시가 짧아 보간이 안 끝나면 `CameraInterpSpeed` 10 → 15~20 (충전과 공용)
+- [x] ABP: **펀치(대시) 중 전신 원본 모션** — `Slot 'UpperBody'` 출력을 Save Cached Pose `SlotPose` → `Layered blend per bone`(Blend 0 = SlotPose) → `Blend Poses by bool`(True = SlotPose 전신, False = Layered 상체만, Blend Time 0.1, bool = `bIsDashing`) → 출력 포즈
+- [x] ABP: **충전 중 허리를 조준 방향으로** — Layered blend **뒤**에 `Transform (Modify) Bone`(Bone `ValveBiped_Bip01_Spine2`, Add to Existing, Bone Space, Alpha Bool = `bIsChargingPunch`), Roll ← `Aim Spine Pitch * -0.6`(기존 척추 조준 노드와 같은 축·부호). 몽타주가 Spine1 위를 Mesh Space로 덮으므로 레이어 앞에 두면 무시됨
+- [ ] ABP: 대시 중 상체 젖히기 — 위와 같은 노드, Alpha Bool = `bIsDashing`, Roll -10~-20 (전신 분기를 쓰면 원본 애니에 이미 포함되어 불필요할 수 있음)
+
 ### EQS 엄폐 판정 — 제자리 재장전 재발 (레벨 디자인 진행하며 확인)
 증상: 엄폐물로 이동하지 않고 제자리에서 재장전 후 앉았다 일어남 (`Sequence_AlreadyCover`가 항상 성공).
 확인된 것: Visibility 채널은 캐릭터 캡슐·메시가 Ignore, 무기 메시는 NoCollision → **자기 몸에 막히는 문제 아님**. Bullet 채널로 바꾸면 캐릭터가 Block이라 오히려 악화.
@@ -50,6 +58,8 @@
 - [ ] `BTTask_FindPatrolLocation`의 `"PatrolLocation"` 하드코딩 → `AEnemyCharacter::BBKey_PatrolLocation` 상수로 (다른 BB 키와 통일)
 - [ ] 체크포인트 재시작 — `APlayerCharacter::OnDeath_Implementation`의 `TODO(체크포인트 재시작 미구현)`. `PlayerCharacter.cpp`가 492줄이라 GameMode 또는 별도 컴포넌트에 구현
 - [ ] `WeaponBase.cpp` 719줄 — 500줄 규칙 초과(이전부터). 발사/재장전/그립 정렬 등으로 파일 분리 검토
+- [ ] **낙하 리셋을 AI(아키라)에도 적용** — `AFallResetTrigger::OnTriggerOverlap`이 PlayerController 없는 캐릭터를 무시함. 컨트롤러 없어도 텔레포트(페이드는 플레이어만). 아키라도 미카와 같은 스포트라이트(리셋 타겟)로 리셋 — 분리 불필요. 30m_DailyTask.md 3-4 (2026-09-17)
+- [ ] **미카 펀치 넉백** — 현재 `OnPunchHitboxOverlap`은 `ApplyDamage`만. 1-1에서 아키라 낙하 원인으로 확정(스크립트 낙하 + 넉백). 히트 시 `LaunchCharacter` + 수치 DA 노출. 30m_DailyTask.md 3-5 (2026-09-17)
 
 ### 보류 (필요해지면)
 - [ ] 적 조준(Ironsights) 모션 — `bIsAiming` + `BTService_SetAiming` + ABP `Blend Poses by bool`·`Aim_Space_Ironsights`. 2026-09-17 "적은 디테일 불필요"로 보류
