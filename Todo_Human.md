@@ -19,7 +19,7 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 코드 구현됨: 조준 시작 시 손 소켓에 부착(생성 FX → 본체 VFX) → 떼면 발사. 준비 완료 전엔 던지기 보류.
 
 남은 것(사람):
-- [ ] **생성 FX ↔ 본체 부착 간격 직접 조정** — `GrenadeData_Throwable.SpawnToProjectileDelay`(기본 0.5초)를 생성 FX 길이에 맞춰 튜닝
+- [x] ~~생성 FX ↔ 본체 부착 간격 직접 조정~~ — 2026-09-18부터 생성 FX가 끝나는 즉시 자동 부착(`SpawnFXMaxWait`는 최대 대기 안전장치)
 - [ ] 던지기 애니메이션(몽타주) 제작 후 연결 — 들기/던지기 모션 (지금은 무기와 같은 손 소켓이라 겹쳐 보임)
 
 > 관련 코드: `PlayerCharacter_Grenade.cpp`, `GrenadeBase.cpp`.

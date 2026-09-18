@@ -38,7 +38,42 @@
 - [ ] `MikaData` › Punch | Camera — 대시 중 확대: `DashFOV` 105 → **70**(조준과 동일), `DashSpringArmLength` 420 → **180~250**. 대시가 짧아 보간이 안 끝나면 `CameraInterpSpeed` 10 → 15~20 (충전과 공용)
 - [x] ABP: **펀치(대시) 중 전신 원본 모션** — `Slot 'UpperBody'` 출력을 Save Cached Pose `SlotPose` → `Layered blend per bone`(Blend 0 = SlotPose) → `Blend Poses by bool`(True = SlotPose 전신, False = Layered 상체만, Blend Time 0.1, bool = `bIsDashing`) → 출력 포즈
 - [x] ABP: **충전 중 허리를 조준 방향으로** — Layered blend **뒤**에 `Transform (Modify) Bone`(Bone `ValveBiped_Bip01_Spine2`, Add to Existing, Bone Space, Alpha Bool = `bIsChargingPunch`), Roll ← `Aim Spine Pitch * -0.6`(기존 척추 조준 노드와 같은 축·부호). 몽타주가 Spine1 위를 Mesh Space로 덮으므로 레이어 앞에 두면 무시됨
+- [x] **빌드 완료** — 잔탄 없음·장전 중·단발 쿨다운일 때 발사 버튼을 눌러도 반동 몽타주 재생 안 함 (`APlayerCharacter::StartFire`, 2026-09-18). PIE: 빈 탄창으로 발사 시 빈 총 소리만 나는지
+- [x] **빌드 완료** — 수류탄: 생성 연출(`SpawnToProjectileDelay`) 완료 전에 떼면 **취소**(수류탄 소모 없음, 들고 있던 것 제거). 완료 후 떼야 발사. 기존 "준비 전 요청 보류 → 준비되면 자동 발사" 로직 제거 (2026-09-18). PIE: 짧게 눌렀다 떼면 개수 유지·아무것도 안 날아감 / 충분히 누른 뒤 떼면 발사
 - [ ] ABP: 대시 중 상체 젖히기 — 위와 같은 노드, Alpha Bool = `bIsDashing`, Roll -10~-20 (전신 분기를 쓰면 원본 애니에 이미 포함되어 불필요할 수 있음)
+
+### 수류탄 애니메이션 (2026-09-18) — C++ 빌드 완료
+- [ ] `WpAttack_Hand_1R`(CLazy `Attack_Wp_Swing_Run/`) 리타겟(`RTG_Manny2Mika_v2`) → `fix_mika_root_scale.py` → 몽타주 2개로 자르기(슬롯 `DefaultGroup.UpperBody`)
+  - 준비: 팔을 뒤로 젖힌 구간까지, **Enable Auto Blend Out 해제**(누르고 있는 동안 유지)
+  - 던지기: 팔을 앞으로 뿌리는 구간부터 끝까지
+- [ ] `MikaData` › **Animation › Grenade**: `GrenadePrepareMontage`, `GrenadeThrowMontage`
+- [ ] ABP(선택): `bIsPreparingThrow`·`bIsThrowingGrenade`로 하체 조준 걷기(`Is Aiming` OR 조건에 추가)·척추 조준 보정(Alpha OR 조건에 추가)
+- [ ] (관찰 후 결정) 수류탄은 버튼을 떼는 순간 날아감 — 던지기 애니의 손 뻗는 프레임과 어긋나면 발사 지연(`GrenadeReleaseDelay`) 또는 Anim Notify 발사를 C++로 추가
+
+### 수류탄 클래스 DA 이전 · SFX (2026-09-18)
+- [x] 빌드
+- [ ] `MikaData` › Grenade › **`GrenadeClass`** = `BP_Grenade_Thrown` 지정 (비워두면 BP_Mika에 있던 값 유지)
+- [ ] `GrenadeData_Throwable` › **SFX**: `SpawnSound`(생성, 손 따라다님) / `BounceSound`(튕김·구름) / `BounceSoundMinSpeed`(기본 150, 이하 충돌은 무음) / `ExplosionSound`
+- [ ] (선택) `GrenadeData_Launcher`에도 `BounceSound`·`ExplosionSound`. `SpawnSound`는 무기 발사음과 겹치니 비워두는 것 권장
+- [ ] PIE: 생성 소리가 손을 따라가는지 / 튕길 때마다 소리, 거의 멈춰 굴러갈 땐 조용한지 / 폭발 소리 / 준비 전 취소 시 생성 소리가 이상하게 남지 않는지
+
+### 수류탄 투척 노티파이 · 폭발 타이밍 · 생성 FX 크기 (2026-09-18) — C++ 빌드 완료
+- [x] `WpAttack_Hand_1R_mika`(`ThuggedAnims/MikaGrenade/`) 루트 스케일 트랙 제거
+- [ ] 던지기 몽타주에서 손이 수류탄을 놓는 프레임에 **Add Notify › Grenade Release** 추가 (이 순간 발사 + `ThrowSound`). 노티파이가 없으면 몽타주 끝에 자동 발사
+- [ ] `GrenadeData_Throwable` › SFX › **`ThrowSound`**
+- [ ] `GrenadeData_Throwable` › VFX › **`ExplosionBodyLingerTime`**(기본 0.1초) — 폭발 VFX가 뜨기 전에 수류탄이 사라져 보이면 늘림. 피해·폭발 사운드는 폭발 즉시
+- [ ] `VisualScale`(현재 0.2)이 생성 FX(`NS_Bomb_Spawn`)에도 적용 — 팩의 `User.Scale Overall` 파라미터로 전달. 폭발 VFX는 영향 없음
+- [ ] PIE: 던지기 모션에서 손이 뻗는 순간 날아가는지·던지기 소리 / 폭발 VFX와 본체 사라짐이 맞는지 / 생성 FX 크기가 본체와 어울리는지
+- [ ] (2026-09-18 추가) 수류탄 버튼을 누르는 동안 **조준 상태**(조준 FOV·조준 걷기·카메라 방향), 손에서 놓는 순간 조준 해제(원래 조준 중이었으면 유지) / 수류탄 준비~던지기 모션 끝까지 **총 숨김**, 수류탄 든 동안 사격 불가
+- [x] **빌드 완료** — 생성 FX **완료 이벤트** 즉시 수류탄 등장·던지기 가능 (`SpawnToProjectileDelay` → **`SpawnFXMaxWait`**(기본 3초, FX가 안 끝날 때 최대 대기)로 대체, 2026-09-18)
+- [x] **던지기 몽타주 슬롯 수정** — `AM_WpAttack_Hand_1R_mika_Throw` 슬롯이 `DefaultSlot` → **`DefaultGroup.UpperBody`**로 변경 (ABP가 UpperBody만 읽어 모션이 안 보였음. 준비 몽타주는 정상)
+- [x] **던지기는 전신** — ABP 마지막 `Blend Poses by bool`(전신/상체) Active Value = `Is Dashing OR bIsThrowingGrenade`. 슬롯은 UpperBody 그대로(전신 분기가 SlotPose를 통째로 씀)
+- [x] ABP 9번은 **EventGraph에서 `Is Aiming` 변수를 세팅하는 곳 한 군데**에 `OR bIsPreparingThrow` 추가 (AnimGraph의 Is Aiming 사용처 여러 곳을 각각 고치지 말 것). 척추 보정 ModifyBone 2개 Alpha = `Is Charging OR bIsPreparingThrow`
+- [ ] **생성 FX가 손을 따라가게** — `NS_Bomb_Spawn`은 월드 공간 이미터라 부착해도 입자가 제자리에 남음. 복제(`NS_Bomb_Spawn_Local`) → 각 이미터 Emitter Properties › **Local Space 체크** → `GrenadeData_Throwable.SpawnVFX`에 지정 (C++로는 변경 불가)
+- [x] **빌드 완료** — 대시 중 몸을 **펀치 방향에 고정**(카메라 따라 회전 안 함) + `DashPitch`(대시 방향 상하 각도, 위=+) 노출. `MikaData` › Punch › `DashMaxVisualPitch`(기본 60) (2026-09-18)
+- [ ] ABP: 대시 중 몸 기울이기 — 척추 보정 노드들과 같은 Component Space 구간에 `Transform (Modify) Bone`(Bone `ValveBiped_Bip01_Pelvis`, Add to Existing, Bone Space, Alpha Bool = `Is Dashing`, Blend In/Out 0.1~0.15), Rotation ← `DashPitch`. 축·부호는 테스트로 결정(ValveBiped 척추는 Roll이 상하였음)
+- [x] ABP: 충전 중 고개 숙임 보정 — 충전 전용 척추 보정 노드(Alpha = Is Charging OR bIsPreparingThrow)의 계수를 ABP 변수로(`ChargeSpinePitchScale1/2`, `ChargePitchOffset`), 충전·수류탄 준비별 값은 EventGraph에서 Select로
+- [ ] (2026-09-18 추가) 연사 중 탄창이 비면 그 즉시 반동 몽타주 정지 (`APlayerCharacter::OnWeaponShotFired`)
 
 ### EQS 엄폐 판정 — 제자리 재장전 재발 (레벨 디자인 진행하며 확인)
 증상: 엄폐물로 이동하지 않고 제자리에서 재장전 후 앉았다 일어남 (`Sequence_AlreadyCover`가 항상 성공).

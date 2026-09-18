@@ -267,6 +267,49 @@ RandomChance는 진입 시 한 번만 굴린다 — Observer aborts를 막아 �
 **UI 연결**: `WBP_PlayerHealthBar`에서 `Get Owning Player Pawn → Cast To BP_Mika → Get Health Regen`
 → `Bind Event to OnRegenStarted`(Play Animation, Loop 0) / `OnRegenStopped`(Stop Animation).
 
+### ADR-009: 미카 ABP 몽타주 레이어 — 슬롯 하나 + 캐시 포즈 + 조건 분기 (연습용 실용 구조)
+
+**날짜**: 2026-09-18
+
+**결정**: 발사·펀치·수류탄 몽타주를 모두 `DefaultGroup.UpperBody` **슬롯 하나**에 넣고, `ABP_Riflegirl2_mika` AnimGraph 끝단에서
+"상체만 / 전신 / 척추 보정"을 **bool 조건**으로 고른다.
+
+```
+[이동 로코모션] → Save Cached 'LocoPose'
+Use 'LocoPose' → Slot 'UpperBody' → Save Cached 'SlotPose'
+
+Use 'LocoPose' → Base ┐
+Use 'SlotPose' → Blend0 ┘ Layered blend per bone(Spine1, Mesh Space Rotation) ─→ False ┐
+Use 'SlotPose' ────────────────────────────────────────────────────────────→ True  ├ Blend Poses by bool
+                                         Active = Is Dashing OR bIsThrowingGrenade ┘
+  → Local To Component → ModifyBone Spine1·Spine2(척추 조준, Alpha = Is Charging OR bIsPreparingThrow)
+  → Component To Local → Output Pose
+```
+
+| 상태 | 결과 |
+|---|---|
+| 평소·충전·수류탄 준비 | 하체 = 로코모션(조준 걷기), 상체 = 몽타주 |
+| 대시 펀치·수류탄 던지기 | **전신 = 몽타주 원본** |
+| 충전·수류탄 준비 | + 척추가 카메라 상하(Aim Spine Pitch)를 따라감 |
+
+EventGraph의 ABP 변수 `Is Aiming` = `bIsAiming OR bIsChargingPunch OR bIsDashing OR bIsPreparingThrow` —
+조준 걷기 하체 선택. **AnimGraph의 Is Aiming 사용처를 각각 고치지 말고 이 한 곳만** 수정한다.
+
+**이유 (레벨 디자인 연습용이라 이 수준에서 멈춤)**
+- 슬롯이 하나라 같은 슬롯 그룹 규칙으로 "펀치가 시작되면 발사 몽타주가 끊김"이 자동으로 된다
+- 상태 추가 비용이 "bool 하나 OR"로 끝난다 — 새 동작(랜딩 등)도 같은 자리에 조건만 추가
+- 몽타주 슬롯은 **반드시 `DefaultGroup.UpperBody`**. 이름과 달리 전신 분기도 이 슬롯 결과(SlotPose)를 쓴다.
+  `DefaultSlot`으로 만들면 어느 분기에서도 안 보인다(2026-09-18 던지기 몽타주에서 실제로 발생)
+
+**함정**
+- ABP 변수 `Is Aiming`(AnimGraph용)과 C++ `APlayerCharacter::bIsAiming`(사격↔펀치 분기·조준 카메라)은 **별개**.
+  C++ 쪽을 펀치용으로 켜면 발사 버튼이 사격으로 간다
+- 척추 보정은 반드시 레이어·전신 분기 **뒤**. 앞에 두면 몽타주(Mesh Space)가 덮어 무시된다
+- 캐시 포즈를 거치지 않고 슬롯 Source를 비워 두면 레퍼런스 포즈(T자)가 섞인다
+
+**근본 해결(나중에 필요하면)**: 동작별 슬롯 분리(UpperBody/FullBody) + **Linked Anim Layer**로 전투 레이어를 별도 ABP로 분리,
+상태는 bool 여러 개 대신 enum 하나(`EMikaActionState`)로. 동작 종류가 더 늘거나 다른 캐릭터(미유)와 레이어를 공유할 때 전환.
+
 ---
 
 ## 작업 이력
@@ -289,3 +332,4 @@ RandomChance는 진입 시 한 번만 굴린다 — Observer aborts를 막아 �
 | 2026-09-17 | 확률 데코레이터(스트레이핑 사격용) + 미카 비전투 체력 회복 컴포넌트 | ADR-007 보강, ADR-008 |
 | 2026-09-17 | 적 행동 성향 DA(사격 패턴·확률), 제압 사격, 타겟 잊기, 피격 방향 반응 | ADR-007 보강 |
 | 2026-09-17 | 적 피격 즉시 감지(AISense_Damage) + 시야 인계 확인, 청각이 bCanSeeTarget 켜던 버그 수정 | ADR-007 갱신 |
+| 2026-09-18 | 미카 ABP 몽타주 레이어 구조 기록(상체/전신/척추 보정 분기), 수류탄 투척 노티파이·조준·총 숨김 | ADR-009 |
