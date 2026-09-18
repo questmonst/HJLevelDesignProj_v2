@@ -239,7 +239,7 @@ void AWeaponBase::Fire()
 	if (APlayerCharacter* PC = Cast<APlayerCharacter>(GetOwner()))
 	{
 		PC->AddCrosshairSpread(SpreadPerShot);
-		PC->ApplyRecoilShot();
+		PC->OnWeaponShotFired();
 	}
 
 }

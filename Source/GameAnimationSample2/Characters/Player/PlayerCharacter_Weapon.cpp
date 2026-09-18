@@ -3,6 +3,19 @@
 #include "PlayerCharacter.h"
 #include "WeaponBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "Animation/AnimMontage.h"
+
+float APlayerCharacter::PlayMontageForDuration(UAnimMontage* Montage)
+{
+	if (!Montage) return 0.f;
+	const float Length = PlayAnimMontage(Montage);
+	return Length / FMath::Max(Montage->RateScale, KINDA_SMALL_NUMBER);
+}
+
+void APlayerCharacter::SetCurrentWeaponHidden(bool bHideWeapon)
+{
+	if (CurrentWeapon) CurrentWeapon->SetActorHiddenInGame(bHideWeapon);
+}
 
 bool APlayerCharacter::PickupWeapon(AWeaponBase* Weapon)
 {
@@ -240,12 +253,27 @@ UAnimMontage* APlayerCharacter::SelectFireMontage() const
 void APlayerCharacter::StartFire()
 {
 	if (!CurrentWeapon) return;
+	if (bIsPreparingThrow || HeldGrenade) return;   // 수류탄 조준·투척 중엔 총을 숨겨 두므로 사격 불가
 	bIsFiring = true;
+
+	// 잔탄 없음·장전 중·단발 쿨다운이면 탄이 안 나가므로 반동 몽타주도 재생하지 않는다 (빈 총 소리만)
+	const bool bWillFire = CurrentWeapon->IsFireReady();
 	CurrentWeapon->StartFire();
+	if (!bWillFire) return;
 
 	ActiveFireMontage = SelectFireMontage();
 	if (ActiveFireMontage)
 		PlayAnimMontage(ActiveFireMontage);
+}
+
+void APlayerCharacter::OnWeaponShotFired()
+{
+	ApplyRecoilShot();
+	if (CurrentWeapon && !CurrentWeapon->CanFire() && ActiveFireMontage)
+	{
+		StopAnimMontage(ActiveFireMontage);
+		ActiveFireMontage = nullptr;
+	}
 }
 
 void APlayerCharacter::StopFire()
