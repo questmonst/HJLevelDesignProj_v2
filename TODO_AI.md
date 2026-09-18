@@ -75,6 +75,15 @@
 - [x] ABP: 충전 중 고개 숙임 보정 — 충전 전용 척추 보정 노드(Alpha = Is Charging OR bIsPreparingThrow)의 계수를 ABP 변수로(`ChargeSpinePitchScale1/2`, `ChargePitchOffset`), 충전·수류탄 준비별 값은 EventGraph에서 Select로
 - [ ] (2026-09-18 추가) 연사 중 탄창이 비면 그 즉시 반동 몽타주 정지 (`APlayerCharacter::OnWeaponShotFired`)
 
+### 수류탄 본체 유지 · 재장전 몽타주 (2026-09-18) — C++ 빌드 완료
+- [x] 빌드
+- [ ] 수류탄 본체가 폭발 전에 사라지는 원인 = 본체 VFX(`NS_Bomb_Projectile`, 메시 없음)가 재생 시간이 정해져 있어 손에 든 시간+신관(3초) 전에 끝남. 폭발 전이면 끝날 때 재생 재시작하도록 수정 → PIE에서 본체가 폭발까지 보이는지, 재시작 순간 깜빡임이 거슬리는지. 거슬리면 `NS_Bomb_Projectile` 복제 → 시스템 Loop Behavior = Infinite로 바꾼 에셋 사용
+- [ ] `ExplosionBodyLingerTime` 10 → **0.1~0.3**으로 되돌리기 (폭발 후 본체 유지 시간. 위 원인과 무관했음)
+- [ ] `MikaData` › Animation › **`ReloadMontage`** (UpperBody 슬롯 → 상체만). 장전이 실제로 시작될 때만 재생
+- [x] **빌드 완료** — 수류탄은 항상 **조준선 그대로** 발사: 노티파이 순간 수류탄을 조준선 시작점으로 옮기고 같은 속도로 발사. 시작점은 `MikaData` › Grenade › **`GrenadeLaunchOffset`**(카메라 기준 X앞·Y오른쪽·Z위, 기본 (50,0,0) = 기존과 동일)
+- [x] **빌드 완료** — 카메라 위아래 제한각: `MikaData` › Camera › **`CameraPitchMin`**(기본 -89.9) / **`CameraPitchMax`**(기본 89.9) → PlayerCameraManager ViewPitchMin/Max (2026-09-18)
+- [ ] 위·아래 90° 조준처럼 보이게 — `MikaData` › Camera › **`AimSpinePitchClamp`** 60 → 80~90 (카메라 자체는 엔진 기본 ±89.9°로 이미 가능, 몸 휨만 60°에서 막혀 있음)
+
 ### EQS 엄폐 판정 — 제자리 재장전 재발 (레벨 디자인 진행하며 확인)
 증상: 엄폐물로 이동하지 않고 제자리에서 재장전 후 앉았다 일어남 (`Sequence_AlreadyCover`가 항상 성공).
 확인된 것: Visibility 채널은 캐릭터 캡슐·메시가 Ignore, 무기 메시는 NoCollision → **자기 몸에 막히는 문제 아님**. Bullet 채널로 바꾸면 캐릭터가 Block이라 오히려 악화.
@@ -95,6 +104,7 @@
 - [ ] `WeaponBase.cpp` 719줄 — 500줄 규칙 초과(이전부터). 발사/재장전/그립 정렬 등으로 파일 분리 검토
 - [ ] **낙하 리셋을 AI(아키라)에도 적용** — `AFallResetTrigger::OnTriggerOverlap`이 PlayerController 없는 캐릭터를 무시함. 컨트롤러 없어도 텔레포트(페이드는 플레이어만). 아키라도 미카와 같은 스포트라이트(리셋 타겟)로 리셋 — 분리 불필요. 30m_DailyTask.md 3-4 (2026-09-17)
 - [ ] **미카 펀치 넉백** — 현재 `OnPunchHitboxOverlap`은 `ApplyDamage`만. 1-1에서 아키라 낙하 원인으로 확정(스크립트 낙하 + 넉백). 히트 시 `LaunchCharacter` + 수치 DA 노출. 30m_DailyTask.md 3-5 (2026-09-17)
+
 
 ### 보류 (필요해지면)
 - [ ] 적 조준(Ironsights) 모션 — `bIsAiming` + `BTService_SetAiming` + ABP `Blend Poses by bool`·`Aim_Space_Ironsights`. 2026-09-17 "적은 디테일 불필요"로 보류
