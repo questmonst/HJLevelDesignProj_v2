@@ -203,6 +203,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="수류탄 초기 투사 속도 (cm/s)"))
 	float GrenadeThrowSpeed = 1200.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Grenade", meta=(ToolTip="조준선(궤적) 시작점 = 실제 발사 위치. 카메라 기준 오프셋 (X=앞, Y=오른쪽, Z=위, cm). MikaData에서 설정"))
+	FVector GrenadeLaunchOffset = FVector(50.f, 0.f, 0.f);
+
+	// 조준선과 실제 발사가 같은 시작점·속도를 쓰도록 한 곳에서 계산 — 둘이 어긋나면 조준선을 믿을 수 없다
+	bool GetGrenadeLaunchParams(FVector& OutStart, FVector& OutVelocity) const;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Grenade", meta=(ToolTip="현재 수류탄 보유 개수"))
 	int32 GrenadeCount = 4;
 
@@ -296,6 +302,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="수류탄 던지기 몽타주. MikaData에서 설정"))
 	UAnimMontage* GrenadeThrowMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="재장전 몽타주(UpperBody 슬롯). MikaData에서 설정"))
+	UAnimMontage* ReloadMontage = nullptr;
 
 	// 맨손 동작(펀치·수류탄) 동안 총을 숨긴다 — 애니가 총을 쥔 손과 겹쳐 보이지 않도록
 	void SetCurrentWeaponHidden(bool bHideWeapon);

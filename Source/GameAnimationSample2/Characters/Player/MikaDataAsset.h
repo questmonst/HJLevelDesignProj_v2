@@ -68,6 +68,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ToolTip="척추 피치 클램프 범위 (±도). 상하 조준 제한각"))
 	float AimSpinePitchClamp = 60.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ClampMin="-89.9", ClampMax="0", ToolTip="카메라가 내려다볼 수 있는 최대 각도 (음수, 도). 엔진 기본 -89.9"))
+	float CameraPitchMin = -89.9f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ClampMin="0", ClampMax="89.9", ToolTip="카메라가 올려다볼 수 있는 최대 각도 (도). 엔진 기본 89.9"))
+	float CameraPitchMax = 89.9f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ToolTip="척추 피치 보간 속도. 클수록 상하 조준이 빠르게 반응"))
 	float AimSpineInterpSpeed = 15.f;
 
@@ -113,6 +119,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade", meta=(ToolTip="수류탄 초기 투사 속도 (cm/s)"))
 	float GrenadeThrowSpeed = 1200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade", meta=(ToolTip="조준선 시작점 = 실제 발사 위치. 카메라 기준 오프셋 (X=앞, Y=오른쪽, Z=위, cm). 수류탄은 항상 이 조준선 그대로 날아간다"))
+	FVector GrenadeLaunchOffset = FVector(50.f, 0.f, 0.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade", meta=(ToolTip="최대 수류탄 보유 개수"))
 	int32 MaxGrenadeCount = 4;
@@ -216,6 +225,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Grenade", meta=(ToolTip="수류탄 던지기 몽타주(UpperBody 슬롯). 준비 완료 후 버튼을 뗄 때 재생"))
 	UAnimMontage* GrenadeThrowMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="재장전 몽타주(UpperBody 슬롯 → 상체만). 장전이 실제로 시작될 때만 재생. 길이는 무기 ReloadTime에 맞추는 걸 권장"))
+	UAnimMontage* ReloadMontage = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="펀치 충전 중 몽타주 (UpperBody 슬롯 — ABP에서 Layered blend per bone으로 상체만 적용). 충전이 길어질 수 있으니 반복 섹션으로 구성"))
 	UAnimMontage* PunchChargeMontage = nullptr;

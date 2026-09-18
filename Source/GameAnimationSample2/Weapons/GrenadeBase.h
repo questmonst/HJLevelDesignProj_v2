@@ -134,6 +134,10 @@ private:
 	UFUNCTION()
 	void OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity);
 
+	// 본체 VFX 완료 이벤트 — 폭발 전이면 재생을 다시 시작해 본체를 유지
+	UFUNCTION()
+	void OnProjectileVFXFinished(UNiagaraComponent* PSystem);
+
 	// 생성 FX 완료 이벤트 — 끝나는 즉시 수류탄 본체를 보여준다
 	UFUNCTION()
 	void OnSpawnFXFinished(UNiagaraComponent* PSystem);

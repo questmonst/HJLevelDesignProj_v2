@@ -20,6 +20,16 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
+
+	// 카메라 위아래 제한각을 PlayerCameraManager에 적용. 빙의 시점이 BeginPlay보다 늦을 수 있어 양쪽에서 호출
+	void ApplyCameraPitchLimits();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="카메라 최저 피치(도). MikaData에서 설정"))
+	float CameraPitchMin = -89.9f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="카메라 최고 피치(도). MikaData에서 설정"))
+	float CameraPitchMax = 89.9f;
 	virtual void Tick(float DeltaTime) override;
 
 	// --- Data ---

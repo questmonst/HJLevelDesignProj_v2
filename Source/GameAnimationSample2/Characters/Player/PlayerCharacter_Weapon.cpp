@@ -292,5 +292,13 @@ void APlayerCharacter::StopFire()
 
 void APlayerCharacter::Reload()
 {
-	if (CurrentWeapon) CurrentWeapon->Reload();
+	if (!CurrentWeapon) return;
+
+	// 실제로 장전이 시작됐을 때만 몽타주 (가득 참·예비탄 없음·이미 장전 중이면 무시)
+	const bool bWasReloading = CurrentWeapon->IsReloading();
+	CurrentWeapon->Reload();
+	if (!bWasReloading && CurrentWeapon->IsReloading() && ReloadMontage)
+	{
+		PlayAnimMontage(ReloadMontage);
+	}
 }

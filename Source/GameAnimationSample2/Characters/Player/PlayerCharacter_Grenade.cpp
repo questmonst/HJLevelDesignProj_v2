@@ -88,18 +88,20 @@ void APlayerCharacter::LaunchHeldGrenade()
 	GetWorldTimerManager().ClearTimer(GrenadeReleaseFallbackTimerHandle);
 	if (!HeldGrenade || bIsPreparingThrow) return;   // 이미 놓았거나, 아직 던지기 전(준비 중)
 
-	// 놓는 순간의 조준 방향 — 던지기 모션 도중 카메라를 돌리면 그 방향으로 날아간다
-	FVector ThrowDir = GetActorForwardVector();
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	// 조준선 그대로 날아가도록 놓는 순간 수류탄을 조준선 시작점으로 옮기고 같은 속도로 발사.
+	// (손 위치에서 쏘면 조준선과 어긋난다 — 발사 위치는 GrenadeLaunchOffset으로 조정)
+	FVector Start, Velocity;
+	if (GetGrenadeLaunchParams(Start, Velocity))
 	{
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
-		ThrowDir = ViewRotation.Vector();
+		HeldGrenade->SetActorLocation(Start);
+	}
+	else
+	{
+		Velocity = GetActorForwardVector() * GrenadeThrowSpeed;
 	}
 
 	// 분리(DetachFromActor)·던지기 사운드는 수류탄 DoLaunch가 처리하므로 여기선 호출만.
-	HeldGrenade->Launch(ThrowDir * GrenadeThrowSpeed);
+	HeldGrenade->Launch(Velocity);
 	HeldGrenade = nullptr;
 
 	// 손을 떠나는 순간까지 조준 방향을 유지하고, 놓은 뒤 조준 해제
@@ -119,19 +121,27 @@ void APlayerCharacter::EndGrenadeAim()
 	StopAim();
 }
 
-void APlayerCharacter::UpdateTrajectory()
+bool APlayerCharacter::GetGrenadeLaunchParams(FVector& OutStart, FVector& OutVelocity) const
 {
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return;
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return false;
 
 	FVector ViewLocation;
 	FRotator ViewRotation;
 	PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
 
-	// 수류탄 투척: 시야 약간 앞에서 투척 속도로
-	const FVector Start    = ViewLocation + ViewRotation.Vector() * 50.f;
-	const FVector Velocity = ViewRotation.Vector() * GrenadeThrowSpeed;
-	RenderTrajectory(Start, Velocity);
+	OutStart    = ViewLocation + ViewRotation.RotateVector(GrenadeLaunchOffset);
+	OutVelocity = ViewRotation.Vector() * GrenadeThrowSpeed;
+	return true;
+}
+
+void APlayerCharacter::UpdateTrajectory()
+{
+	FVector Start, Velocity;
+	if (GetGrenadeLaunchParams(Start, Velocity))
+	{
+		RenderTrajectory(Start, Velocity);
+	}
 }
 
 void APlayerCharacter::UpdateWeaponTrajectory()

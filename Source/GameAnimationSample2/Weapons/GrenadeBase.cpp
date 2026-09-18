@@ -135,7 +135,18 @@ void AGrenadeBase::BecomeReady()
 		if (ProjectileVFXComponent)
 		{
 			ProjectileVFXComponent->SetWorldScale3D(FVector(VisualScale));
+			ProjectileVFXComponent->OnSystemFinished.AddDynamic(this, &AGrenadeBase::OnProjectileVFXFinished);
 		}
+	}
+}
+
+void AGrenadeBase::OnProjectileVFXFinished(UNiagaraComponent* PSystem)
+{
+	// 본체 VFX(NS_Bomb_Projectile)는 재생 시간이 정해진 이펙트라, 손에 든 시간 + 신관 시간을 못 버티고
+	// 폭발 전에 끝나 수류탄이 먼저 사라져 보였다. 폭발 전이면 다시 재생해 본체를 유지한다
+	if (!bExploded && PSystem)
+	{
+		PSystem->Activate(true);
 	}
 }
 

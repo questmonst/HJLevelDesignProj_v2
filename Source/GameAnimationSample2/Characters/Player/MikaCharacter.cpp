@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
@@ -49,6 +50,8 @@ void AMikaCharacter::BeginPlay()
 		CoverPeekInterpSpeed       = MikaData->CoverPeekInterpSpeed;
 		DefaultSocketOffsetY       = MikaData->DefaultSocketOffsetY;
 			AimSpinePitchClamp         = MikaData->AimSpinePitchClamp;
+		CameraPitchMin             = MikaData->CameraPitchMin;
+		CameraPitchMax             = MikaData->CameraPitchMax;
 			AimSpineInterpSpeed        = MikaData->AimSpineInterpSpeed;
 			// TurnInPlace
 		TurnRightThreshold         = MikaData->TurnRightThreshold;
@@ -61,6 +64,7 @@ void AMikaCharacter::BeginPlay()
 		// 비어 있으면 BP_Mika에 직접 넣어둔 값을 유지 (DA 이전 전 기존 설정 보호)
 		if (MikaData->GrenadeClass) GrenadeClass = MikaData->GrenadeClass;
 		GrenadeThrowSpeed          = MikaData->GrenadeThrowSpeed;
+		GrenadeLaunchOffset        = MikaData->GrenadeLaunchOffset;
 			GrenadeCount               = MikaData->MaxGrenadeCount;
 		WeaponSwapDelay            = MikaData->WeaponSwapDelay;
 		CurrentHealth              = MaxHealth;
@@ -97,17 +101,35 @@ void AMikaCharacter::BeginPlay()
 		FireMontageCrouch          = MikaData->FireMontageCrouch;
 		GrenadePrepareMontage      = MikaData->GrenadePrepareMontage;
 		GrenadeThrowMontage        = MikaData->GrenadeThrowMontage;
+		ReloadMontage              = MikaData->ReloadMontage;
 		PunchChargeMontage         = MikaData->PunchChargeMontage;
 		PunchDashMontage           = MikaData->PunchDashMontage;
 		LandingDiveMontage         = MikaData->LandingDiveMontage;
 		LandingImpactMontage       = MikaData->LandingImpactMontage;
 	}
 
+	ApplyCameraPitchLimits();
 	PunchHitbox->OnComponentBeginOverlap.AddDynamic(this, &AMikaCharacter::OnPunchHitboxOverlap);
 	NormalSpringArmLength        = SpringArmComponent->TargetArmLength;
 	DefaultBrakingDeceleration     = GetCharacterMovement()->BrakingDecelerationWalking;
 	DefaultBrakingDecelerationFly  = GetCharacterMovement()->BrakingDecelerationFlying;
 	DefaultBrakingDecelerationFall = GetCharacterMovement()->BrakingDecelerationFalling;
+}
+
+void AMikaCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	ApplyCameraPitchLimits();
+}
+
+void AMikaCharacter::ApplyCameraPitchLimits()
+{
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC && PC->PlayerCameraManager)
+	{
+		PC->PlayerCameraManager->ViewPitchMin = CameraPitchMin;
+		PC->PlayerCameraManager->ViewPitchMax = CameraPitchMax;
+	}
 }
 
 void AMikaCharacter::Tick(float DeltaTime)
