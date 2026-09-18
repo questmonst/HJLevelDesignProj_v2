@@ -178,7 +178,7 @@
 - [ ] 반동 모션 `Jmp_BackAir`: `MikaData`에 `PunchReboundMontage` 추가 → `BeginReboundMove`에서 재생 (반동 중 전신: `bIsPunchFullBody` 유지 or 별도 조건)
 - [ ] 점프 `Jump_Up_B`/`Jump_Down_B`: ABP 점프·낙하 상태 (C++ 불필요할 가능성, `Is Falling`·Velocity.Z)
 - [ ] 착지 공격 모션 `Land_Spawn_Wait`: `MikaData`에 `PunchSlamMontage` 추가 → `PunchSlam`에서 대시 몽타주 대신 재생
-- [ ] 고지대 착지 모션: 기존 하드 랜딩(`HardLandingSpeedThreshold`, `OnLanding`) 흐름에 연결 — 애니 이름이 착지 공격과 같게 적혀 있어 확인 필요
+- [ ] 고지대 착지 모션 `Land_Base_Wait`: 기존 하드 랜딩(`HardLandingSpeedThreshold`, `OnLanding`) 흐름에 연결
 
 ### 나중에 할 일 (2026-09-18 사용자 요청) — 사람 쪽 목록은 Todo_Human.md › 나중에 할 일
 - [ ] 수류탄 던질 수 있는지 UI — `APlayerCharacter::OnGrenadeThrowReadyChanged(bReady)` 바인딩하는 위젯 (C++ 이벤트는 이미 있음)
