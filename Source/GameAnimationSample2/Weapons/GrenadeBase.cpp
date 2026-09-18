@@ -61,10 +61,23 @@ void AGrenadeBase::BeginPlay()
 		ExplosionVFX                = GrenadeData->ExplosionVFX;
 		VisualScale                 = GrenadeData->VisualScale;
 		ExplosionVFXReferenceRadius = GrenadeData->ExplosionVFXReferenceRadius;
-		SpawnToProjectileDelay      = GrenadeData->SpawnToProjectileDelay;
+		SpawnFXMaxWait              = GrenadeData->SpawnFXMaxWait;
+		SpawnSound                  = GrenadeData->SpawnSound;
+		ThrowSound                  = GrenadeData->ThrowSound;
+		BounceSound                 = GrenadeData->BounceSound;
+		BounceSoundMinSpeed         = GrenadeData->BounceSoundMinSpeed;
+		ExplosionSound              = GrenadeData->ExplosionSound;
+		ExplosionBodyLingerTime     = GrenadeData->ExplosionBodyLingerTime;
 	}
 
 	ProjectileMovement->Bounciness = Bounciness;
+	ProjectileMovement->OnProjectileBounce.AddDynamic(this, &AGrenadeBase::OnBounce);
+
+	// 생성 사운드 — 루트에 붙여 손에 든 동안 손을 따라다니게 한다 (폭발로 파괴돼도 끝까지 재생)
+	if (SpawnSound)
+	{
+		UGameplayStatics::SpawnSoundAttached(SpawnSound, RootComponent);
+	}
 
 	// VisualScale로 본체 충돌 크기도 조절 (DA에서 수류탄 크기 제어). VFX는 아래에서 별도 스케일.
 	CollisionComp->SetSphereRadius(8.f * VisualScale);
@@ -75,18 +88,22 @@ void AGrenadeBase::BeginPlay()
 
 	if (bHeldPresentation && SpawnVFX)
 	{
-		// 손에 드는 연출: 생성 FX(NS_Bomb_Spawn)를 부착 재생하고,
-		// SpawnToProjectileDelay(DA에서 조절) 후 본체 VFX 부착 + 던지기 가능(BecomeReady).
+		// 손에 드는 연출: 생성 FX(NS_Bomb_Spawn)를 부착 재생하고, FX가 끝나는 즉시
+		// 본체 VFX 부착 + 던지기 가능(BecomeReady). 고정 지연으로 맞추면 FX 길이가 바뀔 때마다 어긋난다.
 		UNiagaraComponent* SpawnComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			SpawnVFX, RootComponent, NAME_None,
 			FVector::ZeroVector, FRotator::ZeroRotator,
 			EAttachLocation::KeepRelativeOffset, true);
 		if (SpawnComp)
 		{
-			SpawnComp->SetWorldScale3D(FVector(VisualScale));
+			// Vefects 나이아가라는 월드 공간 이미터가 많아 컴포넌트 스케일이 전부 먹지 않는다.
+			// 팩이 노출한 User.Scale Overall로 전체 크기를 맞춘다 (폭발 VFX는 반경 기준이라 별도)
+			SpawnComp->SetVariableFloat(TEXT("User.Scale Overall"), VisualScale);
+			SpawnComp->OnSystemFinished.AddDynamic(this, &AGrenadeBase::OnSpawnFXFinished);
 		}
+		// FX가 루프거나 완료 이벤트가 오지 않아도 영원히 못 던지는 일이 없도록 최대 대기
 		GetWorldTimerManager().SetTimer(SpawnReadyTimerHandle, this,
-			&AGrenadeBase::BecomeReady, FMath::Max(SpawnToProjectileDelay, 0.01f), false);
+			&AGrenadeBase::BecomeReady, FMath::Max(SpawnFXMaxWait, 0.01f), false);
 	}
 	else
 	{
@@ -94,6 +111,11 @@ void AGrenadeBase::BeginPlay()
 		// 바로 본체 VFX 부착 + 준비. (생성 FX는 손에 드는 연출에서만 사용)
 		BecomeReady();
 	}
+}
+
+void AGrenadeBase::OnSpawnFXFinished(UNiagaraComponent* PSystem)
+{
+	BecomeReady();
 }
 
 void AGrenadeBase::BecomeReady()
@@ -115,24 +137,13 @@ void AGrenadeBase::BecomeReady()
 			ProjectileVFXComponent->SetWorldScale3D(FVector(VisualScale));
 		}
 	}
-
-	// 준비 전에 던지기 요청이 들어왔다면 지금 발사
-	if (bThrowRequested)
-	{
-		DoLaunch(PendingThrowVelocity);
-	}
 }
 
 
 void AGrenadeBase::Launch(const FVector& Velocity)
 {
-	// 손 부착 연출이 끝나지 않았으면(준비 전) 준비 완료 시점에 발사하도록 보류
-	if (!bReadyToThrow)
-	{
-		bThrowRequested      = true;
-		PendingThrowVelocity = Velocity;
-		return;
-	}
+	// 준비 전 발사는 무시 — 플레이어는 준비 전에 떼면 취소하고, 즉시 발사형(유탄)은 스폰 즉시 준비된다
+	if (!bReadyToThrow) return;
 	DoLaunch(Velocity);
 }
 
@@ -150,6 +161,11 @@ void AGrenadeBase::DoLaunch(const FVector& Velocity)
 	if (bLaunched) return;	// 폭발 타이머는 1회만 시작
 	bLaunched = true;
 
+	if (ThrowSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ThrowSound, GetActorLocation());
+	}
+
 	if (DetonationMode == EGrenadeDetonation::Fuse)
 	{
 		// 투척용: 발사 후 신관 시간 뒤 폭발
@@ -165,6 +181,13 @@ void AGrenadeBase::DoLaunch(const FVector& Velocity)
 void AGrenadeBase::OnArmed()
 {
 	bArmed = true;
+}
+
+void AGrenadeBase::OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
+{
+	if (!BounceSound || bExploded) return;
+	if (ImpactVelocity.Size() < BounceSoundMinSpeed) return;
+	UGameplayStatics::PlaySoundAtLocation(this, BounceSound, ImpactResult.ImpactPoint);
 }
 
 void AGrenadeBase::OnCollision(UPrimitiveComponent* /*HitComp*/, AActor* OtherActor,
@@ -200,12 +223,30 @@ void AGrenadeBase::Explode()
 			GetWorld(), ExplosionVFX, GetActorLocation(), GetActorRotation(), FVector(Scale));
 	}
 
+	if (ExplosionSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, GetActorLocation());
+	}
+
+	// 폭발 VFX가 화면에 올라오기 전에 본체가 먼저 사라지지 않도록 잠시 제자리에 남겨 둔다
+	ProjectileMovement->StopMovementImmediately();
+	if (ExplosionBodyLingerTime > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(BodyLingerTimerHandle, this, &AGrenadeBase::FinishExplode, ExplosionBodyLingerTime, false);
+	}
+	else
+	{
+		FinishExplode();
+	}
+}
+
+void AGrenadeBase::FinishExplode()
+{
 	if (ProjectileVFXComponent)
 	{
 		ProjectileVFXComponent->Deactivate();
 	}
-
-	OnExplode();
+	OnExplode();   // 기본 구현은 Destroy
 }
 
 void AGrenadeBase::OnExplode_Implementation()

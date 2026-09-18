@@ -11,6 +11,7 @@ class USphereComponent;
 class UProjectileMovementComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
+class USoundBase;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API AGrenadeBase : public AActor
@@ -20,7 +21,7 @@ class GAMEANIMATIONSAMPLE2_API AGrenadeBase : public AActor
 public:
 	AGrenadeBase();
 
-	// 발사. 아직 손 부착 연출이 끝나지 않았으면(준비 전) 준비 완료 시점에 자동 발사된다.
+	// 발사. 준비(손 부착 연출 완료) 전이면 무시한다 — 준비 전 릴리즈는 호출 측(플레이어)이 취소 처리.
 	void Launch(const FVector& Velocity);
 
 	// 손에 드는 연출 모드. SpawnActorDeferred로 BeginPlay 전에 호출해야 함.
@@ -88,8 +89,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|VFX", meta=(ToolTip="NS_Bomb_Explosion이 제작된 기준 반경(cm). ExplosionRadius와의 비율로 폭발 VFX 스케일 계산"))
 	float ExplosionVFXReferenceRadius = 300.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|VFX", meta=(ToolTip="손에 들 때: 생성 FX 재생 후 본체 VFX가 손에 붙기까지의 시간(초). DA에서 조절"))
-	float SpawnToProjectileDelay = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|VFX", meta=(ToolTip="생성 FX가 끝나지 않을 때 대비한 최대 대기 시간(초). DataAsset에서 설정"))
+	float SpawnFXMaxWait = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|VFX", meta=(ToolTip="폭발 후 본체를 남겨 두는 시간(초). DataAsset에서 설정"))
+	float ExplosionBodyLingerTime = 0.1f;
+
+	// --- SFX ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|SFX", meta=(ToolTip="생성 사운드. DataAsset에서 설정"))
+	USoundBase* SpawnSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|SFX", meta=(ToolTip="던지기(발사) 사운드. DataAsset에서 설정"))
+	USoundBase* ThrowSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|SFX", meta=(ToolTip="튕김·구름 사운드. DataAsset에서 설정"))
+	USoundBase* BounceSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|SFX", meta=(ToolTip="이 속도(cm/s) 미만 충돌은 튕김 사운드 생략. DataAsset에서 설정"))
+	float BounceSoundMinSpeed = 150.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grenade|SFX", meta=(ToolTip="폭발 사운드. DataAsset에서 설정"))
+	USoundBase* ExplosionSound = nullptr;
 
 	void Explode();
 
@@ -106,7 +127,18 @@ private:
 	void OnCollision(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	                 FVector NormalImpulse, const FHitResult& Hit);
 
-	// SpawnToProjectileDelay 후 호출돼 본체 VFX 부착 + 던지기 가능 상태로 전환
+	// 본체 유지 시간이 끝난 뒤 본체 VFX를 끄고 OnExplode(기본: Destroy) 호출
+	void FinishExplode();
+
+	// 튕길 때마다 BounceSound 재생 (ProjectileMovement 바운스 이벤트)
+	UFUNCTION()
+	void OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity);
+
+	// 생성 FX 완료 이벤트 — 끝나는 즉시 수류탄 본체를 보여준다
+	UFUNCTION()
+	void OnSpawnFXFinished(UNiagaraComponent* PSystem);
+
+	// 생성 FX 완료(또는 최대 대기) 시 호출돼 본체 VFX 부착 + 던지기 가능 상태로 전환
 	void BecomeReady();
 
 	// 실제 발사 처리 (분리 + 이동 활성 + 폭발 타이머)
@@ -114,14 +146,12 @@ private:
 
 	bool bHeldPresentation = false;	// 손에 드는 연출 모드
 	bool bReadyToThrow     = false;	// 손 부착 완료(던지기 가능) 여부
-	bool bThrowRequested   = false;	// 준비 전 들어온 던지기 요청 보류
 	bool bArmed            = false;	// Impact 모드 장전 완료 여부
 	bool bExploded         = false;	// 중복 폭발 방지
 	bool bLaunched         = false;	// Launch 1회만 폭발 타이머 시작
 
-	FVector PendingThrowVelocity = FVector::ZeroVector;
-
 	FTimerHandle FuseTimerHandle;
 	FTimerHandle ArmingTimerHandle;
 	FTimerHandle SpawnReadyTimerHandle;	// 생성 FX 종료 fallback
+	FTimerHandle BodyLingerTimerHandle;	// 폭발 후 본체 제거 대기
 };

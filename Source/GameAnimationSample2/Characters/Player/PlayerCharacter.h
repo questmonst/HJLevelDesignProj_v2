@@ -218,7 +218,25 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character|Grenade", meta=(ToolTip="수류탄 궤적 스플라인 컴포넌트"))
 	USplineComponent* TrajectorySpline;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Grenade", meta=(ToolTip="수류탄을 손에 들고 조준 중(던지기 버튼 누름). ABP에서 준비 자세 분기에 사용"))
 	bool bIsPreparingThrow = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Grenade", meta=(ToolTip="던지기 몽타주 재생 중. ABP에서 던지기 동작 분기에 사용"))
+	bool bIsThrowingGrenade = false;
+
+	FTimerHandle GrenadeThrowEndTimerHandle;
+	FTimerHandle GrenadeReleaseFallbackTimerHandle;   // 노티파이가 없을 때 몽타주 끝에 강제로 놓기
+	void EndGrenadeThrowAnim();
+
+	// 수류탄 때문에 조준 상태로 들어갔는지 — 원래 조준 중이었다면 던진 뒤에도 조준을 유지한다
+	bool bAimStartedByGrenade = false;
+	void EndGrenadeAim();
+
+public:
+	// 손에 든 수류탄을 지금 조준 방향으로 던진다. 던지기 몽타주의 AnimNotify_GrenadeRelease가 호출
+	void LaunchHeldGrenade();
+
+protected:
 
 	UPROPERTY()
 	AGrenadeBase* HeldGrenade = nullptr;	// 조준 중 오른손에 들고 있는 수류탄 (Release 시 발사)
@@ -273,6 +291,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="앉은 상태 발사 몽타주. 비어 있으면 FireMontage를 쓴다"))
 	UAnimMontage* FireMontageCrouch = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="수류탄 준비(손에 들고 조준) 몽타주. MikaData에서 설정"))
+	UAnimMontage* GrenadePrepareMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="수류탄 던지기 몽타주. MikaData에서 설정"))
+	UAnimMontage* GrenadeThrowMontage = nullptr;
+
+	// 맨손 동작(펀치·수류탄) 동안 총을 숨긴다 — 애니가 총을 쥔 손과 겹쳐 보이지 않도록
+	void SetCurrentWeaponHidden(bool bHideWeapon);
+
+	// 몽타주를 재생하고 실제 재생 시간(초)을 돌려준다. PlayAnimMontage는 Rate Scale을 반영하지 않은
+	// 원본 길이를 돌려주므로 보정 — 펀치 대시·수류탄 던지기처럼 애니 길이에 로직을 맞출 때 공용으로 사용
+	float PlayMontageForDuration(UAnimMontage* Montage);
+
 	// 실제로 재생 중인 발사 몽타주. 사격 도중 앉기/서기가 바뀌어도
 	// StopFire가 엉뚱한 몽타주를 멈추지 않도록 시작 시점의 것을 들고 있는다.
 	UPROPERTY(Transient)
@@ -294,6 +325,10 @@ public:
 	void AddCrosshairSpread(float Amount);
 
 	void ApplyRecoilShot();
+
+	// WeaponBase::Fire가 탄 1발을 쏠 때마다 호출 — 반동 적용 + 마지막 탄이면 반동 몽타주 정지
+	// (연사 중 탄창이 비면 버튼을 떼기 전까지 몽타주가 계속 돌던 문제)
+	void OnWeaponShotFired();
 
 	UFUNCTION(BlueprintCallable, Category = "Character|Movement")
 	void StartSprint();
