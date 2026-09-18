@@ -292,6 +292,12 @@ Use 'SlotPose' ─────────────────────�
 | 대시 펀치·수류탄 던지기 | **전신 = 몽타주 원본** |
 | 충전·수류탄 준비 | + 척추가 카메라 상하(Aim Spine Pitch)를 따라감 |
 
+조준 허리 틀기 (2026-09-18): 척추 보정 뒤·Component To Local 앞에 **Transform (Modify) Bone**(`ValveBiped.Bip01_Spine1`, Add to Existing, Bone Space, Alpha 1),
+Rotation **X ← `Aim Waist Yaw` × -1** (ValveBiped Spine1은 **X축이 좌우 비틀기**, 부호 반대). 값은 C++ `AimWaistYaw`(조준 중 `MikaData.AimWaistYawOffset`으로 보간).
+
+EventGraph의 ABP 변수 `is Dashing` ← C++ **`bIsPunchFullBody`** (대시 시작 ~ 펀치 몽타주 끝, 2026-09-18 변경).
+`bIsDashing`(실제 대시 이동 중)으로 두면 적중·벽 반동으로 대시가 일찍 끝날 때 하반신이 로코모션(뒷걸음)으로 돌아간다.
+
 EventGraph의 ABP 변수 `Is Aiming` = `bIsAiming OR bIsChargingPunch OR bIsDashing OR bIsPreparingThrow` —
 조준 걷기 하체 선택. **AnimGraph의 Is Aiming 사용처를 각각 고치지 말고 이 한 곳만** 수정한다.
 

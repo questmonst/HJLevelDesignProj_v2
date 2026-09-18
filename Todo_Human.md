@@ -19,7 +19,7 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 코드 구현됨: 조준 시작 시 손 소켓에 부착(생성 FX → 본체 VFX) → 떼면 발사. 준비 완료 전엔 던지기 보류.
 
 남은 것(사람):
-- [x] ~~생성 FX ↔ 본체 부착 간격 직접 조정~~ — 2026-09-18부터 생성 FX가 끝나는 즉시 자동 부착(`SpawnFXMaxWait`는 최대 대기 안전장치)
+- [ ] **생성 FX ↔ 본체 부착 간격 직접 조정** — `GrenadeData_Throwable.SpawnToProjectileDelay`(기본 0.5초)를 생성 FX 길이에 맞춰 튜닝
 - [ ] 던지기 애니메이션(몽타주) 제작 후 연결 — 들기/던지기 모션 (지금은 무기와 같은 손 소켓이라 겹쳐 보임)
 
 > 관련 코드: `PlayerCharacter_Grenade.cpp`, `GrenadeBase.cpp`.
@@ -118,56 +118,11 @@ GL 발사 체인 동작 확인 완료. (탄도/폭발/VFX 정상)
 - [x] 적이 미카를 발견하면 접근하는지
 - [ ] 안 되면 `P`(Show Navigation), `'`(AI Debug)로 블랙보드 값이 실제로 채워지는지 확인
 
-**⑦ 적 사격** (ADR-005)
-- [x] `BT_AREnemy`의 발견 Sequence에서 `Wait` 자리를 **`Fire At Target`**(Target Key = `TargetActor`)으로 교체
-- [x] Move To의 Acceptable Radius < `AttackRange`(1200) — 넘으면 사거리 밖이라 태스크가 계속 실패
-- [x] 적이 사거리 안에서 사격
-- [ ] 벽 뒤에서는 안 쏨 / 높은 곳의 미카를 올려다보며 쏨
+**⑦ 적 사격 — C++ 완료, PIE 확인 필요** (ADR-005)
+- [ ] `BT_AREnemy`의 발견 Sequence에서 `Wait` 자리를 **`Fire At Target`**(Target Key = `TargetActor`)으로 교체
+- [ ] Move To의 Acceptable Radius < `AttackRange`(1200) — 넘으면 사거리 밖이라 태스크가 계속 실패
+- [ ] 적이 사거리 안에서 사격 / 벽 뒤에서는 안 쏨 / 높은 곳의 미카를 올려다보며 쏨
 - [ ] (정리) `ABP_AREnemy` Jump 그래프의 `Cast To Ue4ASP_Character → SET Jump Button Down` 죽은 노드 삭제
-
-### AR 적 AI 패턴 — 단계별 (ADR-007, 2026-09-17)
-
-> 한 층씩 쌓고 PIE로 확인한 뒤 다음 단계로. 디버그: PIE에서 `'` → 넘버패드 1(BT)·2(EQS)·3(Perception).
-> 사람이 넣을 데이터·AI가 고칠 C++은 [TODO_AI.md](TODO_AI.md).
-
-- [x] **0단계 준비** — EnemyData_AR 연결, Use Controller Rotation Yaw, BB TargetActor Base Class, NavMesh, 재장전 몽타주 슬롯(UpperBody)
-- [x] **1단계 기본 사격 + 순찰** — 사격 1초 / 휴식 4초(EnemyData), Find Patrol Location → Move To(Radius 50) → Wait
-- [x] **2단계 재장전** — `[bNeedsReload] Reload Weapon`, 재장전 사운드
-- [x] **3단계 EQS 에셋** — `EQS_IsInCover`, `EQS_FindCover` (V2AI)
-- [~] **4단계 엄폐 재장전** — `Selector_reload` 구성 완료. 제자리 재장전 재발 문제는 TODO_AI A 참고(레벨 디자인하며 확인)
-
-**5단계 — 경계 (피격 방향, 마지막 위치 추적, 제압 사격, 잊기)** — 전투와 순찰 **사이**에 추가
-```
-[bIsAlerted Is Set, aborts lower] Sequence_Alert      ← 서비스: Set default focus(TargetLocation)
-  Set Move Mode (Walk)
-  Selector [Force Success]
-    └ [Random Chance: Suppress] Fire At Target (Target Key = TargetLocation, Pattern = Suppress)
-  Move To (TargetLocation, Radius 100)                 ← 마지막 목격 위치로 추적
-  Wait (3 ± 1)
-```
-- [ ] 적이 "빨리 잊는" 문제의 주원인이 이 분기 부재 — 만들면 시야를 잃어도 마지막 위치로 추적함
-- [ ] 확인: 뒤에서 쏘면 돌아봄 / 숨으면 마지막 위치에 제압 사격(확률) / 마지막 위치까지 추적 / `ForgetTime` 후 순찰 복귀 / `LeashDistance` 넘게 끌고 가면 포기
-
-**6단계 — 전투 변주 (스트레이핑, 개활지 엄폐 이동)**
-- [ ] `EQS_Strafe` 생성 — Generator **Points: Donut**(Inner 200, Outer 450, Center Querier) / Pathfinding(Path Exist, Filter) / Trace(Context `EnvQueryContext_BlackboardTarget`, **Bool Match 해제** = 보이는 곳) / Dot(Querier→Item vs Querier→BlackboardTarget, Absolute, Filter Max 0.4) / Distance(To BlackboardTarget, Filter 600~1200). Run Mode = Single Random Item from Best 25%
-- [ ] 1단계의 `Fire At Target` 자리를 아래로 교체:
-```
-Selector_Combat
- ├ Sequence (엄폐 중): Run EQS Query(EQS_IsInCover)
- │    Selector
- │     ├ [Random Chance: Strafe] Simple Parallel(메인 Fire At Target / 보조 Run EQS Query(EQS_Strafe→StrafeLocation) → Move To(Allow Strafe))
- │     └ Fire At Target (Attack)
- ├ [Random Chance: Seek Cover] Sequence (개활지):
- │    Run EQS Query(EQS_FindCover→CoverLocation)
- │    Simple Parallel(메인 Move To(CoverLocation, Allow Strafe) / 보조 [Loop] Fire At Target)
- └ Fire At Target (Attack)
-```
-- [ ] BB_Enemy에 `StrafeLocation`(Vector) 키 추가
-- [ ] 확인: 개활지에서 엄폐물로 이동하며 사격 / 엄폐 중 가끔 옆으로 움직이며 사격 / 이동 애니가 미끄러지지 않는지(블렌드스페이스 방향 지원)
-
-**7단계 — 적 종류별 성향**
-- [ ] `EnemyData_AR` 복제 → `EnemyData_MG`, `EnemyData_DMR` 등. 사격 패턴(Burst/Rest)·확률(Strafe/Suppress/SeekCover)만 다르게 (예: MG = 사격 5초/휴식 1초/스트레이핑 0%)
-- [ ] BT는 공유 — 노드의 `Use Enemy Data`가 켜져 있으면 적마다 다르게 행동
 
 **나머지 적:**
 - [ ] Shotgun/Sniper/MG/Shield/LargeSweeper 등 자식 클래스 + 에셋 연결
@@ -198,3 +153,83 @@ Selector_Combat
 - [ ] `Movement > CrouchWalkSpeed` — 앉아 이동 속도 (기본 200) 조정
 
 > C++ 완료(빌드 반영됨). DA 값만 만지면 됨.
+
+---
+3단계: EQS 에셋 만들기
+EQS_IsInCover
+Generator: Current Location
+Test: Trace → BlackboardTarget, Bool Match = true
+EQS_FindCover
+Generator: Points: Grid
+Tests: Pathfinding / Trace(true) / Distance to Target(Min 500) / Distance to Querier(Inverse Linear)
+✅ 확인: 레벨에 EQS Testing Pawn을 놓고 Query Template를 지정해. 엄폐물 뒤 지점이 초록으로 뜨는지 봐.
+
+Testing Pawn은 블랙보드가 없어서 BlackboardTarget 컨텍스트가 비어. 이 단계에서만 Context를 Querier가 아닌 다른 액터로 임시로 바꿔서 확인하고, 확인이 끝나면 되돌려줘.
+4단계: 엄폐 재장전
+2단계에서 넣은 Reload Weapon 한 줄을 이걸로 교체:
+
+
+ ├ [bNeedsReload Is Set, aborts both] Selector_Reload
+ │   ├ Sequence: Run EQS Query(EQS_IsInCover) → Set Move Mode(Crouch) → Reload Weapon
+ │   └ Sequence: Set Move Mode(Run) → Run EQS Query(EQS_FindCover→CoverLocation)
+ │               → Move To(CoverLocation) → Set Move Mode(Crouch) → Reload Weapon → Set Move Mode(Walk)
+✅ 확인:
+
+개활지에서 탄이 떨어지면 엄폐물까지 뛰어가서 앉아 재장전하는지
+이미 엄폐 중이면 그 자리에서 앉아 재장전하는지
+5단계: 경계 (피격 방향, 제압 사격, 잊기)
+Combat과 Patrol 사이에 추가:
+
+
+ ├ [bIsAlerted Is Set, aborts lower] Sequence_Alert  ← 서비스: Set default focus(TargetLocation)
+ │    Rotate to face BB entry(TargetLocation)
+ │    [Random Chance: Suppress] Fire At Target(TargetLocation, Suppress)
+✅ 확인:
+
+뒤에서 쏘면 그쪽으로 도는지
+미카가 숨으면 마지막 위치에 제압 사격하는지 (확률이라 여러 번 테스트)
+ForgetTime(10초)이 지나면 순찰로 복귀하는지
+스폰 지점에서 LeashDistance(2500)보다 멀리 끌고 가면 포기하는지
+6단계: 전투 변주 (스트레이핑, 개활지 엄폐 이동)
+EQS_Strafe 생성
+Generator: Donut
+Tests: Pathfinding / Trace(false) / Dot(Absolute, Max 0.4) / Distance
+1단계의 Fire At Target 자리를 이걸로 교체:
+
+Selector_Combat
+ ├ Sequence(엄폐 중): Run EQS Query(EQS_IsInCover)
+ │    Selector
+ │     ├ [Random Chance: Strafe] Simple Parallel(메인 Fire At Target / 보조 EQS_Strafe → Move To(Allow Strafe))
+ │     └ Fire At Target(Attack)
+ ├ [Random Chance: Seek Cover] Sequence(개활지):
+ │    Run EQS Query(EQS_FindCover→CoverLocation)
+ │    Simple Parallel(메인 Move To(CoverLocation, Allow Strafe) / 보조 [Loop] Fire At Target)
+ └ Fire At Target(Attack)
+✅ 확인:
+
+개활지에서 엄폐물로 이동하면서 쏘는지
+엄폐 중에 가끔 옆으로 움직이며 쏘는지
+이동 애니가 미끄러지지 않는지 (ABP_AREnemy 블렌드스페이스가 방향을 지원하는지)
+7단계: 적 종류별 성향
+EnemyData_AR을 복제해서 EnemyData_MG, EnemyData_DMR 등을 만들어.
+사격 패턴과 확률만 다르게 줘. 예: MG는 사격 5초 / 휴식 1초 / 스트레이핑 0%.
+BT는 하나를 공유해. Use Enemy Data가 켜져 있으면 적마다 다르게 행동해.
+막히는 단계가 있으면 BT 스크린샷이랑 PIE 증상을 보내줘. MCP가 다시 연결되면 내가 BT 구성을 직접 읽고 PIE에서 확인할게.
+---
+
+## 바로 다음에 할 일 (미카 모션, 2026-09-18)
+
+> 애니 리타겟(`RTG_Manny2Mika_v2`) → `fix_mika_root_scale.py` → 몽타주(슬롯 `DefaultGroup.UpperBody`) 만든 뒤 AI에 연결 요청. 몽타주 칸은 C++이 필요 (TODO_AI 참고)
+
+- [ ] **`Jmp_BackAir`** → 미카 펀치 **반동(튕겨 나올 때)** 모션
+- [ ] **`Jump_Up_B` / `Jump_Down_B`** → **점프** 모션 (ABP 점프·낙하 상태)
+- [ ] **`Land_Spawn_Wait`** → **30° 아래 펀치로 바닥 찍을 때(착지 공격)** 모션
+- [ ] **`Land_Spawn_Wait`** → **고지대 일반 착지** 모션 — ⚠ 위 착지 공격과 같은 애니 이름이라 하나는 다른 애니일 수도 있음 (확인)
+
+## 나중에 할 일 (생각날 때)
+
+> 급하지 않은 것. C++이 필요한 건 TODO_AI.md에도 함께 있음.
+
+- [ ] **수류탄 던질 수 있는지 UI** — 위젯에서 `OnGrenadeThrowReadyChanged(bReady)` 바인딩. C++ 완료
+- [ ] **펀치 충전 UI** — `OnPunchFullCharge` 바인딩 + 충전 게이지 `GetPunchChargeRatio()`(0~1). C++ 완료
+- [ ] **펀치 풀 충전 대시 전용 VFX·SFX** — AI에 요청

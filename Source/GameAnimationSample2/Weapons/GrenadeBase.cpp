@@ -138,6 +138,8 @@ void AGrenadeBase::BecomeReady()
 			ProjectileVFXComponent->OnSystemFinished.AddDynamic(this, &AGrenadeBase::OnProjectileVFXFinished);
 		}
 	}
+
+	OnReadyToThrow.Broadcast();
 }
 
 void AGrenadeBase::OnProjectileVFXFinished(UNiagaraComponent* PSystem)

@@ -22,6 +22,8 @@ class UTraversalComponent;
 class UAnimMontage;
 class UMotionWarpingComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGrenadeThrowReadyChangedSignature, bool, bReady);
+
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API APlayerCharacter : public ACharacterBase
 {
@@ -164,6 +166,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="기본 카메라 소켓 좌우 오프셋 (양수=오른쪽, cm)"))
 	float DefaultSocketOffsetY = 60.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="조준 중 카메라를 기본 위치에서 더 오른쪽으로 옮기는 거리(cm, 음수=왼쪽). 엄폐 좌우 이동에 더해짐"))
+	float AimSocketOffsetRight = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="조준 중 카메라를 위로 올리는 거리(cm, 음수=아래). 스프링암 SocketOffset.Z"))
+	float AimSocketOffsetUp = 0.f;
+
+	// DefaultSocketOffsetY를 스프링암·엄폐 기준값에 적용. 자식이 DataAsset 값을 복사한 뒤 다시 호출해야 DA 값이 먹는다
+	void ApplyDefaultSocketOffset();
+
 	void UpdateCoverPeek(float DeltaTime);
 	void UpdateAimSpinePitch(float DeltaTime);
 	void UpdateCrosshairSpread(float DeltaTime);
@@ -192,6 +203,7 @@ protected:
 
 private:
 	float NormalSocketOffsetY = 0.f;
+	float NormalSocketOffsetZ = 0.f;   // BP에 설정된 기본 SocketOffset.Z (조준 해제 시 복귀값)
 
 protected:
 
@@ -242,7 +254,12 @@ public:
 	// 손에 든 수류탄을 지금 조준 방향으로 던진다. 던지기 몽타주의 AnimNotify_GrenadeRelease가 호출
 	void LaunchHeldGrenade();
 
+	UPROPERTY(BlueprintAssignable, Category = "Character|Grenade", meta=(ToolTip="손에 든 수류탄이 던질 수 있게 되면 true, 던지거나 취소하면 false. UI 표시용"))
+	FOnGrenadeThrowReadyChangedSignature OnGrenadeThrowReadyChanged;
+
 protected:
+	// 손에 든 수류탄의 준비 완료 알림을 받아 OnGrenadeThrowReadyChanged(true) 방송
+	void OnHeldGrenadeReady();
 
 	UPROPERTY()
 	AGrenadeBase* HeldGrenade = nullptr;	// 조준 중 오른손에 들고 있는 수류탄 (Release 시 발사)

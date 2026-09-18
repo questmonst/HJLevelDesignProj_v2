@@ -15,6 +15,9 @@ ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// 펀치 범위 데칼 등은 벽·바닥에만 — 캐릭터 몸에는 그리지 않는다
+	GetMesh()->SetReceivesDecals(false);
+
 	MaxHealth = 100.0f;
 	CurrentHealth = 100.0f;
 	TeamID = 0;

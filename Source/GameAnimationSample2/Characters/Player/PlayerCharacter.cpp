@@ -73,8 +73,8 @@ void APlayerCharacter::BeginPlay()
 	GetCharacterMovement()->MaxWalkSpeed         = WalkSpeed;
 	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchWalkSpeed;
 
-	SpringArmComponent->SocketOffset.Y = DefaultSocketOffsetY;
-	NormalSocketOffsetY                 = DefaultSocketOffsetY;
+	ApplyDefaultSocketOffset();
+	NormalSocketOffsetZ = SpringArmComponent->SocketOffset.Z;
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch      = true;
 	GetCharacterMovement()->bCrouchMaintainsBaseLocation  = true;
@@ -207,12 +207,23 @@ void APlayerCharacter::Tick(float DeltaTime)
 	}
 }
 
+void APlayerCharacter::ApplyDefaultSocketOffset()
+{
+	SpringArmComponent->SocketOffset.Y = DefaultSocketOffsetY;
+	NormalSocketOffsetY                 = DefaultSocketOffsetY;
+}
+
 void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 {
 	float TargetY = NormalSocketOffsetY;
+	float TargetZ = NormalSocketOffsetZ;
 
 	if (bIsAiming)
 	{
+		// 조준 중 카메라 추가 이동 (오른쪽·위) — 아래 엄폐 좌우 이동은 이 위치 기준으로 더해진다
+		TargetY += AimSocketOffsetRight;
+		TargetZ += AimSocketOffsetUp;
+
 		FVector Origin = GetActorLocation();
 		FVector Right  = FRotationMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f)).GetUnitAxis(EAxis::Y);
 
@@ -224,13 +235,15 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 		bool bRightCover = GetWorld()->LineTraceSingleByChannel(RightHit, Origin, Origin + Right * CoverTraceDistance, ECC_WorldStatic, Params);
 
 		if (bLeftCover && !bRightCover)
-			TargetY = NormalSocketOffsetY + CoverPeekOffset;
+			TargetY += CoverPeekOffset;
 		else if (bRightCover && !bLeftCover)
-			TargetY = NormalSocketOffsetY - CoverPeekOffset;
+			TargetY -= CoverPeekOffset;
 	}
 
 	SpringArmComponent->SocketOffset.Y = FMath::FInterpTo(
 		SpringArmComponent->SocketOffset.Y, TargetY, DeltaTime, CoverPeekInterpSpeed);
+	SpringArmComponent->SocketOffset.Z = FMath::FInterpTo(
+		SpringArmComponent->SocketOffset.Z, TargetZ, DeltaTime, CoverPeekInterpSpeed);
 }
 
 void APlayerCharacter::UpdateAimTurn(float DeltaTime)

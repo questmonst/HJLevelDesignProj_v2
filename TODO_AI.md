@@ -84,6 +84,73 @@
 - [x] **빌드 완료** — 카메라 위아래 제한각: `MikaData` › Camera › **`CameraPitchMin`**(기본 -89.9) / **`CameraPitchMax`**(기본 89.9) → PlayerCameraManager ViewPitchMin/Max (2026-09-18)
 - [ ] 위·아래 90° 조준처럼 보이게 — `MikaData` › Camera › **`AimSpinePitchClamp`** 60 → 80~90 (카메라 자체는 엔진 기본 ±89.9°로 이미 가능, 몸 휨만 60°에서 막혀 있음)
 
+### 수류탄 준비 이벤트 · 재장전 길이 · 본체 VFX · 펀치 손 FX (2026-09-18) — C++ 빌드 완료
+- [x] 빌드
+- [x] 빌드 (펀치 FX 분리·히트 FX·충전 VFX 늘리기)
+- [ ] `ChargeHandVFX`에 `NS_Lightning_Cast` 지정 + **`ChargeHandVFXSourceLength`** = 원본 재생 길이(초, 나이아가라 타임라인에서 확인) → `ForcedMaxChargeTime`(2초) 동안 1회 재생되도록 느리게 재생. 0이면 원래 속도
+- [x] 빌드 완료 — Punch|FX를 **1 Charge / 2 Dash / 3 Hit** 하위 칸으로 정리. 히트 VFX는 맞은 표면 위치에서 미카 쪽을 향함. **`ChargeHandVFXCameraOffset`**(기본 40cm) — 충전 VFX를 카메라 쪽으로 당겨 몸에 안 가리게. 옆에서 떠 보이면 줄이기
+- [ ] `MikaData` › Punch|FX:
+  - **`ChargeHandVFX`** — 충전 중 오른손. 충전할수록 **`ChargeHandVFXMinScale`→`ChargeHandVFXMaxScale`**로 커짐 (대시 속도와 같은 충전 비율). 에셋에 `User.Scale Overall`이 있으면 그걸로, 없으면 컴포넌트 스케일로 조절. 루프형 권장
+  - **`DashHandVFX`** — 대시 중 오른손 (크기 조절 없음)
+  - **`ChargeHandSFX`**(충전 중) / **`DashHandSFX`**(대시 중) — 단계 끝나면 정지
+  - **`PunchHitVFX`**(+`PunchHitVFXScale`) / **`PunchHitSFX`** — 대시당 **첫 히트 1번만**. 적·파괴물 = 히트박스 겹침(손 위치), 벽 = 대시 중 캡슐이 막힌 지점(바닥 착지는 제외). 적 캡슐에 먼저 막혀도 히트로 침
+- [ ] (재진단) 재시작 코드가 있어도 여전히 폭발 전에 사라짐 — `NS_Bomb_Projectile`이 1초짜리. **사람:** 복제본 만들어 이미터 Loop Behavior = Infinite(또는 본체 파티클 수명을 길게)로 바꾸고 DA `ProjectileVFX`에 지정. 해결되면 **AI:** `AGrenadeBase::OnProjectileVFXFinished`(재시작 코드)와 바인딩 제거
+- [ ] 위젯에서 플레이어의 **`OnGrenadeThrowReadyChanged(bReady)`** 바인딩 → true = 던질 수 있음, false = 던짐/취소
+- [ ] 장전 몽타주는 이제 무기 DA **`ReloadTime`** 길이에 맞춰 재생 속도가 자동 조절됨 → 무기별로 모션이 너무 빠르거나 느리지 않은지 확인
+- [x] `Reload_mika`·`Crouch_Reload_mika` 루트 스케일 트랙 제거 (크기 수정)
+
+### 미카 펀치 개편 — 사거리·판정·넉백·반동·범위 데칼, 랜딩 흡수 (2026-09-18) — C++ 작성, 빌드 대기
+원인: 대시가 몽타주 길이(1.47초) 동안 낙하 모드로 감속 없이 날아가(`DashBrakingDeceleration`은 비행 모드용이라 무효) 최대 ~35m를 손 히트박스로 쓸고 감.
+- [ ] 빌드 (에디터 닫고)
+- 변경:
+  - 대시 = 비행 모드 + 제동 0 **일정 속도 직선 이동**. 속도 = 거리 ÷ 대시 시간(몽타주 길이). 끝나면 정지 → 낙하 모드
+  - `MinDashSpeed`/`MaxDashSpeed`/`DashBrakingDeceleration` 삭제 → **`PunchMinDistance`(400)/`PunchMaxDistance`(2400)** (MikaData › Punch|Range)
+  - 손 박스 `PunchHitbox` 삭제 → 몸 앞 캡슐 **`PunchHitCapsule`** (`PunchHitRadius` 51 / `PunchHitHalfHeight` 132 / `PunchHitForwardOffset` 51, 미카 캡슐의 1.5배). 대시 중에만 켜짐
+  - `PunchDamage` 삭제 → **`PunchMinDamage`/`PunchMaxDamage`** (충전 비례). 넉백 **`PunchMin/MaxKnockback`** + `PunchKnockbackUpRatio`, 미카→대상 **방사형** (MikaData › Punch|Hit)
+  - 적(폰) 적중 시 대시 중단 + **반동**: `PunchReboundMaxSpeed` × 남은 대시 시간 비율, `PunchReboundUpRatio`. 파괴물은 부수고 계속 진행
+  - **미카 랜딩 제거** (`MikaLanding`·다이브·`Landing*` 변수·몽타주 2개) → `PunchSlamMinDownPitch`(30°) 이상 아래로 대시하다 바닥에 닿으면 **`PunchSlamRadius`**(300) 안 전원에 충전 비례 피해·넉백
+  - 범위 표시: 충전 중 바닥에 대시 경로 사각형 데칼 (폭 = 판정 지름, 길이 = 충전 비례 거리, 벽에 막히면 거기까지). 머티리얼 **`/Game/V2_HJContents/Materials/Decal/M_PunchRange_Decal`** (AI 생성, 파라미터 Color·FillOpacity·EdgeOpacity·EdgeWidth)
+  - 판정에서 자기 소유(손에 든 총·수류탄) 제외 — 히트 FX가 안 뜨던 원인 후보
+  - 진단 로그 `[PunchHitFX]` (LogTemp) — 원인 확인 후 제거할 것
+- [x] 빌드 (개편 본체)
+- [x] 빌드 완료 — `MikaData` › Punch|Range › **`bDebugDrawPunchHit`** 디버그 체크박스 (판정 캡슐: 충전 중 노랑·대시 중 빨강, 착지 공격 반경 1초 주황 구)
+- [x] `CLAUDE.md`·`Docs/LevelDesign/Stage.md`에서 미카 랜딩 → 아래 펀치(착지 공격)로 정리, Stage 메트릭스 표 새 펀치 수치로 갱신 (`PROGRESS.md`·`30m_DailyTask.md`·`progress_human.md`·`Docs/BP_AnimSetup_Reference.md`엔 랜딩 언급 남아 있음)
+- [x] 빌드 완료 — **정면/측면 적중 분리** (2026-09-18 사용자 상세 명세)
+  - 정면(대시 직선에서 옆 거리 ≤ `PunchFrontHalfWidth` 40): 100% 피해, 적은 대시 수평 방향으로, 미카 멈춤 + 대시 거리 × `PunchReboundDistanceRatio`(0.1)만큼 `PunchReboundTime`(0.2초) 동안 반대 방향 반동, 메인 히트 FX
+  - 측면: `PunchSideDamageRatio`(0.5) 피해, 적은 미카→적 방향으로 `PunchSideKnockbackRatio`(0.5) 넉백, 미카 계속 진행, 서브 히트 FX(`PunchSideHitVFX`/`Scale`/`SFX`, 대상마다)
+  - 넉백 속도 = 대시 거리 × `PunchKnockbackPerDistance`(1.0). `PunchMin/MaxKnockback`·`PunchReboundMaxSpeed/UpRatio` 삭제
+  - ~~벽: 메인 히트 FX만~~ → (빌드 완료) 벽도 적 정면처럼 **멈춤 + 반동**. 충돌 콜백은 이동 처리 중이라 `bPendingRebound`로 다음 Tick에 반동 시작 (적 정면도 동일)
+- [x] 빌드 완료 (ABP 교체는 남음) — **펀치 후속 4건** (2026-09-18, 계획: `~/.claude/plans/purrfect-stargazing-bonbon.md`)
+  - 대시 자연 종료 시 속도 유지: `PunchEndMomentumRatio`(1). 적중·벽·착지 공격은 정지
+  - `bIsPunchFullBody` (대시 시작 ~ 펀치 몽타주 끝) → **사람:** ABP EventGraph `Set is Dashing` 입력을 `Get bIsDashing` → `Get bIsPunchFullBody`로 교체 (MCP `add_node`는 변수 지정 불가라 수동). ADR-009 갱신 완료
+  - 히트스톱: `PunchHitSlowTimeScale`(0.1) / `PunchHitSlowDuration`(실제 0.08초, 0=끔). 메인 히트만. `EndPlay`에서 복구
+  - 메인 히트 FX 충전 비례: `PunchHitVFXScale` → `PunchHitVFXMin/MaxScale`(0.5/1.0), `PunchHitSFXMin/MaxVolume`(0.6/1.0)
+- [x] 빌드 완료 — **풀 충전 연출** (2026-09-18)
+  - 메인 히트 연출(메인 FX·히트스톱·폭발)은 **풀 충전(충전 ≥ `MaxChargeTime`)** 대시만. 미만이면 정면·벽·착지 공격도 서브 히트 FX (대미지·멈춤·반동은 동일)
+  - 메인 히트 폭발: VFX `PunchExplosionVFX`(+`PunchExplosionVFXReferenceRadius`, Punch|FX|3 Main Hit), 반경·피해 `PunchExplosionRadius`(300)/`PunchExplosionDamage`(40) (Punch|Hit). 디버그 켜면 자홍 구
+  - 풀 충전 도달: `PunchFullChargeSFX`(2D, Punch|FX|1 Charge) + 이벤트 **`OnPunchFullCharge`** + UI 게이지용 `GetPunchChargeRatio()`
+  - 범위 데칼: 풀 충전 전 외곽선만(동적 머티리얼 `FillOpacity` 0) → 풀 충전 후 채움
+  - 버그: 바닥 보고 펀치 시 수평(위를 보는) 모션 — 즉시 착지 공격으로 대시가 끝나 `DashPitch`가 바로 0이 됐음 → 몽타주 끝(`EndPunchFullBody`)에서 해제
+- [x] 빌드 완료 — **풀 충전 손 VFX · 폭발 범위 데칼 · 데칼 캐릭터 제외 · 반동 딜레이** (2026-09-18)
+  - `PunchFullChargeHandVFX`/`Scale` (Punch|FX|1 Charge): 풀 충전 순간 오른손에 부착, 대시 끝에 정지
+  - `PunchExplosionDecalMaterial` (Punch|Range) = **`M_PunchExplosion_Decal`** (AI 생성, 주황 원, `FillOpacity`/`EdgeOpacity`/`EdgeWidth`): 경로 끝에 폭발 반경 원. 풀 충전 전 외곽선 → 후 채움
+  - `ACharacterBase` 메시·`AWeaponBase` 무기 메시 `bReceivesDecals = false` → 데칼은 벽·바닥에만
+  - (빌드 완료) 폭발 반경 충전 비례: `PunchExplosionRadius` → **`PunchExplosionMinRadius`(150) / `PunchExplosionMaxRadius`(300)**. 범위 원 데칼이 충전하며 커짐, 실제 폭발은 풀 충전에서만이라 항상 Max
+  - 반동 딜레이 `PunchReboundDelayFull`(0.1) / `PunchReboundDelayNormal`(0.05) (Punch|Hit, 게임 초 — 히트스톱 중엔 길게 느껴짐). 딜레이 동안 제자리(비행 모드)
+- [x] 빌드 완료 — **폭발 상시화 · 폭발 넉백 · 조준 허리 틀기 · 바닥 목표 착지 공격** (2026-09-18)
+  - 폭발은 풀 충전 아니어도 정면·벽·착지 공격마다 (메인 FX·히트스톱은 풀 충전만). 새 카테고리 **Punch|Explosion**: `PunchExplosionMin/MaxRadius`(150/300), **`PunchExplosionMin/MaxDamage`**(10/40, 펀치 피해와 분리), **`PunchExplosionKnockbackRatio`**(0.25 = 이번 대시 펀치 넉백의 25%, 폭발 중심 바깥쪽). `PunchExplosionDamage` 삭제
+  - `M_PunchExplosion_Decal` 색 주황 → 분홍 (1, 0.35, 0.8) — 완료
+  - 조준 허리 틀기: `MikaData` › Camera|AimWaist › `AimWaistYawOffset`(15°) / `AimWaistBlendSpeed`(10) → 미카 `AimWaistYaw`(BlueprintReadOnly, 조준 중 보간). **사람:** ABP EventGraph에 `Get AimWaistYaw` → 새 ABP float 변수 Set, AnimGraph 척추 보정 뒤·Component To Local 앞에 ModifyBone(Spine1, Add to Existing, Bone Space) 추가 → 좌우 틀기 축(X/Y/Z) PIE로 찾기
+  - **바닥 목표 착지 공격**: 원이 바닥에 떴는데 미끄러져 앞으로 가던 문제 → 범위 원과 대시가 같은 트레이스(`TracePunchPath`) 사용. 경로 끝이 걸을 수 있는 바닥이면 그 지점까지 가서 착지 공격(지상 출발은 수평 이동, 공중은 바닥에 닿는 순간). → (빌드 완료) 평지 원이 너무 잦아 **`PunchSlamMinDownPitch`(30°) 부활**: 30° 이상 아래 + 바닥 = 착지 공격, 지상에서 얕게 아래 = 수평 대시. 폭발 원은 실제 폭발 지점(바닥 목표·벽)에만, 허공 끝이면 숨김. 벽 예측은 가는 선 → **미카 캡슐 스윕**(이동과 같은 채널·응답, 반높이 −10cm)으로 교체
+  - (빌드 완료) 조준 카메라 오프셋: `MikaData` › Camera|Aim › `AimSocketOffsetRight`(20) / `AimSocketOffsetUp`(15) → 조준 중 스프링암 SocketOffset Y·Z에 더함 (보간 = `CoverPeekInterpSpeed`). 엄폐 좌우 이동은 이 위치 기준
+  - (빌드 완료) 반동: 등속 이동 후 0으로 끊던 것 → 딜레이 후 **초기 속도만 주고 낙하 모드**(제동·중력으로 자연 감속). 초기 속도 = 대시 거리 × `PunchReboundDistanceRatio` ÷ `PunchReboundTime`
+  - ~~발견: `MikaData.DefaultSocketOffsetY`가 안 먹음~~ → (빌드 대기) `APlayerCharacter::ApplyDefaultSocketOffset()` 추가, 미카가 DA 복사 후 다시 호출
+  - (빌드 대기) 폭발 원 ↔ 실제 폭발 어긋남 수정: 공중에서 아래로 칠 때 원은 몸 중심선이 바닥에 닿는 곳, 폭발은 발이 닿는 곳이라 30°에서 ~1.5m 차이 → 지상 가파른 아래만 선, **나머지는 캡슐 스윕 접촉점**. 원을 닿는 면에 수직 투사(벽면 정면, 적이면 바닥)
+  - 남은 차이 가능성: ① 폭발 VFX 크기는 `PunchExplosionVFXReferenceRadius`(300, 추정값)에 따라 달라 원과 안 맞을 수 있음 ② 폭발 피해는 적 캡슐이 반경에 **조금이라도** 걸리면 들어가 원 밖 ~34cm까지 맞음
+- [ ] **사람:** `MikaData` › Punch|Range › **`PunchRangeDecalMaterial`** = `M_PunchRange_Decal`, **`PunchExplosionDecalMaterial`** = `M_PunchExplosion_Decal`
+- [ ] **사람:** PIE — 사거리 4~24m, 적 적중 시 반동, 넉백·대미지 비례, 아래 대시 착지 공격, 데칼 표시, 히트 FX (안 뜨면 Output Log에서 `[PunchHitFX]` 확인)
+- [ ] **AI:** 히트 FX 원인 확인되면 진단 로그 제거
+
 ### EQS 엄폐 판정 — 제자리 재장전 재발 (레벨 디자인 진행하며 확인)
 증상: 엄폐물로 이동하지 않고 제자리에서 재장전 후 앉았다 일어남 (`Sequence_AlreadyCover`가 항상 성공).
 확인된 것: Visibility 채널은 캐릭터 캡슐·메시가 Ignore, 무기 메시는 NoCollision → **자기 몸에 막히는 문제 아님**. Bullet 채널로 바꾸면 캐릭터가 Block이라 오히려 악화.
@@ -105,6 +172,19 @@
 - [ ] **낙하 리셋을 AI(아키라)에도 적용** — `AFallResetTrigger::OnTriggerOverlap`이 PlayerController 없는 캐릭터를 무시함. 컨트롤러 없어도 텔레포트(페이드는 플레이어만). 아키라도 미카와 같은 스포트라이트(리셋 타겟)로 리셋 — 분리 불필요. 30m_DailyTask.md 3-4 (2026-09-17)
 - [ ] **미카 펀치 넉백** — 현재 `OnPunchHitboxOverlap`은 `ApplyDamage`만. 1-1에서 아키라 낙하 원인으로 확정(스크립트 낙하 + 넉백). 히트 시 `LaunchCharacter` + 수치 DA 노출. 30m_DailyTask.md 3-5 (2026-09-17)
 
+
+### 바로 다음에 할 일 — 미카 모션 연결 (2026-09-18, 사람이 몽타주 만든 뒤)
+- [ ] **빌드 먼저** — 폭발 원 캡슐 예측·면 투사, `ApplyDefaultSocketOffset` (에디터 켜져 있어 미빌드 상태로 커밋됨)
+- [ ] 반동 모션 `Jmp_BackAir`: `MikaData`에 `PunchReboundMontage` 추가 → `BeginReboundMove`에서 재생 (반동 중 전신: `bIsPunchFullBody` 유지 or 별도 조건)
+- [ ] 점프 `Jump_Up_B`/`Jump_Down_B`: ABP 점프·낙하 상태 (C++ 불필요할 가능성, `Is Falling`·Velocity.Z)
+- [ ] 착지 공격 모션 `Land_Spawn_Wait`: `MikaData`에 `PunchSlamMontage` 추가 → `PunchSlam`에서 대시 몽타주 대신 재생
+- [ ] 고지대 착지 모션: 기존 하드 랜딩(`HardLandingSpeedThreshold`, `OnLanding`) 흐름에 연결 — 애니 이름이 착지 공격과 같게 적혀 있어 확인 필요
+
+### 나중에 할 일 (2026-09-18 사용자 요청) — 사람 쪽 목록은 Todo_Human.md › 나중에 할 일
+- [ ] 수류탄 던질 수 있는지 UI — `APlayerCharacter::OnGrenadeThrowReadyChanged(bReady)` 바인딩하는 위젯 (C++ 이벤트는 이미 있음)
+- [ ] 펀치 충전 UI — 풀 충전 알림 `AMikaCharacter::OnPunchFullCharge` 바인딩 + 충전 게이지 `GetPunchChargeRatio()`(0~1) (C++ 이미 있음)
+- [x] 펀치 충전 중 점점 커지는 카메라 흔들림 — (빌드 완료) `MikaData` › Punch|Camera › `ChargeShakeMaxLocation`(2cm) / `ChargeShakeMaxRotation`(0.5°) / `ChargeShakeFrequency`(20Hz). 카메라 컴포넌트 상대 위치·회전에 펄린 노이즈, 감쇠·지연 없음, 떼면 즉시 복귀 (스프링암 카메라 랙은 원래 꺼져 있음)
+- [ ] 펀치 **풀 충전** 후 대시에만 나오는 VFX·SFX
 
 ### 보류 (필요해지면)
 - [ ] 적 조준(Ironsights) 모션 — `bIsAiming` + `BTService_SetAiming` + ABP `Blend Poses by bool`·`Aim_Space_Ironsights`. 2026-09-17 "적은 디테일 불필요"로 보류

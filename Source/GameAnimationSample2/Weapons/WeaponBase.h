@@ -280,6 +280,9 @@ public:
 	bool IsReloading() const { return bIsReloading; }
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
+	float GetReloadTime() const { return ReloadTime; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
 	int32 GetMagSize() const { return MagSize; }
 
 	// AI 무한 탄약용. 플레이어 탄약 획득 로직이 생기면 그쪽도 이 함수를 쓴다

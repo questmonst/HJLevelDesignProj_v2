@@ -19,6 +19,7 @@ AWeaponBase::AWeaponBase()
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
+	WeaponMesh->SetReceivesDecals(false);   // 펀치 범위 데칼 등은 벽·바닥에만 (캐릭터·무기 제외)
 
 	PickupSphere = CreateDefaultSubobject<USphereComponent>(TEXT("PickupSphere"));
 	PickupSphere->SetupAttachment(RootComponent);

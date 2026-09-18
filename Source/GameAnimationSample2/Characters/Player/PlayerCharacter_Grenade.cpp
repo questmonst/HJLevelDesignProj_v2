@@ -37,7 +37,16 @@ void APlayerCharacter::StartGrenadeThrow()
 		HeldGrenade->AttachToComponent(GetMesh(),
 			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 			WeaponAttachSocket);
+
+		// 생성 FX가 없으면 BeginPlay에서 이미 준비됐으므로 바인딩 전 상태도 확인
+		HeldGrenade->OnReadyToThrow.AddUObject(this, &APlayerCharacter::OnHeldGrenadeReady);
+		if (HeldGrenade->IsReadyToThrow()) OnHeldGrenadeReady();
 	}
+}
+
+void APlayerCharacter::OnHeldGrenadeReady()
+{
+	OnGrenadeThrowReadyChanged.Broadcast(true);
 }
 
 void APlayerCharacter::ReleaseGrenadeThrow()
@@ -65,6 +74,7 @@ void APlayerCharacter::ReleaseGrenadeThrow()
 		return;
 	}
 
+	OnGrenadeThrowReadyChanged.Broadcast(false);
 	GrenadeCount--;
 
 	// 던지기 몽타주 재생 동안 bIsThrowingGrenade 유지 (ABP 분기용)

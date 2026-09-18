@@ -31,6 +31,9 @@ public:
 	// 손 부착 연출이 완료돼 던질 수 있는 상태인지
 	bool IsReadyToThrow() const { return bReadyToThrow; }
 
+	// 던질 수 있는 상태가 되는 순간 1회 방송 (BecomeReady)
+	FSimpleMulticastDelegate OnReadyToThrow;
+
 protected:
 	virtual void BeginPlay() override;
 

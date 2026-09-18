@@ -299,6 +299,10 @@ void APlayerCharacter::Reload()
 	CurrentWeapon->Reload();
 	if (!bWasReloading && CurrentWeapon->IsReloading() && ReloadMontage)
 	{
-		PlayAnimMontage(ReloadMontage);
+		// 무기마다 장전 시간이 달라서, 몽타주 재생 길이를 그 무기의 ReloadTime에 맞춘다
+		const float BaseDuration = ReloadMontage->GetPlayLength() / FMath::Max(ReloadMontage->RateScale, KINDA_SMALL_NUMBER);
+		const float ReloadTime   = CurrentWeapon->GetReloadTime();
+		const float PlayRate     = (ReloadTime > 0.f) ? BaseDuration / ReloadTime : 1.f;
+		PlayAnimMontage(ReloadMontage, PlayRate);
 	}
 }
