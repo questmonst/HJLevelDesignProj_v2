@@ -4,7 +4,7 @@
 #include "IDestructible.h"
 #include "HealthRegenComponent.h"
 #include "WeaponBase.h"
-#include "Animation/AnimMontage.h"
+#include "GrenadeBase.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -58,6 +58,8 @@ void AMikaCharacter::BeginPlay()
 		// Fall
 		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
 		// Grenade / Weapon
+		// 비어 있으면 BP_Mika에 직접 넣어둔 값을 유지 (DA 이전 전 기존 설정 보호)
+		if (MikaData->GrenadeClass) GrenadeClass = MikaData->GrenadeClass;
 		GrenadeThrowSpeed          = MikaData->GrenadeThrowSpeed;
 			GrenadeCount               = MikaData->MaxGrenadeCount;
 		WeaponSwapDelay            = MikaData->WeaponSwapDelay;
@@ -78,6 +80,7 @@ void AMikaCharacter::BeginPlay()
 		DashDuration               = MikaData->DashDuration;
 		bDashDurationFromMontage   = MikaData->bDashDurationFromMontage;
 		DashBrakingDeceleration    = MikaData->DashBrakingDeceleration;
+		DashMaxVisualPitch         = MikaData->DashMaxVisualPitch;
 		// Punch Camera
 		ChargeSpringArmLength      = MikaData->ChargeSpringArmLength;
 		ChargeFOV                  = MikaData->ChargeFOV;
@@ -92,6 +95,8 @@ void AMikaCharacter::BeginPlay()
 		LandingDiveSpeed           = MikaData->LandingDiveSpeed;
 		FireMontage                = MikaData->FireMontage;
 		FireMontageCrouch          = MikaData->FireMontageCrouch;
+		GrenadePrepareMontage      = MikaData->GrenadePrepareMontage;
+		GrenadeThrowMontage        = MikaData->GrenadeThrowMontage;
 		PunchChargeMontage         = MikaData->PunchChargeMontage;
 		PunchDashMontage           = MikaData->PunchDashMontage;
 		LandingDiveMontage         = MikaData->LandingDiveMontage;
@@ -170,7 +175,7 @@ void AMikaCharacter::StartFire()
 	GetWorldTimerManager().SetTimer(AutoReleaseTimerHandle, this, &AMikaCharacter::StopFire, ForcedMaxChargeTime, false);
 
 	GetWorldTimerManager().ClearTimer(WeaponRestoreTimerHandle);
-	SetWeaponHiddenForPunch(true);
+	SetCurrentWeaponHidden(true);
 	if (PunchChargeMontage) PlayAnimMontage(PunchChargeMontage);
 }
 
@@ -195,7 +200,7 @@ void AMikaCharacter::StopFire()
 	float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
 	if (HeldTime < MinChargeTime)
 	{
-		SetWeaponHiddenForPunch(false);   // 미발동 — 총 복구
+		SetCurrentWeaponHidden(false);   // 미발동 — 총 복구
 		return;
 	}
 
@@ -274,10 +279,12 @@ void AMikaCharacter::StartDash(float ChargeRatio)
 		DashDir.Normalize();
 	}
 
+	// 몸은 펀치를 시작한 방향에 고정 — 대시 중 카메라를 돌려도 따라 돌지 않는다 (EndDash에서 원복)
 	FRotator FaceRot(0.f, DashDir.Rotation().Yaw, 0.f);
 	SetActorRotation(FaceRot);
-	bUseControllerRotationYaw                         = true;
+	bUseControllerRotationYaw                         = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+	DashPitch = FMath::Clamp(DashDir.Rotation().Pitch, -DashMaxVisualPitch, DashMaxVisualPitch);
 
 	float Speed = FMath::Lerp(MinDashSpeed, MaxDashSpeed, ChargeRatio);
 	GetCharacterMovement()->BrakingFrictionFactor    = 0.f;
@@ -296,6 +303,7 @@ void AMikaCharacter::StartDash(float ChargeRatio)
 void AMikaCharacter::EndDash()
 {
 	bIsDashing = false;
+	DashPitch  = 0.f;
 	PunchHitbox->SetGenerateOverlapEvents(false);
 	HitActorsDuringDash.Empty();
 	GetCharacterMovement()->BrakingFrictionFactor    = 2.f;
@@ -311,13 +319,6 @@ void AMikaCharacter::EndDash()
 	StartPunchCooldown();
 }
 
-float AMikaCharacter::PlayMontageForDuration(UAnimMontage* Montage)
-{
-	if (!Montage) return 0.f;
-	const float Length = PlayAnimMontage(Montage);
-	return Length / FMath::Max(Montage->RateScale, KINDA_SMALL_NUMBER);
-}
-
 void AMikaCharacter::RestoreWeaponAfter(float Delay)
 {
 	if (Delay > KINDA_SMALL_NUMBER)
@@ -328,11 +329,6 @@ void AMikaCharacter::RestoreWeaponAfter(float Delay)
 	{
 		RestoreWeapon();
 	}
-}
-
-void AMikaCharacter::SetWeaponHiddenForPunch(bool bHideWeapon)
-{
-	if (CurrentWeapon) CurrentWeapon->SetActorHiddenInGame(bHideWeapon);
 }
 
 // --- 히트박스 오버랩 ---

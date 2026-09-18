@@ -85,6 +85,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="대시 중 공중 제동력. 클수록 짧게 날아감 (UE 기본값 0)"))
 	float DashBrakingDeceleration = 800.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="대시 중 몸 기울기 최대 각도(도). MikaData에서 설정"))
+	float DashMaxVisualPitch = 60.f;
+
 	// --- Punch Camera ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Camera", meta=(ToolTip="충전 중 스프링암 길이 (cm). 짧을수록 카메라가 캐릭터에 가까워짐"))
@@ -144,6 +147,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Mika|State", meta=(ToolTip="현재 대시 중인지"))
 	bool bIsDashing       = false;
 
+	// 대시 방향의 상하 각도(도, 위=+). 캡슐은 수직을 유지해야 하므로 액터가 아니라 ABP에서 골반만 이만큼 기울인다
+	UPROPERTY(BlueprintReadOnly, Category = "Mika|State", meta=(ToolTip="대시 중 펀치 방향 Pitch(도, 위=+). 대시가 아니면 0. ABP 골반 회전용"))
+	float DashPitch = 0.f;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Mika|State", meta=(ToolTip="현재 랜딩 다이브 중인지"))
 	bool bIsDivingLanding = false;
 
@@ -174,16 +181,11 @@ protected:
 	void ResetPunchCooldown();
 	bool CanTriggerLanding() const;
 
-	// 맨손 공격 동안 총을 숨긴다 — 펀치 애니가 총을 쥔 손과 겹쳐 보이지 않도록. 충전 시작에 숨기고 공격 종료 시 복구
-	void SetWeaponHiddenForPunch(bool bHideWeapon);
-
 	// 몽타주 길이만큼 기다렸다 총 복구 — 대시(0.25초)보다 펀치 애니가 길어 대시 종료 시점에 복구하면 총이 거의 안 숨는다
 	void RestoreWeaponAfter(float Delay);
-	void RestoreWeapon() { SetWeaponHiddenForPunch(false); }
+	void RestoreWeapon() { SetCurrentWeaponHidden(false); }
 	float PunchMontageEndTime = 0.f;
 
-	// 몽타주를 재생하고 실제 재생 시간(초)을 돌려준다. PlayAnimMontage는 Rate Scale을 반영하지 않은 원본 길이를 돌려주므로 보정
-	float PlayMontageForDuration(UAnimMontage* Montage);
 
 	UFUNCTION()
 	void OnPunchHitboxOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

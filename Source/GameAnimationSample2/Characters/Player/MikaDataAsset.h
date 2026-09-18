@@ -7,6 +7,7 @@
 #include "MikaDataAsset.generated.h"
 
 class UAnimMontage;
+class AGrenadeBase;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UMikaDataAsset : public UDataAsset
@@ -107,6 +108,9 @@ public:
 
 	// --- Grenade ---
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade", meta=(ToolTip="던질 수류탄 액터 클래스 (BP_Grenade_Thrown). 투사체 수치·VFX·SFX는 그 BP의 GrenadeData(GrenadeData_Throwable)에서"))
+	TSubclassOf<AGrenadeBase> GrenadeClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade", meta=(ToolTip="수류탄 초기 투사 속도 (cm/s)"))
 	float GrenadeThrowSpeed = 1200.f;
 
@@ -162,6 +166,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch", meta=(ToolTip="대시 중 공중 감속도. 클수록 짧게 날아감"))
 	float DashBrakingDeceleration = 800.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch", meta=(ClampMin="0", ClampMax="89", ToolTip="대시 중 몸을 펀치 방향(위·아래)으로 기울이는 최대 각도(도). ABP가 DashPitch로 골반을 회전. 0이면 기울이지 않음"))
+	float DashMaxVisualPitch = 60.f;
+
 	// --- Punch Camera ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Camera", meta=(ToolTip="충전 중 스프링암 길이 (cm). 짧을수록 카메라가 캐릭터에 가까워짐"))
@@ -203,6 +210,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="앉은 상태 발사 몽타주. 비워두면 FireMontage를 그대로 쓴다"))
 	UAnimMontage* FireMontageCrouch = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Grenade", meta=(ToolTip="수류탄 준비 몽타주(UpperBody 슬롯). 던지기 버튼을 누르고 있는 동안 유지되도록 Enable Auto Blend Out 해제 권장"))
+	UAnimMontage* GrenadePrepareMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Grenade", meta=(ToolTip="수류탄 던지기 몽타주(UpperBody 슬롯). 준비 완료 후 버튼을 뗄 때 재생"))
+	UAnimMontage* GrenadeThrowMontage = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="펀치 충전 중 몽타주 (UpperBody 슬롯 — ABP에서 Layered blend per bone으로 상체만 적용). 충전이 길어질 수 있으니 반복 섹션으로 구성"))
 	UAnimMontage* PunchChargeMontage = nullptr;
