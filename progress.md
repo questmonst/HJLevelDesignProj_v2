@@ -1,116 +1,86 @@
-# 개발 진행 현황 (2026-05-09)
+# PROGRESS — 포트폴리오 진행판 (2026-09-17 작성)
 
-## 완료된 것
-
-### 클래스 구조
-- `ACharacterBase` — 체력/팀ID/사망 공통 기반
-- `APlayerCharacter` — 미카의 부모 (이동, 조준, 무기, 수류탄, 트래버설, 중력)
-- `AMikaCharacter` — 미카 펀치(충전→대시→히트박스) + 미카 랜딩(다이브) 구현
-- `ANPCCharacter` — 적/아군 NPC 공통 기반
-- `AEnemyCharacter` — BT 기반 적 AI 기반 클래스
-- 적 타입 6종 골격: `AAREnemy`, `AShotgunEnemy`, `ASniperEnemy`, `AMGEnemy`, `AShieldEnemy`, `ALargeSweeperEnemy`
-- `AAkiraEnemy` — 스크립트 이동 + 페이즈 변환 이벤트
-- `AMiyuCharacter` — 지원사격 (타겟 지정/LoS 체크/쿨다운)
-- `ABaseAirUnit` → `ADroneEnemy`, `AHelicopterEnemy` 골격
-- `ABaseTurret` → `ASmallTurret` 골격
-
-### 플레이어 기능
-- 기본 TPS 이동: 걷기 / 달리기 / 앉기 / 점프
-- 조준(ADS) + 허리 Pitch 회전 (Spine Transform Modify Bone용)
-- Turn-in-place (좌/우 임계값 기반 회전)
-- 엄폐 피크(Cover Peek) 카메라 오프셋
-- 크로스헤어 퍼짐 (이동/발사/조준 연동)
-- 낙하 상태 감지: `bIsFalling`, `CurrentFallSpeed`, 하드랜딩 판정
-- 착지 이벤트: `OnLanding(bHardLanding)` — ABP에서 오버라이드해 몽타주 재생
-- 미카 펀치: MinChargeTime ~ ForcedMaxChargeTime 충전 → 대시 속도 선형 보간 → 히트박스 오버랩 처리
-- 미카 랜딩: `MikaLanding()` + 지면 거리 체크 `CanTriggerLanding()`
-- 중력 방향 변경: `SetGravityDirection()` / `ResetGravity()`
-- 트래버설: Hurdle / Vault / Mantle / Climb (MotionWarping 연동)
-
-### 무기 시스템
-- `AWeaponBase` — 히트스캔/투사체, 자동/반자동, 탄창, 재장전, 머즐VFX, 발사음, 히트VFX
-- `AProjectileBase` — 물리 투사체
-- `AGrenadeBase` — 퓨즈 타이머, 폭발 반경
-- 수류탄 궤도 스플라인 시각화
-- 무기 다중 슬롯 + 교체 딜레이
-- `UWeaponDataAsset`, `UProjectileDataAsset`, `UMikaDataAsset`, `UHUDDataAsset` — 블루프린트 노출 수치
-
-### 환경 요소
-- `ADestructibleCover` — 체력 기반 파괴 (OnCoverDestroyed BP 이벤트)
-- `AFallResetTrigger` / `AFallResetTarget` — 낙사 리셋 (페이드 아웃→텔레포트→페이드 인)
-- `ASplineTrackActor` — 스플라인 따라 메시 배치 (롤러코스터 레일 등)
-
-### 기타
-- `ECharacterAction` 비트마스크 — AllowedActions 시스템으로 행동 제한
-- `AEnemyAIController` — BT 실행, 블랙보드 키 공유
-- `AHJGameMode` 기반 설정
+> **목표**: 레벨 디자이너 포트폴리오. 기술 완성도보다 **"레벨을 어떻게 설계했는지"** 가 보이는 것.
+> 현황·우선순위 문서. **생각날 때마다 AI에게 갱신 요청**하는 용도.
+> 하루 30분 태스크는 [30m_DailyTask.md](30m_DailyTask.md), 세부 C++/데이터 노티는 [TODO_AI.md](TODO_AI.md), 에디터 수동 작업 레퍼런스는 [Todo_Human.md](Todo_Human.md), 설계 근거는 [Record.md](Record.md).
+> (이전 `progress.md`(2026-05-09 기능 목록)는 이 파일로 교체됨 — git 히스토리에 남아 있음)
 
 ---
 
-## 미완성 / 다음에 할 것
+## 0. 기획 변경 (2026-09-17)
 
-### 우선순위 높음
-| 항목 | 메모 |
-|------|------|
-| 미카 펀치 환경 파괴 연동 | `IDestructible` 인터페이스 또는 `ADestructibleCover` 직접 호출 |
-| 미카 랜딩 자동 발동 (롤러코스터 루프) | 루프 구간 진입 시 `MikaLanding()` 자동 트리거 |
-| 아키라 BT 구간별 세팅 | 레벨 01(도주+거점사격), 02(열차 간 이동), 03(PTP 점프), 04(3페이즈) |
-| 레벨 04 페이즈 관리자 | 스포트라이트 발판, 아키라 3페이즈 전환 조건 |
+| 항목 | 결정 |
+|---|---|
+| 지하철 / 롤러코스터 | **제외** — 범위 과대 |
+| 미유 (지원사격, 사격각 개척) | **제외** — 메인 기작과 다른 이야기 |
+| 아키라 (보스) | **유지** |
+| 배경 | **실내 무대로 고정** |
+| 메인 기작 | **"낙사처럼 보이는 낙하가 사실 리셋"** — 이걸 전투에 활용 (미카 랜딩과 연결) |
 
-### 우선순위 중간
-| 항목 | 메모 |
-|------|------|
-| 구간 C — 회전하는 차량 | 드럼통 회전 액터 + 플레이어 낙하 감지 |
-| 구간 D — 중력 전환 연출 | 시퀀서 카메라 90도 회전 → `SetGravityDirection()` 호출 타이밍 |
-| 구간 E — 수직 낙하 공간 전환 | 문 통과 트리거 → 낙하 강제 구간 |
-| 미유 BP 연동 | `OnSupportFire` 구현 (몽타주 + 발사체) |
-| 적 타입별 BT 태스크 | AR/샷건/저격/MG/쉴드/스위퍼 각자 전술 패턴 |
-
-### 우선순위 낮음
-| 항목 | 메모 |
-|------|------|
-| 바람에 따른 머리카락 흩날리기 | Physics Asset or Groom + Wind Actor |
-| 스포트라이트 이동 발판 시스템 | 레벨 04 전용, 조명과 콜리전 동기화 |
-| GAS 연동 (레벨 04 아키라) | 어빌리티 시스템으로 페이즈 전환 관리 |
+> ⚠️ `CLAUDE.md`의 레벨 기획서(지하철·롤러코스터·미유)는 아직 옛날 내용 — 갱신 필요.
 
 ---
 
-## 코드 구조 (현재)
+## 1. 현재 상태
 
-```
-Source/GameAnimationSample2/
-├── Characters/
-│   ├── Base/
-│   │   ├── CharacterBase.h/.cpp         ← 체력/사망
-│   │   └── CharacterTypes.h             ← ECharacterAction 비트마스크
-│   ├── Player/
-│   │   ├── PlayerCharacter.h/.cpp       ← TPS 기반, 무기/수류탄/트래버설/중력
-│   │   ├── MikaCharacter.h/.cpp         ← 펀치/랜딩
-│   │   ├── MikaDataAsset.h/.cpp
-│   │   └── TraversalComponent.h/.cpp
-│   └── NPC/
-│       ├── NPCCharacter.h/.cpp
-│       ├── EnemyCharacter.h/.cpp        ← BT 기반 AI
-│       ├── EnemyAIController.h/.cpp
-│       ├── MiyuCharacter.h/.cpp         ← 지원사격
-│       ├── AkiraEnemy.h/.cpp            ← 스크립트 이동 + 페이즈
-│       ├── AREnemy / ShotgunEnemy / SniperEnemy
-│       ├── MGEnemy / ShieldEnemy / LargeSweeperEnemy
-│       ├── BaseAirUnit / DroneEnemy / HelicopterEnemy
-│       └── BaseTurret / SmallTurret
-├── Weapons/
-│   ├── WeaponBase.h/.cpp
-│   ├── WeaponDataAsset.h/.cpp
-│   ├── ProjectileBase.h/.cpp
-│   ├── ProjectileDataAsset.h/.cpp
-│   └── GrenadeBase.h/.cpp
-├── Environment/
-│   ├── DestructibleCover.h/.cpp
-│   ├── FallResetTrigger.h/.cpp
-│   ├── FallResetTarget.h/.cpp
-│   └── SplineTrackActor.h/.cpp
-├── UI/
-│   └── HUDDataAsset.h/.cpp
-└── Core/
-    └── HJGameMode.h/.cpp
-```
+### ✅ 구현됨 (PIE 동작 확인)
+- **미카 기본 TPS**: 이동/달리기/앉기 토글/조준/허리 회전/Turn-in-place, 크로스헤어 퍼짐, 발사 몽타주(서서·앉아)
+- **무기**: BP 7종(AR·DMR·GL·MG·SG·SMG·SR), 교체, 재장전 사운드 / 수류탄 궤도·투척, 유탄 발사기
+- **적 AR 1종**: 순찰 → 감지(시야·청각·피격) → 사격 → 재장전, 체력바·대미지 숫자·사망 연출
+- **미카 생존**: 비전투 체력 회복, 사망 시 입력 정지
+- **미카 펀치**: 충전 → 대시 → 히트박스(대미지, 파괴 오브젝트 즉시 파괴), 충전 시 총 숨김/복구
+
+### 🟡 만들다 만 것
+| 항목 | 있는 것 | 없는 것 |
+|---|---|---|
+| **낙하 리셋** ⭐ | `AFallResetTrigger/Target` C++ (페이드 → 텔레포트 → 페이드, 페이드 0이면 즉시) | **BP 없음**, **플레이어만 리셋(AI 제외)** |
+| **미카 랜딩** ⭐ | C++ (`MikaLanding`, 최소 높이 300, 반경 300 대미지, 카메라 60° 이상 내려봐야 발동) | 랜딩 애니, UI 힌트, 레벨 검증 |
+| **아키라** ⭐ | C++ 골격 (`StartScriptedMove`는 속도만 바꿈, 페이즈 이벤트는 로그만) | 모델, BP, 실제 이동 로직, 도주 |
+| 미카 펀치 애니 | 리타겟 4종, 상체 레이어 | 전신/상체 분기, 충전 중 고개. **넉백 없음** |
+| 환경 파괴 | `ADestructibleCover` + 인터페이스, 테스트 메시 | BP 없음 |
+| 적 AI | 1~3단계, 4단계(엄폐 재장전) 제자리 재장전 버그 | 5~7단계 |
+| 트래버설 | 포물선 점프 C++ | 벽 오르기 동작 안 함 |
+| 수류탄 | 투척 로직 | 던지기 몽타주, FX 간격 튜닝 |
+| 중력 전환 | `SetGravityDirection()` 함수 | 트리거·연출 (새 기획에서 쓸지 미정) |
+| 나머지 적 | 샷건·저격·MG·쉴드·스위퍼·드론·헬기·포탑 C++ 골격만 | BP·에셋·BT |
+| 체크포인트 | — | 사망 후 재시작 |
+| ~~미유~~ | C++ 지원사격 | 기획 제외 — 코드는 일단 둠 |
+
+### ⬜ 손도 안 댄 것
+- **무대 레벨 맵 자체** (테스트 레벨만 존재)
+- **레벨 설계 문서** — 메트릭스, 단면도, 학습 곡선, 비트 차트 없음
+- 스포트라이트 발판, 무대 추락, 세트 소환, 클라이맥스 조명(합판 드러남)
+- 아키라 도주/페이즈 행동
+- 머리 흩날리기, 카메라 가림 투명화, Two-Bone IK
+
+### 🎮 플레이 가능 구간
+**테스트 레벨의 전투 샌드박스까지.** 미카로 이동·사격·수류탄·펀치를 쓰며 AR 적과 교전 가능.
+무대 레벨 기준으로는 **0%** — 낙하 리셋·랜딩·아키라 모두 레벨 위에서 돌아간 적이 없음.
+
+---
+
+## 2. 우선순위 (레벨 디자인 역량 기여도 순)
+
+> 판단 기준: 채용 담당자가 보고 싶은 건 **설계 의도 → 블록아웃 → 플레이 가능 → 검증** 흐름.
+> 상위 3개는 **"떨어짐 = 리셋 = 공격 기회" 루프 하나를 끝까지 보여주는 슬라이스**로 수렴.
+
+| # | 작업 | 왜 이 순위인가 |
+|---|---|---|
+| **1** | **무대 페이퍼 설계** (규칙·메트릭스·단면도·학습 곡선·비트) | 코드 0줄, 피곤해도 가능. 수직 구조라 **단면도**가 설계력을 가장 잘 보여줌 |
+| **2** | **무대 그레이박스 + 플레이어 낙하 리셋 루프** | 메인 기작이 실제로 플레이됨. 이미 있는 C++만으로 가능 |
+| **3** | **아키라 도주 + 낙하 리셋 추격 루프** | 기작을 보스전으로 확장. "떨어뜨리고 → 따라 떨어져 → 위에서 랜딩" 클립이 포트폴리오 핵심 |
+| 4 | 플레이 영상 + 설계 주석 (구간별 의도 캡션) | 제출 형태. 1~3 끝나면 바로 가능 |
+| 5 | 스포트라이트 발판 (조명 = 발판) | 무대 컨셉 + 낙하 유발을 동시에. 레벨 기작으로 매력 큼 |
+| 6 | 클라이맥스 조명 연출 (전부 켜지며 합판 드러남) | 대사 없이 끝을 전달하는 연출 설계. 비용 대비 인상 강함 |
+| 7 | 아키라 페이즈 (축소판, GAS 없이 BP 상태값) | 보스전 구조. 3페이즈 전부보다 2페이즈부터 |
+| 8 | 미카 랜딩 애니 + UI 힌트 | 영상에서 기작이 "읽히게". 폴리시 중 유일하게 LD 가독성에 직결 |
+| 9 | 대형 스위퍼 적 (랜딩 유도형) | 기작과 맞물리는 적 1종. 나머지 적 종류는 불필요 |
+| 10 | 적 AI 5~7단계 | 포트폴리오 기여 낮음 |
+| 11 | 펀치 애니 분기, 수류탄 몽타주, 벽 오르기 | 보기 좋지만 LD 증명과 거리 있음 |
+| 12 | 중력 전환, 머리 흩날리기, 카메라 투명화, IK, 코드 정리 | 새 기획에서 기여 거의 없음 |
+
+---
+
+## 3. 상위 3개 작업의 30분 태스크
+
+→ [30m_DailyTask.md](30m_DailyTask.md)
