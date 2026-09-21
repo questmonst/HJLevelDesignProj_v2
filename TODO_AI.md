@@ -144,8 +144,8 @@
   - **바닥 목표 착지 공격**: 원이 바닥에 떴는데 미끄러져 앞으로 가던 문제 → 범위 원과 대시가 같은 트레이스(`TracePunchPath`) 사용. 경로 끝이 걸을 수 있는 바닥이면 그 지점까지 가서 착지 공격(지상 출발은 수평 이동, 공중은 바닥에 닿는 순간). → (빌드 완료) 평지 원이 너무 잦아 **`PunchSlamMinDownPitch`(30°) 부활**: 30° 이상 아래 + 바닥 = 착지 공격, 지상에서 얕게 아래 = 수평 대시. 폭발 원은 실제 폭발 지점(바닥 목표·벽)에만, 허공 끝이면 숨김. 벽 예측은 가는 선 → **미카 캡슐 스윕**(이동과 같은 채널·응답, 반높이 −10cm)으로 교체
   - (빌드 완료) 조준 카메라 오프셋: `MikaData` › Camera|Aim › `AimSocketOffsetRight`(20) / `AimSocketOffsetUp`(15) → 조준 중 스프링암 SocketOffset Y·Z에 더함 (보간 = `CoverPeekInterpSpeed`). 엄폐 좌우 이동은 이 위치 기준
   - (빌드 완료) 반동: 등속 이동 후 0으로 끊던 것 → 딜레이 후 **초기 속도만 주고 낙하 모드**(제동·중력으로 자연 감속). 초기 속도 = 대시 거리 × `PunchReboundDistanceRatio` ÷ `PunchReboundTime`
-  - ~~발견: `MikaData.DefaultSocketOffsetY`가 안 먹음~~ → (빌드 대기) `APlayerCharacter::ApplyDefaultSocketOffset()` 추가, 미카가 DA 복사 후 다시 호출
-  - (빌드 대기) 폭발 원 ↔ 실제 폭발 어긋남 수정: 공중에서 아래로 칠 때 원은 몸 중심선이 바닥에 닿는 곳, 폭발은 발이 닿는 곳이라 30°에서 ~1.5m 차이 → 지상 가파른 아래만 선, **나머지는 캡슐 스윕 접촉점**. 원을 닿는 면에 수직 투사(벽면 정면, 적이면 바닥)
+  - ~~발견: `MikaData.DefaultSocketOffsetY`가 안 먹음~~ → (빌드 완료) `APlayerCharacter::ApplyDefaultSocketOffset()` 추가, 미카가 DA 복사 후 다시 호출
+  - (빌드 완료) 폭발 원 ↔ 실제 폭발 어긋남 수정: 공중에서 아래로 칠 때 원은 몸 중심선이 바닥에 닿는 곳, 폭발은 발이 닿는 곳이라 30°에서 ~1.5m 차이 → 지상 가파른 아래만 선, **나머지는 캡슐 스윕 접촉점**. 원을 닿는 면에 수직 투사(벽면 정면, 적이면 바닥)
   - 남은 차이 가능성: ① 폭발 VFX 크기는 `PunchExplosionVFXReferenceRadius`(300, 추정값)에 따라 달라 원과 안 맞을 수 있음 ② 폭발 피해는 적 캡슐이 반경에 **조금이라도** 걸리면 들어가 원 밖 ~34cm까지 맞음
 - [ ] **사람:** `MikaData` › Punch|Range › **`PunchRangeDecalMaterial`** = `M_PunchRange_Decal`, **`PunchExplosionDecalMaterial`** = `M_PunchExplosion_Decal`
 - [ ] **사람:** PIE — 사거리 4~24m, 적 적중 시 반동, 넉백·대미지 비례, 아래 대시 착지 공격, 데칼 표시, 히트 FX (안 뜨면 Output Log에서 `[PunchHitFX]` 확인)
@@ -174,7 +174,7 @@
 
 
 ### 바로 다음에 할 일 — 미카 모션 연결 (2026-09-18, 사람이 몽타주 만든 뒤)
-- [ ] **빌드 먼저** — 폭발 원 캡슐 예측·면 투사, `ApplyDefaultSocketOffset` (에디터 켜져 있어 미빌드 상태로 커밋됨)
+- [x] 빌드 완료 (2026-09-21) — 폭발 원 캡슐 예측·면 투사, `ApplyDefaultSocketOffset`
 - [ ] 반동 모션 `Jmp_BackAir`: `MikaData`에 `PunchReboundMontage` 추가 → `BeginReboundMove`에서 재생 (반동 중 전신: `bIsPunchFullBody` 유지 or 별도 조건)
 - [ ] 점프 `Jump_Up_B`/`Jump_Down_B`: ABP 점프·낙하 상태 (C++ 불필요할 가능성, `Is Falling`·Velocity.Z)
 - [ ] 착지 공격 모션 `Land_Spawn_Wait`: `MikaData`에 `PunchSlamMontage` 추가 → `PunchSlam`에서 대시 몽타주 대신 재생
@@ -190,3 +190,11 @@
 - [ ] 적 조준(Ironsights) 모션 — `bIsAiming` + `BTService_SetAiming` + ABP `Blend Poses by bool`·`Aim_Space_Ironsights`. 2026-09-17 "적은 디테일 불필요"로 보류
 - [ ] 미카 약/강 펀치 분기 — `MikaData`에 `PunchLightMontage`(`Attack_Hand_1R_Mika`)·`PunchPowerChargeRatio` 추가, 충전 비율 기준 미만이면 약펀치 몽타주. 2026-09-17 "충전·강펀치만 먼저"로 보류
 - [ ] EQS 대신 C++ 엄폐 태스크(`Find Cover Location` / `Is In Cover`) — EQS 판정 문제가 계속되면 전환 검토
+
+### 미카 점프 ABP (2026-09-21) — 진행 중
+- 애니: `MikaJump/` 에 `Jmp_Base_B_mika`(30f, 0~3 도약 / 3~7 상승 / 7~16 하강 / 16~30 착지), `Jump_Down_B_Loop_mika`(12f 반복), `Land_Spawn_Wait_mika`(31f), `Jmp_BackAir_mika`(37f). 모두 루트 스케일 트랙 제거 완료
+- ABP 구조: 지상 로코모션 ↔ `AirLoco` 상태 머신을 **`Blend Poses by bool`**(Active = `isInAirPose`)로 전환 → `LocoPose` 캐시.
+  ※ 처음엔 `GroundPose` 캐시를 상태 머신 `Ground` 상태 안에서 참조했으나 **PIE에서 T포즈** → 상태 머신 밖 블렌드 방식으로 변경
+- `isInAirPose` = `Is Falling` OR `LandBlendTimer > 0` (착지 후 0.47초 유지, EventGraph에서 계산)
+- [ ] 남은 작업(사람): 컴포짓 4개 Loop 해제, 전환 Duration 0.05~0.1로 낮추기(반응 지연), 절벽 낙하 시 `FallLoop` 연결 확인
+- [ ] 남은 작업(AI): `Land_Spawn_Wait_mika` 몽타주 → `PunchSlamMontage`(착지 공격) / 고지대 착지, `Jmp_BackAir_mika` 몽타주 → `PunchReboundMontage`(반동) — 사람이 몽타주 만든 뒤 연결
