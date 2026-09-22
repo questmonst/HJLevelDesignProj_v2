@@ -87,6 +87,7 @@ void AMikaCharacter::BeginPlay()
 			AimSpinePitchClamp         = MikaData->AimSpinePitchClamp;
 		CameraPitchMin             = MikaData->CameraPitchMin;
 		CameraPitchMax             = MikaData->CameraPitchMax;
+		ChargeCameraPitchMin       = MikaData->ChargeCameraPitchMin;
 		AimSocketOffsetRight       = MikaData->AimSocketOffsetRight;
 		AimSocketOffsetUp          = MikaData->AimSocketOffsetUp;
 		AimWaistYawOffset          = MikaData->AimWaistYawOffset;
@@ -99,6 +100,10 @@ void AMikaCharacter::BeginPlay()
 		SoftTurnSpeed              = MikaData->SoftTurnSpeed;
 		// Fall
 		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
+		LandPoseHoldTime           = MikaData->LandPoseHoldTime;
+		LandAnticipationTime       = MikaData->LandAnticipationTime;
+		AirPoseBlendSpeed          = MikaData->AirPoseBlendSpeed;
+		JumpAnimPlayRate           = MikaData->JumpAnimPlayRate;
 		// Grenade / Weapon
 		// 비어 있으면 BP_Mika에 직접 넣어둔 값을 유지 (DA 이전 전 기존 설정 보호)
 		if (MikaData->GrenadeClass) GrenadeClass = MikaData->GrenadeClass;
@@ -235,7 +240,8 @@ void AMikaCharacter::ApplyCameraPitchLimits()
 	const APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC && PC->PlayerCameraManager)
 	{
-		PC->PlayerCameraManager->ViewPitchMin = CameraPitchMin;
+		// 충전 중엔 바닥을 내려찍을 수 있게 더 아래까지 허용
+		PC->PlayerCameraManager->ViewPitchMin = bIsChargingPunch ? ChargeCameraPitchMin : CameraPitchMin;
 		PC->PlayerCameraManager->ViewPitchMax = CameraPitchMax;
 	}
 }
@@ -366,6 +372,9 @@ void AMikaCharacter::StartFire()
 
 	bIsChargingPunch = true;
 	ChargeStartTime  = GetWorld()->GetTimeSeconds();
+	// 충전 중엔 몸이 카메라를 보게 고정 (Tick에서 yaw 적용). 이동 방향으로 돌면 옆으로 걸어도 앞으로 걷는 애니가 나온다
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	ApplyCameraPitchLimits();   // 충전용 아래 각도로 확장
 	GetCharacterMovement()->GravityScale                 = ChargeGravityScale;
 	GetCharacterMovement()->MaxWalkSpeed                 = WalkSpeed * ChargeMovementScale;
 	GetCharacterMovement()->BrakingDecelerationWalking   = ChargeBrakingDeceleration;
@@ -400,6 +409,7 @@ void AMikaCharacter::StopFire()
 	}
 
 	bIsChargingPunch = false;
+	ApplyCameraPitchLimits();   // 평소 아래 각도로 복귀
 	GetWorldTimerManager().ClearTimer(AutoReleaseTimerHandle);
 	GetCharacterMovement()->GravityScale                 = 1.f;
 	GetCharacterMovement()->MaxWalkSpeed                 = WalkSpeed;
@@ -419,6 +429,8 @@ void AMikaCharacter::StopFire()
 	if (HeldTime < MinChargeTime)
 	{
 		SetCurrentWeaponHidden(false);   // 미발동 — 총 복구
+		// 대시로 이어지지 않으므로 이동 방향 회전을 되돌린다 (대시는 EndDash에서 복구)
+		if (!bIsAiming) GetCharacterMovement()->bOrientRotationToMovement = true;
 		return;
 	}
 

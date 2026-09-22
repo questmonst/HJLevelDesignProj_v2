@@ -222,7 +222,7 @@ BT는 하나를 공유해. Use Enemy Data가 켜져 있으면 적마다 다르�
 > 애니 리타겟(`RTG_Manny2Mika_v2`) → `fix_mika_root_scale.py` → 몽타주(슬롯 `DefaultGroup.UpperBody`) 만든 뒤 AI에 연결 요청. 몽타주 칸은 C++이 필요 (TODO_AI 참고)
 
 - [ ] **`Jmp_BackAir`** → 미카 펀치 **반동(튕겨 나올 때)** 모션
-- [ ] **`Jump_Up_B` / `Jump_Down_B`** → **점프** 모션 (ABP 점프·낙하 상태)
+- [x] **`Jump_Up_B` / `Jump_Down_B`** → **점프** 모션 (ABP AirLoco 완료)
 - [ ] **`Land_Spawn_Wait`** → **30° 아래 펀치로 바닥 찍을 때(착지 공격)** 모션
 - [ ] **`Land_Base_Wait`** → **고지대 일반 착지** 모션
 
@@ -233,3 +233,6 @@ BT는 하나를 공유해. Use Enemy Data가 켜져 있으면 적마다 다르�
 - [ ] **수류탄 던질 수 있는지 UI** — 위젯에서 `OnGrenadeThrowReadyChanged(bReady)` 바인딩. C++ 완료
 - [ ] **펀치 충전 UI** — `OnPunchFullCharge` 바인딩 + 충전 게이지 `GetPunchChargeRatio()`(0~1). C++ 완료
 - [ ] **펀치 풀 충전 대시 전용 VFX·SFX** — AI에 요청
+- [ ] **점프 확인** — `JumpAnimPlayRate`(MikaData › Fall, 현재 0.8) 조정, 착지 1번·즉시 나오는지. 끊겨 보이면 ABP Land 상태 Start Position 0.05 → 0.03/0. `LandAnticipationTime`은 0 유지(올리면 착지 루프)
+- [ ] **점프 중 펀치 시 캐릭터가 화면 밖으로 나감** — 카메라는 캡슐 고정(랙 없음)이라 메시가 캡슐에서 벗어나는 것으로 추정. 추천 A: PIE 캡처로 캡슐/메시 위치 확인 후 메시 쪽 수정 (보완: `DashSpringArmLength`·`DashFOV` 키우기). AI에 요청
+- [ ] **수류탄 NS 수정** — 끝나면 AI에 `OnProjectileVFXFinished` 제거 요청

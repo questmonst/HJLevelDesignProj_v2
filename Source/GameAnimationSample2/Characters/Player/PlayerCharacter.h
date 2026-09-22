@@ -436,6 +436,38 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="이 속도(cm/s) 이상으로 착지하면 하드 랜딩 판정"))
 	float HardLandingSpeedThreshold = 600.f;
 
+	// ABP 점프 상태 머신 분기용 — 착지 모션이 끝까지 재생되도록 착지 후에도 잠시 유지한다
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="공중 포즈를 쓸지 (낙하 중이거나 착지 후 LandPoseHoldTime 이내). AnimBP 점프 분기에서 읽기"))
+	bool bIsInAirPose = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="착지 후 공중 포즈를 유지하는 시간(초). 착지 모션 길이에 맞춘다. MikaData에서 설정"))
+	float LandPoseHoldTime = 0.47f;
+
+	// bIsInAirPose를 부드럽게 만든 값 — ABP의 Layered blend per bone(하체만 점프) 가중치에 그대로 연결
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="공중 포즈 가중치 0~1 (bIsInAirPose를 보간). AnimBP 하체 레이어 Blend Weights에 사용"))
+	float AirPoseAlpha = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="공중 포즈 가중치 보간 속도. 클수록 빠르게 전환 (0이면 즉시). MikaData에서 설정"))
+	float AirPoseBlendSpeed = 12.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0.1", ToolTip="점프 모션 재생 속도 배율. ABP AirLoco 시퀀스 플레이어 Play Rate에 바인딩. MikaData에서 설정"))
+	float JumpAnimPlayRate = 1.f;
+
+	// 착지 구간(예측 시작 ~ 착지 후 유지 시간)에서는 하체만이 아니라 전신으로 착지 모션을 보여준다
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="착지 포즈 가중치 0~1. AnimBP에서 '하체만 결과'와 '점프 상태 머신 전신'을 섞는 알파로 사용"))
+	float LandPoseAlpha = 0.f;
+
+	float LandedTime = -1000.f;   // 마지막 착지 시각
+
+	// 착지 모션을 착지 직전에 시작하기 위한 예측 — 발밑으로 훑어 남은 거리 ÷ 낙하 속도
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="곧 착지함 (예상 착지까지 LandAnticipationTime 이내). AnimBP에서 Land 상태 전환 조건으로 사용"))
+	bool bIsLandingSoon = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="착지 몇 초 전에 착지 모션을 시작할지. 0이면 예측 끔. MikaData에서 설정"))
+	float LandAnticipationTime = 0.15f;
+
+	void UpdateLandingPrediction();
+
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="하드 랜딩 직후 true. ResetHardLanding() 호출 전까지 유지"))
 	bool bIsHardLanding = false;
 

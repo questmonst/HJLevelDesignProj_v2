@@ -77,5 +77,8 @@ DerivedDataCache/*
 # UnrealClaude 플러그인 제외
 Plugins/UnrealClaude/
 
+# Monolith MCP 플러그인 제외 (외부 저장소에서 직접 설치)
+Plugins/Monolith/
+
 # Source 코드 명시적 추적
 !Source/

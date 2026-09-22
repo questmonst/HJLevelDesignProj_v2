@@ -40,6 +40,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="카메라 최고 피치(도). MikaData에서 설정"))
 	float CameraPitchMax = 89.9f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="펀치 충전 중 카메라 최저 피치(도). MikaData에서 설정"))
+	float ChargeCameraPitchMin = -89.9f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="조준 중 허리 추가 회전(도). MikaData에서 설정"))
 	float AimWaistYawOffset = 15.f;
 

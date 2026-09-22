@@ -77,6 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ClampMin="0", ClampMax="89.9", ToolTip="카메라가 올려다볼 수 있는 최대 각도 (도). 엔진 기본 89.9"))
 	float CameraPitchMax = 89.9f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ClampMin="-89.9", ClampMax="0", ToolTip="펀치 충전 중에만 쓰는 카메라 최저 피치(도). 바닥을 내려찍으려면 평소보다 더 아래를 봐야 하므로 따로 둔다. 충전이 끝나면 CameraPitchMin으로 복귀"))
+	float ChargeCameraPitchMin = -89.9f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ToolTip="척추 피치 보간 속도. 클수록 상하 조준이 빠르게 반응"))
 	float AimSpineInterpSpeed = 15.f;
 
@@ -126,6 +129,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ToolTip="하드 랜딩 판정 최소 낙하 속도 (cm/s). 이 이상 속도로 착지하면 경착지 애니메이션 재생"))
 	float HardLandingSpeedThreshold = 600.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="착지 후 공중 포즈(점프 상태 머신)를 유지하는 시간(초). 착지 모션 길이에 맞춘다. ABP는 bIsInAirPose를 읽음"))
+	float LandPoseHoldTime = 0.47f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="착지 몇 초 전에 착지 모션을 시작할지. ABP는 bIsLandingSoon을 Land 전환 조건으로 사용. 0이면 예측 끔"))
+	float LandAnticipationTime = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="공중 포즈 가중치(AirPoseAlpha) 보간 속도. ABP 하체 레이어 Blend Weights에 연결. 클수록 빠르게 전환"))
+	float AirPoseBlendSpeed = 12.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0.1", ToolTip="점프 모션(JumpStart·JumpUp·JumpDown·FallLoop·Land) 재생 속도 배율. 1 = 원본, 0.8 = 20% 느리게. 착지 유지 시간(LandPoseHoldTime)도 자동으로 ÷ 배율"))
+	float JumpAnimPlayRate = 1.f;
 
 	// --- Grenade ---
 

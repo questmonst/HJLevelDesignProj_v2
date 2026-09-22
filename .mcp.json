@@ -8,6 +8,11 @@
         "UE_EDITOR_PATH": "E:\\unreal\\UE_5.7\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe",
         "MCP_UNREAL_DOCS_INDEX": "e:\\unreal\\Tools\\mcp-unreal\\docs\\index.bleve"
       }
+    },
+    "monolith": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["Plugins/Monolith/Scripts/monolith_proxy.py"]
     }
   }
 }

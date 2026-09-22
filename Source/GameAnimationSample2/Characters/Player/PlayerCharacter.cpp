@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -69,6 +70,8 @@ APlayerCharacter::APlayerCharacter()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	// ABP가 이번 프레임 Tick에서 계산한 값(LandPoseAlpha 등)을 읽도록 메시를 캐릭터 Tick 뒤에 돌린다
+	GetMesh()->PrimaryComponentTick.AddPrerequisite(this, PrimaryActorTick);
 	CameraComponent->FieldOfView         = NormalFOV;
 	GetCharacterMovement()->MaxWalkSpeed         = WalkSpeed;
 	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchWalkSpeed;
@@ -204,6 +207,48 @@ void APlayerCharacter::Tick(float DeltaTime)
 	else
 	{
 		CurrentFallSpeed = 0.f;
+	}
+	// 착지 직후에도 잠시 공중 포즈를 유지해 착지 모션이 끝까지 재생되게 한다 (점프 모션을 느리게 틀면 그만큼 길게)
+	const bool bInLandHold = GetWorld()->TimeSince(LandedTime) < LandPoseHoldTime / FMath::Max(JumpAnimPlayRate, 0.1f);
+	bIsInAirPose = bIsFalling || bInLandHold;
+	AirPoseAlpha = FMath::FInterpTo(AirPoseAlpha, bIsInAirPose ? 1.f : 0.f, DeltaTime, AirPoseBlendSpeed);
+	UpdateLandingPrediction();
+
+	// 착지 모션은 전신 — 착지 직전 예측부터 착지 후 유지 시간까지
+	const bool bLandPose = bIsLandingSoon || (!bIsFalling && bInLandHold);
+	// 켜질 땐 즉시(예측을 놓쳐도 착지 프레임에 바로 전신), 꺼질 땐 부드럽게
+	LandPoseAlpha = bLandPose ? 1.f : FMath::FInterpTo(LandPoseAlpha, 0.f, DeltaTime, AirPoseBlendSpeed);
+}
+
+void APlayerCharacter::UpdateLandingPrediction()
+{
+	bIsLandingSoon = false;
+	if (!bIsFalling || LandAnticipationTime <= 0.f) return;
+
+	const float FallSpeed = CurrentFallSpeed;   // 하강 중에만 양수
+	if (FallSpeed <= KINDA_SMALL_NUMBER) return;
+
+	// 이 시간 안에 닿을 거리만 확인하면 된다 (캡슐 그대로 훑어 모서리·경사도 실제 착지와 같게)
+	const UCapsuleComponent* Capsule = GetCapsuleComponent();
+	// 낙하 중 계속 가속하므로 중력까지 포함: v·t + ½·g·t²
+	const float Gravity = -GetCharacterMovement()->GetGravityZ();
+	const float CheckDistance = FallSpeed * LandAnticipationTime
+		+ 0.5f * Gravity * LandAnticipationTime * LandAnticipationTime;
+	const FVector Start = GetActorLocation();
+	const FVector End   = Start - FVector(0.f, 0.f, CheckDistance);
+
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LandingPrediction), false, this);
+	FCollisionResponseParams Response;
+	Capsule->InitSweepCollisionParams(Params, Response);
+	const FCollisionShape Shape = FCollisionShape::MakeCapsule(
+		Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight());
+
+	if (GetWorld()->SweepSingleByChannel(Hit, Start, End, FQuat::Identity,
+		Capsule->GetCollisionObjectType(), Shape, Params, Response))
+	{
+		// 걸을 수 있는 바닥만 착지로 친다 (벽을 스치는 건 제외)
+		bIsLandingSoon = GetCharacterMovement()->IsWalkable(Hit);
 	}
 }
 
@@ -477,6 +522,7 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	CurrentFallSpeed = 0.f;
 	bIsFalling       = false;
 	bIsHardLanding   = bHard;
+	LandedTime       = GetWorld()->GetTimeSeconds();
 
 	OnLanding(bHard);
 

@@ -198,3 +198,13 @@
 - `isInAirPose` = `Is Falling` OR `LandBlendTimer > 0` (착지 후 0.47초 유지, EventGraph에서 계산)
 - [ ] 남은 작업(사람): 컴포짓 4개 Loop 해제, 전환 Duration 0.05~0.1로 낮추기(반응 지연), 절벽 낙하 시 `FallLoop` 연결 확인
 - [ ] 남은 작업(AI): `Land_Spawn_Wait_mika` 몽타주 → `PunchSlamMontage`(착지 공격) / 고지대 착지, `Jmp_BackAir_mika` 몽타주 → `PunchReboundMontage`(반동) — 사람이 몽타주 만든 뒤 연결
+- [x] 빌드 완료 (2026-09-22) — `bIsInAirPose`(낙하 중 OR 착지 후 `LandPoseHoldTime` 이내)를 `APlayerCharacter`에서 계산해 노출. `MikaData` › Fall › **`LandPoseHoldTime`**(0.47). **사람:** ABP EventGraph의 Branch·LandBlendTimer·Max·비교 노드 삭제 → `Get bIsInAirPose` → `Set isInAirPose` 한 줄로 교체
+- [x] (빌드 완료 2026-09-22) 점프 ABP 보조 값 — `bIsLandingSoon`(발밑 캡슐 스윕으로 착지 예측, `MikaData` › Fall › `LandAnticipationTime` 0.15), `AirPoseAlpha`(0~1 보간, `AirPoseBlendSpeed` 12). **사람:** `Blend Poses by bool` → **Layered blend per bone**(Base = 지상, Blend 0 = AirLoco, Blend Weights 0 = `AirPoseAlpha`, Layer Setup: `valvebiped_bip01_pelvis` 0 / `valvebiped_bip01_spine` -1), `FallLoop·JumpDown → Land` 조건에 `bIsLandingSoon` OR 추가
+- [x] (빌드 완료) 충전 중 좌우 이동이 앞걸음으로 보이던 버그 — 충전 시작 시 `bOrientRotationToMovement = false`(조준과 동일), 미발동 종료 시 복구
+- [x] (빌드 완료) 착지 모션은 전신 — `LandPoseAlpha`(착지 예측~착지 유지 시간 동안 1) 추가. **사람:** ABP에서 `AirLoco` 출력을 `AirPose`로 캐시 → ① Layered blend per bone(하체만, W=`AirPoseAlpha`) → ② `Blend`(A = ①, B = `AirPose` 전신, Alpha = `LandPoseAlpha`) → `LocoPose`
+- [x] (빌드 완료 2026-09-22) 착지 늦게 나오는 문제 — 예측 거리에 중력 가속 포함(`v·t + ½·g·t²`), `LandPoseAlpha`는 켜질 때 즉시 1·꺼질 때만 보간
+- [x] (빌드 완료 2026-09-22) 착지 지연 2차 — 메시 Tick을 캐릭터 Tick 뒤로(ABP가 LandPoseAlpha를 1프레임 늦게 읽던 문제), ABP Land 상태 시퀀스 플레이어 StartPosition 0.05(=Jmp_Base_B 0.583초, 발 닿기 직전부터), MikaData `LandAnticipationTime` 0.15→0.08(크로스페이드와 맞춤)
+- [x] (2026-09-22) 착지 2번 재생 — 원인: 예측으로 공중에서 Land 진입 → `Land→JumpStart`(Is Falling) → `→Land` 핑퐁. 조치: `*→Land` 조건 `Land Pose Alpha > 0.99`(점프 직후 감쇠 중 재진입 방지), `LandAnticipationTime` 0(예측 끔). **예측 다시 켜려면** `Land→JumpStart` 조건을 `Is Falling AND NOT 착지예측`으로 바꿔야 함 (ABP 변수 추가 필요)
+- [x] (2026-09-22) 착지 반복 진짜 원인 — ABP Land 상태 시퀀스 플레이어 **Loop Animation이 켜져 있었음** (클립 0.42초 < 유지 0.47초+페이드 → 다시 재생). Loop 끔. PIE 확인: 착지 프레임에 Land Pose Alpha 즉시 1 (1프레임 지연 해결)
+- [x] (빌드 완료 2026-09-22) `JumpAnimPlayRate`(MikaData › Fall, 현재 0.8) — ABP AirLoco 시퀀스 플레이어 5개 PlayRate를 Property Access `Character.JumpAnimPlayRate`에 바인딩. 착지 유지 시간 = `LandPoseHoldTime ÷ JumpAnimPlayRate`
+- [x] (빌드 완료) 충전 중 카메라 아래 각도 확장 — `MikaData` › Camera › **`ChargeCameraPitchMin`**(-89.9). 충전 시작 시 적용, 끝나면 `CameraPitchMin`으로 복귀
