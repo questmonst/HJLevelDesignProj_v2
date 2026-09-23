@@ -212,6 +212,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		CurrentFallSpeed = 0.f;
 	}
+	// 공중에서는 지상 로코모션 속도를 0으로 — 달리다 점프해도 공중 모션이 그대로 나온다
+	const float HorizontalSpeed = GetVelocity().Size2D();
+	LocoGroundSpeed = (bFreezeLocoSpeedInAir && bIsFalling) ? 0.f : HorizontalSpeed;
+
 	// 착지 직후에도 잠시 공중 포즈를 유지해 착지 모션이 끝까지 재생되게 한다 (점프 모션을 느리게 틀면 그만큼 길게).
 	// 단, 플레이어가 이동·행동을 시작하면 그 자리에서 끊는다 — 안 그러면 착지 포즈에 갇힌다
 	const bool bInLandHold = GetWorld()->TimeSince(LandedTime) < GetLandHoldTime() && !IsLandPoseInterrupted();

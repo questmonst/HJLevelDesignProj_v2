@@ -110,6 +110,7 @@ void AMikaCharacter::BeginPlay()
 		AirPoseBlendSpeed          = MikaData->AirPoseBlendSpeed;
 		JumpAnimPlayRate           = MikaData->JumpAnimPlayRate;
 		LandAnimPlayRate           = MikaData->LandAnimPlayRate;
+		bFreezeLocoSpeedInAir      = MikaData->bFreezeLocoSpeedInAir;
 		LandAnimation              = MikaData->LandAnimation;
 		LandAnimStartTime          = MikaData->LandAnimStartTime;
 		// Grenade / Weapon

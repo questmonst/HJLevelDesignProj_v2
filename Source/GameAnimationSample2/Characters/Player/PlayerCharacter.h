@@ -508,6 +508,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0.1", ToolTip="착지 모션만의 재생 속도 배율. ABP Land 상태 Play Rate에 연결. MikaData에서 설정"))
 	float LandAnimPlayRate = 1.f;
 
+	// 지상 로코모션용 속도. 공중에서는 0 — 달리다 점프해도 공중 모션이 달리기 포즈에 섞이지 않는다.
+	// ABP의 GroundSpeed를 이 값으로 받는다.
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="지상 이동 속도(cm/s). 공중에서는 0. AnimBP GroundSpeed에 연결"))
+	float LocoGroundSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="true면 공중에서 GroundSpeed를 0으로 보낸다 (공중 모션이 달리기에 영향받지 않음). MikaData에서 설정"))
+	bool bFreezeLocoSpeedInAir = true;
+
 	// 착지 유지 시간을 클립 길이에서 자동으로 구한다 — 클립을 손봐도 C++ 수치를 다시 맞출 필요가 없다
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="ABP Land 상태가 재생하는 착지 클립. 지정하면 착지 유지 시간을 길이에서 자동 계산 (비우면 LandPoseHoldTime 사용). MikaData에서 설정"))
 	TObjectPtr<UAnimSequenceBase> LandAnimation = nullptr;

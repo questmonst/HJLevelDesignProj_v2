@@ -556,7 +556,7 @@ void AWeaponBase::Tick(float DeltaTime)
 
 	// Actor root (WeaponSocket 어태치 기준점)
 	DrawDebugSphere(GetWorld(), RootLoc, 3.f, 8, FColor::Green, false, -1.f, 0, 0.5f);
-	DrawDebugString(GetWorld(), RootLoc + FVector(0, 0, 8), TEXT("Root"), nullptr, FColor::Green, 0.f, false);
+	DrawDebugString(GetWorld(), RootLoc + FVector(0, 0, 8), TEXT("Root"), nullptr, FColor::Green, 0.06f, false);
 
 	// LeftHandGripStart 소켓: 오른손 정렬 기준. 이 소켓이 Root에 맞춰져야 함.
 	if (WeaponMesh->DoesSocketExist(LeftHandGripStartSocketName))
@@ -566,13 +566,13 @@ void AWeaponBase::Tick(float DeltaTime)
 		DrawDebugCoordinateSystem(GetWorld(), T.GetLocation(), T.GetRotation().Rotator(), 12.f, false, -1.f, 0, 0.8f);
 		DrawDebugString(GetWorld(), T.GetLocation() + FVector(0, 0, 8),
 			FString::Printf(TEXT("GripStart [%s]"), *LeftHandGripStartSocketName.ToString()),
-			nullptr, FColor::Yellow, 0.f, false);
+			nullptr, FColor::Yellow, 0.06f, false);
 	}
 	else
 	{
 		DrawDebugString(GetWorld(), RootLoc + FVector(0, 0, 16),
 			FString::Printf(TEXT("NO SOCKET: %s"), *LeftHandGripStartSocketName.ToString()),
-			nullptr, FColor::Red, 0.f, false);
+			nullptr, FColor::Red, 0.06f, false);
 	}
 
 	// LeftHandGrip 소켓: ABP IK 왼손 위치 참조용.
@@ -583,13 +583,13 @@ void AWeaponBase::Tick(float DeltaTime)
 		DrawDebugCoordinateSystem(GetWorld(), T.GetLocation(), T.GetRotation().Rotator(), 12.f, false, -1.f, 0, 0.8f);
 		DrawDebugString(GetWorld(), T.GetLocation() + FVector(0, 0, 8),
 			FString::Printf(TEXT("GripLeft [%s]"), *LeftHandGripSocketName.ToString()),
-			nullptr, FColor::Cyan, 0.f, false);
+			nullptr, FColor::Cyan, 0.06f, false);
 	}
 	else
 	{
 		DrawDebugString(GetWorld(), RootLoc + FVector(0, 0, 24),
 			FString::Printf(TEXT("NO SOCKET: %s"), *LeftHandGripSocketName.ToString()),
-			nullptr, FColor::Red, 0.f, false);
+			nullptr, FColor::Red, 0.06f, false);
 	}
 
 	// bUseLeftHandGrip 상태
@@ -614,7 +614,7 @@ void AWeaponBase::Tick(float DeltaTime)
 		{
 			DrawDebugString(GetWorld(), RootLoc + FVector(0, 0, 40),
 				FString::Printf(TEXT("SOCKET NOT FOUND: %s"), *LeftHandSocketName.ToString()),
-				nullptr, FColor::Red, 0.f, false);
+				nullptr, FColor::Red, 0.06f, false);
 		}
 	}
 }

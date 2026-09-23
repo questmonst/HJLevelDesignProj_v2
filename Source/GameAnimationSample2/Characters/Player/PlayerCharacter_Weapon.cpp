@@ -388,5 +388,5 @@ void APlayerCharacter::UpdateWeaponDebugTrail()
 	DrawDebugString(GetWorld(), Root + FVector(0, 0, 12),
 		FString::Printf(TEXT("scale %.2f / hand %.0fcm"), Scale.X,
 			FVector::Dist(Root, GetMesh()->GetSocketLocation(bWeaponInLeftHand ? ReloadLeftHandSocket : WeaponAttachSocket))),
-		nullptr, Color, DebugWeaponTrailLifeTime <= 0.f ? 0.f : DebugWeaponTrailLifeTime, false);
+		nullptr, Color, FMath::Max(DebugWeaponTrailLifeTime, 0.06f), false);   // 0이면 영구로 쌓인다
 }
