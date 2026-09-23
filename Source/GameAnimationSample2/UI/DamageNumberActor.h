@@ -62,8 +62,17 @@ protected:
 
 	FVector ArcVelocity = FVector::ZeroVector;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="true면 매 프레임 카메라를 바라봄(빌보드)"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="true면 매 프레임 카메라를 바라봄(빌보드). 화면 공간(bScreenSpace)일 땐 필요 없다"))
 	bool bFaceCamera = true;
+
+	// 화면 공간 위젯 — 항상 카메라 정면, 거리와 무관하게 같은 크기, 벽·바닥에 묻히지 않음
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="true면 화면 공간으로 그린다. 항상 정면·일정 크기이고 지형에 가려지지 않는다"))
+	bool bScreenSpace = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ClampMin="0", ClampMax="1", ToolTip="수명의 몇 % 지점부터 서서히 사라질지. 0.6이면 60%부터"))
+	float FadeStartRatio = 0.55f;
+
+	float SpawnTime = 0.f;
 
 	// 수치 세팅 후 호출 — WBP 애니 재생 등 비주얼 처리를 BP에서
 	UFUNCTION(BlueprintImplementableEvent, Category = "DamageNumber")

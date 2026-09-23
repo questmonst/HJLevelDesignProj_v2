@@ -4,6 +4,7 @@
 #include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Blueprint/UserWidget.h"
 
 ADamageNumberActor::ADamageNumberActor()
 {
@@ -11,7 +12,8 @@ ADamageNumberActor::ADamageNumberActor()
 
 	WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
 	RootComponent = WidgetComp;
-	WidgetComp->SetWidgetSpace(EWidgetSpace::World);   // World 스페이스라 거리에 따라 원근으로 작아짐
+	// 화면 공간: 항상 카메라를 향하고, 거리와 무관하게 크기가 같고, 지형에 가려지지 않는다
+	WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 	WidgetComp->SetDrawAtDesiredSize(true);
 	WidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
@@ -20,6 +22,9 @@ void ADamageNumberActor::BeginPlay()
 {
 	Super::BeginPlay();
 	SetLifeSpan(LifeSeconds);   // 시간 지나면 자동 Destroy
+	SpawnTime = GetWorld()->GetTimeSeconds();
+
+	WidgetComp->SetWidgetSpace(bScreenSpace ? EWidgetSpace::Screen : EWidgetSpace::World);
 
 	if (bArcMotion)
 	{
@@ -56,7 +61,17 @@ void ADamageNumberActor::Tick(float DeltaTime)
 		AddActorWorldOffset(FVector(0.f, 0.f, RiseSpeed * DeltaTime));
 	}
 
-	if (bFaceCamera)
+	// 수명 끝으로 갈수록 서서히 사라진다. 글자 색이 아니라 위젯 투명도를 낮춰야
+	// 외곽선까지 같이 사라진다 (색 알파만 낮추면 검은 테두리만 남는다)
+	if (UUserWidget* Widget = WidgetComp->GetUserWidgetObject())
+	{
+		const float Elapsed = GetWorld()->TimeSince(SpawnTime);
+		const float FadeStart = LifeSeconds * FMath::Clamp(FadeStartRatio, 0.f, 1.f);
+		const float FadeLength = FMath::Max(LifeSeconds - FadeStart, KINDA_SMALL_NUMBER);
+		Widget->SetRenderOpacity(1.f - FMath::Clamp((Elapsed - FadeStart) / FadeLength, 0.f, 1.f));
+	}
+
+	if (bFaceCamera && !bScreenSpace)
 	{
 		if (APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
 		{
