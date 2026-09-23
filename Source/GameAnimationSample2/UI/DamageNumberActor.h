@@ -39,8 +39,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="자동 소멸까지 시간(초)"))
 	float LifeSeconds = 1.2f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="초당 위로 떠오르는 속도(cm/s). 뜨는 연출을 WBP 애니로 처리하면 0으로"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="초당 위로 떠오르는 속도(cm/s). 포물선(bArcMotion)을 쓰면 무시된다"))
 	float RiseSpeed = 60.f;
+
+	// --- 포물선 연출 ---
+	// 머리 옆으로 튀어 올랐다가 중력을 받아 떨어진다. 좌우는 카메라 기준이라 화면에서 항상 옆으로 보인다.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber|Arc", meta=(ToolTip="true면 좌우로 튀어 올랐다가 떨어지는 포물선으로 움직인다"))
+	bool bArcMotion = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber|Arc", meta=(ClampMin="0", ToolTip="처음 위로 솟는 속도 (cm/s)"))
+	float ArcUpSpeed = 260.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber|Arc", meta=(ClampMin="0", ToolTip="좌우로 퍼지는 속도 (cm/s). 방향은 무작위로 왼쪽/오른쪽"))
+	float ArcSideSpeed = 150.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber|Arc", meta=(ClampMin="0", ClampMax="1", ToolTip="좌우·상승 속도의 무작위 편차 비율. 0.3이면 ±30%"))
+	float ArcSpeedVariance = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber|Arc", meta=(ToolTip="낙하 가속도 (cm/s²). 음수가 아래로"))
+	float ArcGravity = -800.f;
+
+	FVector ArcVelocity = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DamageNumber", meta=(ToolTip="true면 매 프레임 카메라를 바라봄(빌보드)"))
 	bool bFaceCamera = true;

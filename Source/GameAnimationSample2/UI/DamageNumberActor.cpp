@@ -20,6 +20,20 @@ void ADamageNumberActor::BeginPlay()
 {
 	Super::BeginPlay();
 	SetLifeSpan(LifeSeconds);   // 시간 지나면 자동 Destroy
+
+	if (bArcMotion)
+	{
+		// 좌우는 카메라 기준 — 어느 방향에서 봐도 화면에서 옆으로 튄다
+		FVector SideDir = FVector::RightVector;
+		if (const APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
+		{
+			SideDir = FRotationMatrix(Cam->GetCameraRotation()).GetUnitAxis(EAxis::Y);
+		}
+		const float Sign = FMath::RandBool() ? 1.f : -1.f;
+		const float Vary = 1.f + FMath::FRandRange(-ArcSpeedVariance, ArcSpeedVariance);
+
+		ArcVelocity = SideDir * (ArcSideSpeed * Sign * Vary) + FVector(0.f, 0.f, ArcUpSpeed * Vary);
+	}
 }
 
 void ADamageNumberActor::InitDamage(float Amount)
@@ -32,7 +46,12 @@ void ADamageNumberActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (RiseSpeed != 0.f)
+	if (bArcMotion)
+	{
+		ArcVelocity.Z += ArcGravity * DeltaTime;         // 올라갔다가 중력에 눌려 떨어진다
+		AddActorWorldOffset(ArcVelocity * DeltaTime);
+	}
+	else if (RiseSpeed != 0.f)
 	{
 		AddActorWorldOffset(FVector(0.f, 0.f, RiseSpeed * DeltaTime));
 	}
