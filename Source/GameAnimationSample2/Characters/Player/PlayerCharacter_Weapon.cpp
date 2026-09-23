@@ -328,15 +328,21 @@ void APlayerCharacter::AttachWeaponToLeftHand()
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale, ReloadLeftHandSocket);
 
 	// 무기의 LeftHandGrip 소켓이 손 소켓에 딱 오도록 맞춘다.
-	// 캐릭터 메시는 배율이 1이 아니라서 상대 좌표로 계산하면 단위가 어긋난다 — 전부 월드 기준으로 계산한다.
-	const FTransform HandWorld = GetMesh()->GetSocketTransform(ReloadLeftHandSocket);
+	// 캐릭터 메시 배율이 1이 아니라서(미카는 150배), 배율이 남아 있는 트랜스폼끼리 합치면
+	// 이동량에 배율이 한 번 더 곱해져 총이 수십 미터 날아간다. 그래서 전부 배율을 지운 뒤 계산한다.
+	FTransform HandWorld = GetMesh()->GetSocketTransform(ReloadLeftHandSocket);
 	const FTransform ActorWorld = CurrentWeapon->GetActorTransform();
+	FTransform ActorNoScale = ActorWorld;
+	FTransform GripNoScale  = CurrentWeapon->GetLeftHandGripTransform();
+	HandWorld.SetScale3D(FVector::OneVector);
+	ActorNoScale.SetScale3D(FVector::OneVector);
+	GripNoScale.SetScale3D(FVector::OneVector);
 
-	FTransform GripInActor = CurrentWeapon->GetLeftHandGripTransform().GetRelativeTransform(ActorWorld);
-	GripInActor.SetScale3D(FVector::OneVector);   // 배율은 건드리지 않는다
+	// 총 기준으로 그립이 어디 있는지 → 그만큼 반대로 밀어 손에 맞춘다
+	const FTransform GripInActor = GripNoScale.GetRelativeTransform(ActorNoScale);
 
 	FTransform NewWorld = GripInActor.Inverse() * HandWorld;
-	NewWorld.SetScale3D(ActorWorld.GetScale3D());   // 총 크기는 그대로
+	NewWorld.SetScale3D(ActorWorld.GetScale3D());   // 총 크기는 원래대로
 	CurrentWeapon->SetActorTransform(NewWorld);
 
 	bWeaponInLeftHand = true;
