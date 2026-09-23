@@ -207,4 +207,11 @@
 - [x] (2026-09-22) 착지 2번 재생 — 원인: 예측으로 공중에서 Land 진입 → `Land→JumpStart`(Is Falling) → `→Land` 핑퐁. 조치: `*→Land` 조건 `Land Pose Alpha > 0.99`(점프 직후 감쇠 중 재진입 방지), `LandAnticipationTime` 0(예측 끔). **예측 다시 켜려면** `Land→JumpStart` 조건을 `Is Falling AND NOT 착지예측`으로 바꿔야 함 (ABP 변수 추가 필요)
 - [x] (2026-09-22) 착지 반복 진짜 원인 — ABP Land 상태 시퀀스 플레이어 **Loop Animation이 켜져 있었음** (클립 0.42초 < 유지 0.47초+페이드 → 다시 재생). Loop 끔. PIE 확인: 착지 프레임에 Land Pose Alpha 즉시 1 (1프레임 지연 해결)
 - [x] (빌드 완료 2026-09-22) `JumpAnimPlayRate`(MikaData › Fall, 현재 0.8) — ABP AirLoco 시퀀스 플레이어 5개 PlayRate를 Property Access `Character.JumpAnimPlayRate`에 바인딩. 착지 유지 시간 = `LandPoseHoldTime ÷ JumpAnimPlayRate`
+- [x] (빌드 완료 2026-09-23) 착지 길이 자동화 — `LandAnimation`(AC_Land_mika)·`LandAnimStartTime`(0.05) DA 추가. `GetLandHoldTime()` = (클립 길이 - 시작 지점) ÷ 재생 속도. ABP Land 시퀀스 플레이어 StartPosition도 `Character.LandAnimStartTime`에 바인딩 → 클립 길이를 바꿔도 C++ 수정 불필요
+- [x] (빌드 완료 2026-09-23) `bCameraFollowMesh` — 공중 포즈일 때 스프링암 TargetOffset.Z를 (기준 본 높이 - 평상시 높이차)만큼 올림. `CameraFollowMeshBone`·`InterpSpeed`·`MaxOffset` DA. 앉기 보정과 합산(`CrouchCameraZ + CameraFollowMeshZ`)
+- 주의: MikaData 값은 BeginPlay에서 복사 — **PIE 실행 중 DA를 바꾸면 PIE 재시작해야 적용**
+- [ ] (진행 중) `JumpAnimPlayRate` 바인딩 의심 — PIE에서 캐릭터 값은 정상(0.1, LandAnimation 세팅됨) 확인. ABP Property Access 바인딩이 실제로 먹는지 불명. 구분 실험: 노드 PlayRate 기본값 0.6 + DA 0.1 → 매우 느림=바인딩 동작 / 적당히 느림=기본값만 동작(바인딩 실패, ABP 변수 배선으로 교체 필요) / 변화 없음=AirLoco가 아닌 다른 경로
+  - 1차 결과(0.6): 변화 없음 → 0.15로 재실험. DA 재생 속도는 1로 복구(착지 유지 시간이 ÷배율이라 0.1이면 4초간 착지 포즈에 갇힘)
+- [ ] (빌드 대기) 착지 포즈 중단 — `IsLandPoseInterrupted()`(이동 입력·조준, 미카는 충전·대시·펀치 전신·수류탄 추가) 참이면 착지 유지 즉시 종료. 착지 모션 끝에서 멈춰 다른 행동이 안 되던 문제
+- [ ] 점프 중 펀치 카메라 = A안 확정(메시 쪽 수정). `Jmp_Base_B_mika`의 골반 Z 트랙에 점프 높이가 구워져 있음 → 본 트랙 키 수정(복제본 백업 후)으로 캡슐과의 높이 차 줄이기. `bCameraFollowMesh`(B안)는 코드에 남아 있고 기본 끔으로 두면 됨
 - [x] (빌드 완료) 충전 중 카메라 아래 각도 확장 — `MikaData` › Camera › **`ChargeCameraPitchMin`**(-89.9). 충전 시작 시 적용, 끝나면 `CameraPitchMin`으로 복귀

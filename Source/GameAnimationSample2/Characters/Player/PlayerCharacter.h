@@ -20,6 +20,7 @@ class USplineComponent;
 class USplineMeshComponent;
 class UTraversalComponent;
 class UAnimMontage;
+class UAnimSequenceBase;
 class UMotionWarpingComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGrenadeThrowReadyChangedSignature, bool, bReady);
@@ -188,6 +189,25 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="true=앉기 카메라 높이 보간, false=즉시 전환"))
 	bool bSmoothCrouchCamera = true;
+
+	// --- Camera (메시 따라가기) ---
+	// 점프·펀치 모션은 골반이 캡슐 위로 크게 올라가 몸이 화면 밖으로 나간다. 켜면 카메라 피벗이 그만큼 같이 올라간다.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="공중 포즈일 때 카메라가 보이는 몸(기준 본)을 따라가게 할지. MikaData에서 설정"))
+	bool bCameraFollowMesh = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="카메라가 따라갈 기준 본. 보통 골반"))
+	FName CameraFollowMeshBone = TEXT("valvebiped_bip01_pelvis");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ClampMin="0", ToolTip="메시 따라가기 보간 속도. 클수록 즉시 따라감"))
+	float CameraFollowMeshInterpSpeed = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ClampMin="0", ToolTip="메시 따라가기 최대 보정 높이(cm). 모션이 튀어도 이 이상은 안 올라감"))
+	float CameraFollowMeshMaxOffset = 200.f;
+
+	float CameraFollowMeshZ   = 0.f;   // 현재 적용 중인 보정 높이
+	float CameraFollowBaseGap = 0.f;   // 평상시 기준 본과 캡슐 중심의 높이 차 (BeginPlay에서 측정)
+	float CrouchCameraZ       = 0.f;   // 앉기 보정 높이 (메시 보정과 합산해 TargetOffset.Z에 적용)
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="앉기 카메라 보간 속도. bSmoothCrouchCamera=true일 때만 사용"))
 	float CrouchCameraInterpSpeed = 10.f;
@@ -452,6 +472,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0.1", ToolTip="점프 모션 재생 속도 배율. ABP AirLoco 시퀀스 플레이어 Play Rate에 바인딩. MikaData에서 설정"))
 	float JumpAnimPlayRate = 1.f;
+
+	// 착지 유지 시간을 클립 길이에서 자동으로 구한다 — 클립을 손봐도 C++ 수치를 다시 맞출 필요가 없다
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="ABP Land 상태가 재생하는 착지 클립. 지정하면 착지 유지 시간을 길이에서 자동 계산 (비우면 LandPoseHoldTime 사용). MikaData에서 설정"))
+	TObjectPtr<UAnimSequenceBase> LandAnimation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="착지 클립을 몇 초 지점부터 재생할지. ABP Land 상태 Start Position에 바인딩. MikaData에서 설정"))
+	float LandAnimStartTime = 0.05f;
+
+	// 착지 모션이 끝나는 시점 (재생 속도·시작 지점 반영). 이 시간이 지나면 바로 지상 로코모션으로 돌아간다
+	UFUNCTION(BlueprintPure, Category = "Character|Fall")
+	float GetLandHoldTime() const;
+
+	// 착지 모션을 중간에 끊을 상황인지 (이동 입력·행동). 자식이 자기 행동을 더한다
+	UFUNCTION(BlueprintPure, Category = "Character|Fall")
+	virtual bool IsLandPoseInterrupted() const;
 
 	// 착지 구간(예측 시작 ~ 착지 후 유지 시간)에서는 하체만이 아니라 전신으로 착지 모션을 보여준다
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="착지 포즈 가중치 0~1. AnimBP에서 '하체만 결과'와 '점프 상태 머신 전신'을 섞는 알파로 사용"))

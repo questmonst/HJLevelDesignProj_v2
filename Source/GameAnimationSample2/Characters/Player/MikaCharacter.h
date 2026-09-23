@@ -29,6 +29,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+	// 펀치·충전·수류탄 중에는 착지 모션을 붙잡지 않는다
+	virtual bool IsLandPoseInterrupted() const override;
+
 	virtual void PossessedBy(AController* NewController) override;
 
 	// 카메라 위아래 제한각을 PlayerCameraManager에 적용. 빙의 시점이 BeginPlay보다 늦을 수 있어 양쪽에서 호출

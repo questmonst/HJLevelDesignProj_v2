@@ -111,6 +111,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Crouch", meta=(ToolTip="앉기 카메라 보간 속도. bSmoothCrouchCamera=true일 때만 사용. 클수록 빠르게 전환"))
 	float CrouchCameraInterpSpeed = 10.f;
 
+	// --- Camera (메시 따라가기) ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FollowMesh", meta=(ToolTip="켜면 공중 포즈(점프·공중 펀치)에서 카메라가 보이는 몸을 따라 올라간다. 점프 모션은 골반이 캡슐보다 크게 올라가서 몸이 화면 밖으로 나가는데, 그걸 막는다"))
+	bool bCameraFollowMesh = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FollowMesh", meta=(ToolTip="카메라가 따라갈 기준 본 (기본: 골반)"))
+	FName CameraFollowMeshBone = TEXT("valvebiped_bip01_pelvis");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FollowMesh", meta=(ClampMin="0", ToolTip="따라가기 보간 속도. 클수록 즉시 따라가고, 낮추면 부드럽게 (너무 크면 모션 흔들림이 카메라에 그대로 전달)"))
+	float CameraFollowMeshInterpSpeed = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FollowMesh", meta=(ClampMin="0", ToolTip="최대 보정 높이(cm). 모션이 크게 튀어도 이 이상은 안 따라간다"))
+	float CameraFollowMeshMaxOffset = 200.f;
+
 	// --- TurnInPlace ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TurnInPlace", meta=(ToolTip="제자리 우회전 발동 각도 (도). 카메라가 이 각도 이상 오른쪽으로 벌어지면 회전 시작"))
@@ -141,6 +155,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0.1", ToolTip="점프 모션(JumpStart·JumpUp·JumpDown·FallLoop·Land) 재생 속도 배율. 1 = 원본, 0.8 = 20% 느리게. 착지 유지 시간(LandPoseHoldTime)도 자동으로 ÷ 배율"))
 	float JumpAnimPlayRate = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ToolTip="ABP Land 상태가 재생하는 착지 클립(AC_Land_mika). 지정하면 착지 유지 시간을 길이에서 자동 계산해 LandPoseHoldTime을 무시. 클립 길이를 바꿔도 코드 수정 불필요"))
+	TObjectPtr<UAnimSequenceBase> LandAnimation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="착지 클립을 몇 초 지점부터 재생할지. ABP Land 상태 Start Position에 바인딩됨 (발 닿기 직전부터 재생)"))
+	float LandAnimStartTime = 0.05f;
 
 	// --- Grenade ---
 

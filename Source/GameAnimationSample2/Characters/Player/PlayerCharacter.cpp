@@ -78,6 +78,9 @@ void APlayerCharacter::BeginPlay()
 
 	ApplyDefaultSocketOffset();
 	NormalSocketOffsetZ = SpringArmComponent->SocketOffset.Z;
+	// 평상시(서 있는 포즈) 골반과 캡슐 중심의 높이 차 — 공중에서 이 값을 넘는 만큼만 카메라를 올린다
+	if (GetMesh())
+		CameraFollowBaseGap = GetMesh()->GetSocketLocation(CameraFollowMeshBone).Z - GetActorLocation().Z;
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch      = true;
 	GetCharacterMovement()->bCrouchMaintainsBaseLocation  = true;
@@ -208,8 +211,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		CurrentFallSpeed = 0.f;
 	}
-	// 착지 직후에도 잠시 공중 포즈를 유지해 착지 모션이 끝까지 재생되게 한다 (점프 모션을 느리게 틀면 그만큼 길게)
-	const bool bInLandHold = GetWorld()->TimeSince(LandedTime) < LandPoseHoldTime / FMath::Max(JumpAnimPlayRate, 0.1f);
+	// 착지 직후에도 잠시 공중 포즈를 유지해 착지 모션이 끝까지 재생되게 한다 (점프 모션을 느리게 틀면 그만큼 길게).
+	// 단, 플레이어가 이동·행동을 시작하면 그 자리에서 끊는다 — 안 그러면 착지 포즈에 갇힌다
+	const bool bInLandHold = GetWorld()->TimeSince(LandedTime) < GetLandHoldTime() && !IsLandPoseInterrupted();
 	bIsInAirPose = bIsFalling || bInLandHold;
 	AirPoseAlpha = FMath::FInterpTo(AirPoseAlpha, bIsInAirPose ? 1.f : 0.f, DeltaTime, AirPoseBlendSpeed);
 	UpdateLandingPrediction();
@@ -218,6 +222,24 @@ void APlayerCharacter::Tick(float DeltaTime)
 	const bool bLandPose = bIsLandingSoon || (!bIsFalling && bInLandHold);
 	// 켜질 땐 즉시(예측을 놓쳐도 착지 프레임에 바로 전신), 꺼질 땐 부드럽게
 	LandPoseAlpha = bLandPose ? 1.f : FMath::FInterpTo(LandPoseAlpha, 0.f, DeltaTime, AirPoseBlendSpeed);
+}
+
+bool APlayerCharacter::IsLandPoseInterrupted() const
+{
+	// 이동 입력이 들어왔거나 조준을 시작하면 착지 모션을 기다리지 않는다
+	return bIsAiming || !GetCharacterMovement()->GetCurrentAcceleration().IsNearlyZero();
+}
+
+float APlayerCharacter::GetLandHoldTime() const
+{
+	// 클립을 지정해두면 길이가 기준 — 클립을 잘라내거나 늘려도 자동으로 따라간다
+	const float Rate = FMath::Max(JumpAnimPlayRate, 0.1f);
+	if (LandAnimation)
+	{
+		const float Remaining = LandAnimation->GetPlayLength() - LandAnimStartTime;
+		return FMath::Max(Remaining, 0.f) / Rate;
+	}
+	return LandPoseHoldTime / Rate;
 }
 
 void APlayerCharacter::UpdateLandingPrediction()
@@ -482,25 +504,38 @@ void APlayerCharacter::ToggleCrouch()
 // 보간 모드는 이 Tick 함수가 bIsCrouched 상태로 목표값을 향해 부드럽게 이동시킨다.
 void APlayerCharacter::UpdateCrouchCamera(float DeltaTime)
 {
-	if (!bSmoothCrouchCamera || !SpringArmComponent) return;
+	if (!SpringArmComponent) return;
 
-	const float TargetZ = bIsCrouched ? CrouchCameraZOffset : 0.f;
-	SpringArmComponent->TargetOffset.Z = FMath::FInterpTo(
-		SpringArmComponent->TargetOffset.Z, TargetZ, DeltaTime, CrouchCameraInterpSpeed);
+	if (bSmoothCrouchCamera)
+	{
+		const float TargetZ = bIsCrouched ? CrouchCameraZOffset : 0.f;
+		CrouchCameraZ = FMath::FInterpTo(CrouchCameraZ, TargetZ, DeltaTime, CrouchCameraInterpSpeed);
+	}
+
+	// 공중 포즈에서는 골반이 캡슐보다 크게 올라간다 — 켜져 있으면 그만큼 카메라 피벗도 올린다
+	float FollowTarget = 0.f;
+	if (bCameraFollowMesh && bIsInAirPose && GetMesh())
+	{
+		const float Gap = GetMesh()->GetSocketLocation(CameraFollowMeshBone).Z - GetActorLocation().Z;
+		FollowTarget = FMath::Clamp(Gap - CameraFollowBaseGap, -CameraFollowMeshMaxOffset, CameraFollowMeshMaxOffset);
+	}
+	CameraFollowMeshZ = FMath::FInterpTo(CameraFollowMeshZ, FollowTarget, DeltaTime, CameraFollowMeshInterpSpeed);
+
+	SpringArmComponent->TargetOffset.Z = CrouchCameraZ + CameraFollowMeshZ;
 }
 
 void APlayerCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
 {
 	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
-	if (!bSmoothCrouchCamera && SpringArmComponent)
-		SpringArmComponent->TargetOffset.Z = CrouchCameraZOffset;
+	if (!bSmoothCrouchCamera)
+		CrouchCameraZ = CrouchCameraZOffset;
 }
 
 void APlayerCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
 {
 	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
-	if (!bSmoothCrouchCamera && SpringArmComponent)
-		SpringArmComponent->TargetOffset.Z = 0.f;
+	if (!bSmoothCrouchCamera)
+		CrouchCameraZ = 0.f;
 }
 
 void APlayerCharacter::SetGravityDirection(FVector NewDirection)

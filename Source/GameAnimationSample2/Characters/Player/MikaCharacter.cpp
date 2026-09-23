@@ -79,6 +79,10 @@ void AMikaCharacter::BeginPlay()
 		CrouchCameraZOffset        = MikaData->CrouchCameraZOffset;
 		bSmoothCrouchCamera        = MikaData->bSmoothCrouchCamera;
 		CrouchCameraInterpSpeed    = MikaData->CrouchCameraInterpSpeed;
+		bCameraFollowMesh          = MikaData->bCameraFollowMesh;
+		CameraFollowMeshBone       = MikaData->CameraFollowMeshBone;
+		CameraFollowMeshInterpSpeed= MikaData->CameraFollowMeshInterpSpeed;
+		CameraFollowMeshMaxOffset  = MikaData->CameraFollowMeshMaxOffset;
 		AimFOV                     = MikaData->AimFOV;
 		CoverTraceDistance         = MikaData->CoverTraceDistance;
 		CoverPeekOffset            = MikaData->CoverPeekOffset;
@@ -104,6 +108,8 @@ void AMikaCharacter::BeginPlay()
 		LandAnticipationTime       = MikaData->LandAnticipationTime;
 		AirPoseBlendSpeed          = MikaData->AirPoseBlendSpeed;
 		JumpAnimPlayRate           = MikaData->JumpAnimPlayRate;
+		LandAnimation              = MikaData->LandAnimation;
+		LandAnimStartTime          = MikaData->LandAnimStartTime;
 		// Grenade / Weapon
 		// 비어 있으면 BP_Mika에 직접 넣어둔 값을 유지 (DA 이전 전 기존 설정 보호)
 		if (MikaData->GrenadeClass) GrenadeClass = MikaData->GrenadeClass;
@@ -219,6 +225,9 @@ void AMikaCharacter::BeginPlay()
 
 	ApplyCameraPitchLimits();
 	ApplyDefaultSocketOffset();   // 부모 BeginPlay는 DA 복사 전이라 BP 기본값이 들어가 있었음 — DA 값으로 다시 적용
+	// 기준 본도 DA에서 왔을 수 있으니 높이 차를 다시 잰다
+	if (GetMesh())
+		CameraFollowBaseGap = GetMesh()->GetSocketLocation(CameraFollowMeshBone).Z - GetActorLocation().Z;
 	PunchHitCapsule->OnComponentBeginOverlap.AddDynamic(this, &AMikaCharacter::OnPunchHitboxOverlap);
 	NormalSpringArmLength        = SpringArmComponent->TargetArmLength;
 	CameraBaseRelLocation        = CameraComponent->GetRelativeLocation();
@@ -609,6 +618,11 @@ void AMikaCharacter::ApplyPunchHit(AActor* Target, UPrimitiveComponent* TargetCo
 	{
 		TargetComp->AddImpulse(Knockback, NAME_None, true);   // 질량 무관 속도 변화
 	}
+}
+
+bool AMikaCharacter::IsLandPoseInterrupted() const
+{
+	return Super::IsLandPoseInterrupted() || bIsChargingPunch || bIsDashing || bIsPunchFullBody || bIsThrowingGrenade;
 }
 
 // --- 충전 진동 ---
