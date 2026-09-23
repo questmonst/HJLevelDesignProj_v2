@@ -198,6 +198,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
     void FireAtTarget();
 
+    // 마지막으로 사격을 시작한 시각 — "새로 교전을 시작했는지" 판정에 쓴다 (조준 대기)
+    float GetLastFireTime() const { return LastFireTime; }
+    float LastFireTime = -1000.f;
+
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
     void StopFiring();
 

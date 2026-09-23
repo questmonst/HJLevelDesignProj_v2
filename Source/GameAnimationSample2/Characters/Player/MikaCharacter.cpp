@@ -203,6 +203,7 @@ void AMikaCharacter::BeginPlay()
 		PunchChargeMontage         = MikaData->PunchChargeMontage;
 		PunchDashMontage           = MikaData->PunchDashMontage;
 		PunchReboundMontage        = MikaData->PunchReboundMontage;
+		PunchReboundMontagePlayRate = MikaData->PunchReboundMontagePlayRate;
 	}
 
 	PunchHitCapsule->SetCapsuleSize(PunchHitRadius, PunchHitHalfHeight);
@@ -691,7 +692,7 @@ void AMikaCharacter::BeginReboundMove()
 {
 	// 초기 속도만 주고 끊지 않는다 — 지상은 걷기 제동, 공중은 관성·중력으로 자연스럽게 줄어듦
 	bIsRebounding = false;
-	if (PunchReboundMontage) PlayAnimMontage(PunchReboundMontage);
+	if (PunchReboundMontage) PlayAnimMontage(PunchReboundMontage, PunchReboundMontagePlayRate);
 	UCharacterMovementComponent* Move = GetCharacterMovement();
 	Move->BrakingFrictionFactor     = DefaultBrakingFrictionFactor;
 	Move->BrakingDecelerationFlying = DefaultBrakingDecelerationFly;

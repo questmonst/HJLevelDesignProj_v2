@@ -60,6 +60,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Fire", meta=(ToolTip="true면 타겟 액터가 시야에 있을 때만 쏜다. Vector 키(제압 사격)에는 적용 안 됨"))
 	bool bRequireLineOfSight = true;
 
+	// --- 교전 시작 조준 ---
+	// 플레이어를 막 발견했을 때 바로 쏘면 반응할 틈이 없다. 타겟을 바라본 채 잠깐 겨눈 뒤 쏜다.
+
+	UPROPERTY(EditAnywhere, Category = "Fire|Aim", meta=(ClampMin="0", ToolTip="교전을 새로 시작할 때 타겟을 겨누고 기다리는 시간(초). 0이면 즉시 사격"))
+	float AimDelay = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "Fire|Aim", meta=(ClampMin="0", ToolTip="마지막 사격 후 이 시간이 지났으면 '새 교전'으로 보고 AimDelay를 적용한다. 연속 사격 중에는 기다리지 않는다"))
+	float ReengageGap = 3.f;
+
 private:
 	void Finish(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type Result) const;
 };
@@ -67,7 +76,9 @@ private:
 // 노드 인스턴스 대신 메모리 구조체 사용 (같은 BT를 쓰는 적끼리 상태 공유 방지)
 struct FBTFireAtTargetMemory
 {
+	float AimTime = 0.f;        // 남은 조준 대기 시간
 	float RemainingTime = 0.f;
 	float RestTime = 0.f;
 	bool bResting = false;
+	bool bFiring = false;       // 실제로 사격을 시작했는지
 };

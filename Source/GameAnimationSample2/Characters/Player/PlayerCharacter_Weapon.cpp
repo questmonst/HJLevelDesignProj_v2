@@ -320,13 +320,21 @@ void APlayerCharacter::AttachWeaponToLeftHand()
 {
 	if (!CurrentWeapon || !GetMesh() || !GetMesh()->DoesSocketExist(ReloadLeftHandSocket)) return;
 
+	// 돌아갈 때 그대로 되돌리기 위해 지금 상태를 기억해둔다
+	PreReloadWeaponTransform = CurrentWeapon->GetRootComponent()->GetRelativeTransform();
+
 	CurrentWeapon->AttachToComponent(GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale, ReloadLeftHandSocket);
 
-	// 무기 루트가 아니라 LeftHandGrip 소켓이 손에 오도록, 그 소켓의 역트랜스폼만큼 되민다
-	const FTransform GripWorld = CurrentWeapon->GetLeftHandGripTransform();
-	const FTransform GripLocal = GripWorld.GetRelativeTransform(CurrentWeapon->GetActorTransform());
-	CurrentWeapon->SetActorRelativeTransform(GripLocal.Inverse());
+	// 무기 루트가 아니라 LeftHandGrip 소켓이 손에 오도록, 그 소켓의 역트랜스폼만큼 되민다.
+	// 배율은 빼고 위치·회전만 쓴다 — 메시 배율까지 뒤집으면 총이 작아지거나 커진다
+	FTransform GripLocal = CurrentWeapon->GetLeftHandGripTransform()
+		.GetRelativeTransform(CurrentWeapon->GetActorTransform());
+	GripLocal.SetScale3D(FVector::OneVector);
+
+	FTransform NewRelative = GripLocal.Inverse();
+	NewRelative.SetScale3D(PreReloadWeaponTransform.GetScale3D());   // 원래 배율 유지
+	CurrentWeapon->SetActorRelativeTransform(NewRelative);
 
 	bWeaponInLeftHand = true;
 }
@@ -339,5 +347,5 @@ void APlayerCharacter::RestoreWeaponToRightHand()
 	if (!CurrentWeapon || !GetMesh()) return;
 	CurrentWeapon->AttachToComponent(GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocket);
-	CurrentWeapon->SetActorRelativeTransform(FTransform::Identity);
+	CurrentWeapon->SetActorRelativeTransform(PreReloadWeaponTransform);   // 장전 전 상태 그대로
 }

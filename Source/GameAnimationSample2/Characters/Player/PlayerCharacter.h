@@ -355,6 +355,7 @@ protected:
 
 	FTimerHandle ReloadAttachTimerHandle;
 	bool bWeaponInLeftHand = false;
+	FTransform PreReloadWeaponTransform = FTransform::Identity;   // 장전 전 무기 상대 트랜스폼(배율 포함)
 
 	void AttachWeaponToLeftHand();
 	void RestoreWeaponToRightHand();

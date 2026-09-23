@@ -404,6 +404,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Punch", meta=(ToolTip="펀치 반동(뒤로 튕김) 몽타주. MikaData에서 설정"))
 	UAnimMontage* PunchReboundMontage = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Punch", meta=(ClampMin="0.1", ToolTip="펀치 반동 몽타주 재생 속도 배율. MikaData에서 설정"))
+	float PunchReboundMontagePlayRate = 1.f;
+
 	FTimerHandle PunchFullBodyTimerHandle;
 	void EndPunchFullBody();
 

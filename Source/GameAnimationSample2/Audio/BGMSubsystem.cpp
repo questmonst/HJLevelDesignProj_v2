@@ -59,6 +59,22 @@ void UBGMSubsystem::ReturnToExplore()
 	}
 }
 
+void UBGMSubsystem::SetVolume(float NewVolume, float FadeTime)
+{
+	VolumeScale = FMath::Max(NewVolume, 0.f);
+	if (ActiveMusic)
+	{
+		// 페이드 인을 다시 태우면 현재 재생 위치를 유지한 채 볼륨만 바뀐다
+		ActiveMusic->AdjustVolume(FMath::Max(FadeTime, 0.f), VolumeScale);
+	}
+}
+
+float UBGMSubsystem::GetEffectiveVolume() const
+{
+	if (VolumeScale >= 0.f) return VolumeScale;
+	return BGMData ? BGMData->Volume : 1.f;
+}
+
 USoundBase* UBGMSubsystem::GetTrackForState(EBGMState State) const
 {
 	if (!BGMData) return nullptr;
@@ -75,7 +91,7 @@ void UBGMSubsystem::PlayTrack(USoundBase* Track)
 {
 	const float FadeOut = BGMData ? BGMData->FadeOutTime : 1.f;
 	const float FadeIn  = BGMData ? BGMData->FadeInTime  : 1.f;
-	const float Volume  = BGMData ? BGMData->Volume      : 1.f;
+	const float Volume  = GetEffectiveVolume();
 
 	if (ActiveMusic)
 	{

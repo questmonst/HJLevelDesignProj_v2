@@ -446,4 +446,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="펀치가 적·벽에 맞아 뒤로 튕겨 나올 때 재생할 몽타주 (구르기 등). 비우면 재생 안 함"))
 	UAnimMontage* PunchReboundMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ClampMin="0.1", ToolTip="펀치 반동 몽타주 재생 속도 배율. 1 = 원본, 0.7 = 30% 느리게"))
+	float PunchReboundMontagePlayRate = 1.f;
 };

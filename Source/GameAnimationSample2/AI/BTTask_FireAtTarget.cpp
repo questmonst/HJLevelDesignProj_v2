@@ -92,8 +92,21 @@ EBTNodeResult::Type UBTTask_FireAtTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	Mem->RestTime      = FMath::Max(0.f,  Rest  + FMath::FRandRange(-DurationDeviation, DurationDeviation));
 	Mem->bResting      = false;
 
-	Enemy->FireAtTarget();
-	Enemy->OnAttack();   // BP 훅: 사격 몽타주·머즐 이펙트 등
+	// 새로 교전을 시작하는 경우에만 겨누는 시간을 준다 (연사 도중에는 끊지 않는다)
+	const bool bFreshEngage = Enemy->GetWorld()->TimeSince(Enemy->GetLastFireTime()) > ReengageGap;
+	Mem->AimTime = (bFreshEngage && AimDelay > 0.f) ? AimDelay : 0.f;
+	Mem->bFiring = false;
+
+	// 겨누는 동안 타겟을 바라본다 (포커스 서비스가 없더라도 최소한 이 태스크에서는 조준한다)
+	if (bVectorKey) AICon->SetFocalPoint(AimLocation);
+	else if (AActor* FocusTarget = Cast<AActor>(BB->GetValueAsObject(TargetKey.SelectedKeyName))) AICon->SetFocus(FocusTarget);
+
+	if (Mem->AimTime <= 0.f)
+	{
+		Mem->bFiring = true;
+		Enemy->FireAtTarget();
+		Enemy->OnAttack();   // BP 훅: 사격 몽타주·머즐 이펙트 등
+	}
 
 	return EBTNodeResult::InProgress;
 }
@@ -110,6 +123,19 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 	}
 
 	FBTFireAtTargetMemory* Mem = CastInstanceNodeMemory<FBTFireAtTargetMemory>(NodeMemory);
+
+	// 겨누는 중 — 다 겨누면 그때 쏘기 시작한다
+	if (Mem->AimTime > 0.f)
+	{
+		Mem->AimTime -= DeltaSeconds;
+		if (Mem->AimTime <= 0.f)
+		{
+			Mem->bFiring = true;
+			Enemy->FireAtTarget();
+			Enemy->OnAttack();
+		}
+		return;
+	}
 
 	if (Mem->bResting)
 	{

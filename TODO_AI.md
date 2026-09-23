@@ -218,6 +218,12 @@
 - [x] (빌드 완료 2026-09-23) BGM 뼈대 — `Source/Audio/BGMDataAsset.h`(Explore·Combat·Boss 곡, 페이드, `CombatExitDelay`), `BGMSubsystem`(UWorldSubsystem: SetBGMData/StartBGM/SetState/NotifyCombat/StopBGM). 에셋 `/Game/V2_HJContents/Data/BGMData` 생성. **사람:** 곡 넣고 레벨 BP에서 SetBGMData→StartBGM, 전투 지점에서 NotifyCombat 호출. **AI 나중:** 피격·발사·적 발견에서 자동 NotifyCombat 연결
 - [x] (빌드 완료 2026-09-23) 펀치 반동 몽타주 — MikaData `PunchReboundMontage`, `BeginReboundMove()`에서 재생. **사람:** 구르기 몽타주 만들어 DA에 지정
 - [x] (2026-09-23) 카와이 피직스 — 마켓 바이너리(5.6)라 경고가 났음. `KawaiiPhysics.uplugin` EngineVersion 5.7.0·Installed false로 바꾸고 Binaries/Intermediate 삭제 후 소스 빌드. v1.20.0은 UE5.3~5.7 지원. 미카 ABP AnimGraph 꼬리(ModifyBone Pelvis → **카와이 16개** → ComponentToLocalSpace)에 치마 8(Skirt_F/F_R/R/B_R/B/F_L/L/B_L) + 머리 8(Hair_F/L/R/B_0/B_2/B_5/B_7/B_9) 추가. 설정은 미유와 동일(Damping 1, WorldDampingLocation 2, WorldDampingRotation 0.8, Stiffness 1, Radius 1). **사람:** 세부 조정
+- [x] (빌드 완료 2026-09-23) 장전 중 총 크기 튐 버그 — 원인: 왼손 부착 시 `GripLocal.Inverse()`에 **메시 배율까지 포함**돼 총이 작아졌다 커졌음. 조치: 역보정에서 배율 제거(`SetScale3D(1)`), 장전 전 상대 트랜스폼(`PreReloadWeaponTransform`)을 저장해 복귀 시 그대로 복원
+- [x] (빌드 완료 2026-09-23) 반동 몽타주 재생 속도 — MikaData `PunchReboundMontagePlayRate`
+- [x] (빌드 완료 2026-09-23) BGM 볼륨 — `UBGMSubsystem::SetVolume(볼륨, 페이드)` / `GetVolume()`. 지정 안 하면 DA의 Volume 사용
+- [x] (빌드 완료 2026-09-23) 적 교전 조준 대기 — `BTTask_FireAtTarget`에 `AimDelay`(1.0) · `ReengageGap`(3.0). 새 교전이면 타겟을 바라보고(SetFocus) 1초 겨눈 뒤 사격. 연사 중에는 대기 없음. `AEnemyCharacter::GetLastFireTime()` 추가
+- [ ] (진단 중) 총성 청각 — `EnemyAIController::OnTargetPerceptionUpdated`에 `[AIPerception]` 로그 추가. 팀(플레이어 0 / 적 1)·HearingRange 1200·FireNoiseRange 3000은 정상. 로그에 Hearing이 안 찍히면 적 컨트롤러가 C++(AEnemyAIController)가 아닐 가능성 확인
+- [x] (2026-09-23) 카와이 리밋 — `DA_KawaiiLimits_MikaSkirt`(골반 r11·양 허벅지 r8) / `DA_KawaiiLimits_MikaHair`(머리 r10·목 r6·상체 r12), 전부 Outer. 16개 노드에 자동 배정(치마 8 / 머리 8). **임시값이라 사람이 조정**
 - [x] (2026-09-23) 점프 골반 높이 축소 — `Jmp_Base_B_mika` 골반 Z 트랙에서 기준 높이(0.6626) 위 성분을 40%로 축소. 정점 +94cm → +37cm. 착지 웅크림(0.39)은 유지. 원본 백업: `Jmp_Base_B_mika_Backup`
 - [ ] (빌드 대기) 착지 포즈 중단 — `IsLandPoseInterrupted()`(이동 입력·조준, 미카는 충전·대시·펀치 전신·수류탄 추가) 참이면 착지 유지 즉시 종료. 착지 모션 끝에서 멈춰 다른 행동이 안 되던 문제
 - [ ] 점프 중 펀치 카메라 = A안 확정(메시 쪽 수정). `Jmp_Base_B_mika`의 골반 Z 트랙에 점프 높이가 구워져 있음 → 본 트랙 키 수정(복제본 백업 후)으로 캡슐과의 높이 차 줄이기. `bCameraFollowMesh`(B안)는 코드에 남아 있고 기본 끔으로 두면 됨

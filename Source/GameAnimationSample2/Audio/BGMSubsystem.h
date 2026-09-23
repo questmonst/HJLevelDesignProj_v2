@@ -40,6 +40,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BGM", meta=(ToolTip="전투가 일어났음을 알린다. 전투 BGM으로 바꾸고, CombatExitDelay 동안 신호가 없으면 탐색으로 돌아간다"))
 	void NotifyCombat();
 
+	UFUNCTION(BlueprintCallable, Category = "BGM", meta=(ToolTip="BGM 볼륨을 바꾼다 (0~1 이상). 재생 중이면 즉시 반영되고, 다음 곡부터도 이 값을 쓴다"))
+	void SetVolume(float NewVolume, float FadeTime = 0.5f);
+
+	UFUNCTION(BlueprintPure, Category = "BGM")
+	float GetVolume() const { return VolumeScale; }
+
 	UFUNCTION(BlueprintPure, Category = "BGM")
 	EBGMState GetState() const { return CurrentState; }
 
@@ -53,8 +59,10 @@ protected:
 	UAudioComponent* ActiveMusic = nullptr;
 
 	EBGMState CurrentState = EBGMState::Explore;
+	float VolumeScale = -1.f;   // 음수면 아직 안 정해짐 — 데이터 에셋의 Volume을 쓴다
 	FTimerHandle CombatExitTimerHandle;
 
+	float GetEffectiveVolume() const;
 	USoundBase* GetTrackForState(EBGMState State) const;
 	void PlayTrack(USoundBase* Track);
 	void ReturnToExplore();

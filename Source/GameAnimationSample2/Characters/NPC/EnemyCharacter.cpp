@@ -86,6 +86,7 @@ void AEnemyCharacter::BeginPlay()
 
 void AEnemyCharacter::FireAtTarget()
 {
+    LastFireTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
     if (EnemyWeapon) EnemyWeapon->StartFire();
 }
 

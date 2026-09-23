@@ -233,6 +233,7 @@ BT는 하나를 공유해. Use Enemy Data가 켜져 있으면 적마다 다르�
 - [ ] **수류탄 던질 수 있는지 UI** — 위젯에서 `OnGrenadeThrowReadyChanged(bReady)` 바인딩. C++ 완료
 - [ ] **펀치 충전 UI** — `OnPunchFullCharge` 바인딩 + 충전 게이지 `GetPunchChargeRatio()`(0~1). C++ 완료
 - [ ] **펀치 풀 충전 대시 전용 VFX·SFX** — AI에 요청
+- [ ] **카와이 리밋 조정** — `KawaiiPhysics/DA_KawaiiLimits_MikaSkirt`(골반·허벅지 구) / `DA_KawaiiLimits_MikaHair`(머리·목·상체 구). 반경·위치는 임시값이라 뚫리거나 뜨면 조정. 노드에는 이미 다 연결돼 있어서 에셋 하나만 고치면 전부 반영됨
 - [ ] **카와이 피직스 세부 조정** — 미카 ABP AnimGraph 끝부분 카와이 노드 16개(치마 8·머리 8). 미유와 같은 기본값(Damping 1 / WorldDampingLocation 2 / WorldDampingRotation 0.8 / Stiffness 1 / Radius 1)으로 넣어둠. 흔들림·충돌 반경은 취향대로
 - [ ] **미카 `LeftHand` 소켓 위치 조정** — 장전 중 총이 붙는 자리. 지금은 WeaponSocketLeft와 같은 값으로 임시 배치. 무기에 `LeftHandGrip` 소켓이 없으면 총 루트 기준으로 붙으니 소켓도 확인
 - [ ] **BGM 곡 넣기** — `/Game/V2_HJContents/Data/BGMData`에 Explore·Combat·Boss 곡 지정 → 레벨 BP에서 BGM 서브시스템 `SetBGMData` → `StartBGM`, 전투 지점에서 `NotifyCombat`
