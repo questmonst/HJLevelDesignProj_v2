@@ -357,6 +357,21 @@ protected:
 	bool bWeaponInLeftHand = false;
 	FTransform PreReloadWeaponTransform = FTransform::Identity;   // 장전 전 무기 상대 트랜스폼(배율 포함)
 
+	// 장전 중 총이 어디로 가는지 눈으로 확인하기 위한 디버그 표시
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="true면 무기 위치를 일정 프레임마다 구로 찍고 이전 위치와 선으로 잇는다. MikaData에서 설정"))
+	bool bDebugWeaponTrail = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ClampMin="1", ToolTip="몇 프레임마다 표시할지"))
+	int32 DebugWeaponTrailInterval = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ClampMin="0", ToolTip="표시가 남아 있는 시간(초). 0이면 계속 남는다"))
+	float DebugWeaponTrailLifeTime = 8.f;
+
+	int32   DebugWeaponFrameCounter = 0;
+	FVector DebugWeaponLastPoint    = FVector::ZeroVector;
+	bool    bDebugWeaponHasLast     = false;
+	void UpdateWeaponDebugTrail();
+
 	void AttachWeaponToLeftHand();
 	void RestoreWeaponToRightHand();
 
@@ -487,8 +502,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="공중 포즈 가중치 보간 속도. 클수록 빠르게 전환 (0이면 즉시). MikaData에서 설정"))
 	float AirPoseBlendSpeed = 12.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0.1", ToolTip="점프 모션 재생 속도 배율. ABP AirLoco 시퀀스 플레이어 Play Rate에 바인딩. MikaData에서 설정"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0.1", ToolTip="공중 모션 재생 속도 배율 (착지 제외). ABP AirLoco 시퀀스 플레이어 Play Rate에 연결. MikaData에서 설정"))
 	float JumpAnimPlayRate = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0.1", ToolTip="착지 모션만의 재생 속도 배율. ABP Land 상태 Play Rate에 연결. MikaData에서 설정"))
+	float LandAnimPlayRate = 1.f;
 
 	// 착지 유지 시간을 클립 길이에서 자동으로 구한다 — 클립을 손봐도 C++ 수치를 다시 맞출 필요가 없다
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="ABP Land 상태가 재생하는 착지 클립. 지정하면 착지 유지 시간을 길이에서 자동 계산 (비우면 LandPoseHoldTime 사용). MikaData에서 설정"))

@@ -109,6 +109,7 @@ void AMikaCharacter::BeginPlay()
 		LandAnticipationTime       = MikaData->LandAnticipationTime;
 		AirPoseBlendSpeed          = MikaData->AirPoseBlendSpeed;
 		JumpAnimPlayRate           = MikaData->JumpAnimPlayRate;
+		LandAnimPlayRate           = MikaData->LandAnimPlayRate;
 		LandAnimation              = MikaData->LandAnimation;
 		LandAnimStartTime          = MikaData->LandAnimStartTime;
 		// Grenade / Weapon
@@ -201,6 +202,7 @@ void AMikaCharacter::BeginPlay()
 		ReloadMontage              = MikaData->ReloadMontage;
 		bAttachWeaponToLeftHandOnReload = MikaData->bAttachWeaponToLeftHandOnReload;
 		ReloadLeftHandSocket       = MikaData->ReloadLeftHandSocket;
+		bDebugWeaponTrail          = MikaData->bDebugWeaponTrail;
 		PunchChargeMontage         = MikaData->PunchChargeMontage;
 		PunchDashMontage           = MikaData->PunchDashMontage;
 		PunchReboundMontage        = MikaData->PunchReboundMontage;
@@ -623,6 +625,19 @@ void AMikaCharacter::ApplyPunchHit(AActor* Target, UPrimitiveComponent* TargetCo
 	{
 		TargetComp->AddImpulse(Knockback, NAME_None, true);   // 질량 무관 속도 변화
 	}
+}
+
+void AMikaCharacter::Landed(const FHitResult& Hit)
+{
+    Super::Landed(Hit);
+
+    // 반동 몽타주 재생 중 착지 — 몽타주의 착지 부분은 버리고 공용 착지 모션이 이어받는다
+    if (PunchReboundMontage && GetCurrentMontage() == PunchReboundMontage)
+    {
+        StopAnimMontage(PunchReboundMontage);
+        GetWorldTimerManager().ClearTimer(PunchFullBodyTimerHandle);
+        EndPunchFullBody();
+    }
 }
 
 bool AMikaCharacter::IsLandPoseInterrupted() const

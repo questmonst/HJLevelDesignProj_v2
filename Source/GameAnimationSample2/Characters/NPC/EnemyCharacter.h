@@ -203,9 +203,19 @@ public:
 
     // 타겟을 인지한 동안에는 이동 방향이 아니라 컨트롤러(포커스) 방향으로 몸을 돌린다.
     // 이게 없으면 감지만 하고 플레이어 쪽을 쳐다보지 않는다.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Combat", meta=(ToolTip="보스면 true. 전투 BGM 판정에서 제외된다 (보스는 별도 BGM 상태를 쓴다)"))
+    bool bIsBoss = false;
+
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
     void SetFaceTargetMode(bool bFaceTarget);
+
+    // 교전 조준 진행 상황 — BT 태스크가 중간에 끊겨도 처음부터 다시 겨누지 않도록 폰이 기억한다.
+    // 반환: 지금 사격해도 되는지. 아직이면 false (겨누는 중)
+    bool UpdateAimReady(AActor* Target, float AimDelay);
+    void ClearAimProgress();
     float LastFireTime = -1000.f;
+    float AimReadyTime = -1.f;            // 이 시각이 지나면 사격 가능
+    TWeakObjectPtr<AActor> AimTarget;     // 겨누고 있는 대상 (바뀌면 다시 겨눈다)
 
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
     void StopFiring();

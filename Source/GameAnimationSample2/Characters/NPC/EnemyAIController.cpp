@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyAIController.h"
+#include "BGMSubsystem.h"
 #include "EnemyCharacter.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -120,6 +121,15 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
         SetFocus(Actor, EAIFocusPriority::Gameplay);
         if (Enemy) Enemy->SetFaceTargetMode(true);
 
+        // 보스가 아닌 적이 플레이어를 인지하고 있으면 전투 BGM (신호가 끊기면 알아서 탐색으로 돌아간다)
+        if (Enemy && !Enemy->bIsBoss && Actor->IsA(APawn::StaticClass()))
+        {
+            if (UBGMSubsystem* BGM = GetWorld()->GetSubsystem<UBGMSubsystem>())
+            {
+                BGM->NotifyCombat();
+            }
+        }
+
         if (Enemy) Enemy->AlertEnemy(Actor);
     }
     else if (bSight)
@@ -142,6 +152,26 @@ void AEnemyAIController::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
     UpdateDamageEngage();
     UpdateForget();
+    UpdateCombatMusic();
+}
+
+void AEnemyAIController::UpdateCombatMusic()
+{
+    // 인지 이벤트는 가끔만 오므로, 경계 상태가 유지되는 동안 1초마다 신호를 갱신한다
+    const float Now = GetWorld()->GetTimeSeconds();
+    if (Now - LastCombatNotifyTime < 1.f) return;
+
+    const UBlackboardComponent* BB = GetBlackboardComponent();
+    const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
+    if (!BB || !Enemy || Enemy->bIsBoss || Enemy->IsDead()) return;
+    if (!BB->GetValueAsBool(AEnemyCharacter::BBKey_bIsAlerted)) return;
+    if (!BB->GetValueAsObject(AEnemyCharacter::BBKey_TargetActor)) return;
+
+    LastCombatNotifyTime = Now;
+    if (UBGMSubsystem* BGM = GetWorld()->GetSubsystem<UBGMSubsystem>())
+    {
+        BGM->NotifyCombat();
+    }
 }
 
 void AEnemyAIController::UpdateDamageEngage()
@@ -212,5 +242,6 @@ void AEnemyAIController::ForgetTarget()
         Enemy->StopFiring();
         Enemy->ResetAlert();
         Enemy->SetFaceTargetMode(false);   // 다시 이동 방향으로 회전
+        Enemy->ClearAimProgress();
     }
 }

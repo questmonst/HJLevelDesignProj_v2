@@ -153,8 +153,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="공중 포즈 가중치(AirPoseAlpha) 보간 속도. ABP 하체 레이어 Blend Weights에 연결. 클수록 빠르게 전환"))
 	float AirPoseBlendSpeed = 12.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0.1", ToolTip="점프 모션(JumpStart·JumpUp·JumpDown·FallLoop·Land) 재생 속도 배율. 1 = 원본, 0.8 = 20% 느리게. 착지 유지 시간(LandPoseHoldTime)도 자동으로 ÷ 배율"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0.1", ToolTip="공중 모션(JumpStart·JumpUp·JumpDown·FallLoop) 재생 속도 배율. 1 = 원본, 0.8 = 20% 느리게. 착지는 LandAnimPlayRate로 따로 설정"))
 	float JumpAnimPlayRate = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0.1", ToolTip="착지(Land) 모션만의 재생 속도 배율. 착지 유지 시간도 이 값에 맞춰 자동 계산된다"))
+	float LandAnimPlayRate = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ToolTip="ABP Land 상태가 재생하는 착지 클립(AC_Land_mika). 지정하면 착지 유지 시간을 길이에서 자동 계산해 LandPoseHoldTime을 무시. 클립 길이를 바꿔도 코드 수정 불필요"))
 	TObjectPtr<UAnimSequenceBase> LandAnimation = nullptr;
@@ -437,6 +440,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="장전 중 무기를 붙일 캐릭터 메시 소켓 이름 (미카 왼손 소켓)"))
 	FName ReloadLeftHandSocket = TEXT("LeftHand");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="true면 무기 위치를 일정 프레임마다 구·선으로 그린다 (장전 중 총이 어디로 가는지 확인용)"))
+	bool bDebugWeaponTrail = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="펀치 충전 중 몽타주 (UpperBody 슬롯 — ABP에서 Layered blend per bone으로 상체만 적용). 충전이 길어질 수 있으니 반복 섹션으로 구성"))
 	UAnimMontage* PunchChargeMontage = nullptr;

@@ -4,6 +4,7 @@
 #include "WeaponBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimMontage.h"
+#include "DrawDebugHelpers.h"
 
 float APlayerCharacter::PlayMontageForDuration(UAnimMontage* Montage)
 {
@@ -350,4 +351,36 @@ void APlayerCharacter::RestoreWeaponToRightHand()
 	CurrentWeapon->AttachToComponent(GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocket);
 	CurrentWeapon->SetActorRelativeTransform(PreReloadWeaponTransform);   // 장전 전 상태 그대로
+}
+
+void APlayerCharacter::UpdateWeaponDebugTrail()
+{
+	if (!bDebugWeaponTrail || !CurrentWeapon) return;
+	if (++DebugWeaponFrameCounter < FMath::Max(DebugWeaponTrailInterval, 1)) return;
+	DebugWeaponFrameCounter = 0;
+
+	// 총 루트와 LeftHandGrip 소켓을 각각 찍는다 — 둘이 얼마나 벌어지는지 보면 원인이 드러난다
+	const FVector Root = CurrentWeapon->GetActorLocation();
+	const FVector Grip = CurrentWeapon->GetLeftHandGripTransform().GetLocation();
+	const float   Life = (DebugWeaponTrailLifeTime <= 0.f) ? -1.f : DebugWeaponTrailLifeTime;
+	const bool    bPersistent = (DebugWeaponTrailLifeTime <= 0.f);
+
+	const FColor Color = bWeaponInLeftHand ? FColor::Yellow : FColor::Cyan;
+	DrawDebugSphere(GetWorld(), Root, 6.f, 10, Color, bPersistent, Life, 0, 0.6f);
+	DrawDebugSphere(GetWorld(), Grip, 4.f, 8, FColor::Magenta, bPersistent, Life, 0, 0.6f);
+	DrawDebugLine(GetWorld(), Root, Grip, FColor::White, bPersistent, Life, 0, 0.4f);
+
+	if (bDebugWeaponHasLast)
+	{
+		DrawDebugLine(GetWorld(), DebugWeaponLastPoint, Root, Color, bPersistent, Life, 0, 1.f);
+	}
+	DebugWeaponLastPoint  = Root;
+	bDebugWeaponHasLast   = true;
+
+	// 크기·거리도 같이 찍는다
+	const FVector Scale = CurrentWeapon->GetActorScale3D();
+	DrawDebugString(GetWorld(), Root + FVector(0, 0, 12),
+		FString::Printf(TEXT("scale %.2f / hand %.0fcm"), Scale.X,
+			FVector::Dist(Root, GetMesh()->GetSocketLocation(bWeaponInLeftHand ? ReloadLeftHandSocket : WeaponAttachSocket))),
+		nullptr, Color, DebugWeaponTrailLifeTime <= 0.f ? 0.f : DebugWeaponTrailLifeTime, false);
 }

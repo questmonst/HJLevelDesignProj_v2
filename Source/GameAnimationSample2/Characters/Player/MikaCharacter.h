@@ -33,6 +33,10 @@ protected:
 	// 펀치·충전·수류탄 중에는 착지 모션을 붙잡지 않는다
 	virtual bool IsLandPoseInterrupted() const override;
 
+	// 반동(백덤블링) 몽타주는 자체 착지 동작까지 들어 있어, 실제 착지 각도와 어긋난다.
+	// 땅에 닿는 순간 몽타주를 끊고 공용 착지 모션으로 넘긴다.
+	virtual void Landed(const FHitResult& Hit) override;
+
 	virtual void PossessedBy(AController* NewController) override;
 
 	// 카메라 위아래 제한각을 PlayerCameraManager에 적용. 빙의 시점이 BeginPlay보다 늦을 수 있어 양쪽에서 호출

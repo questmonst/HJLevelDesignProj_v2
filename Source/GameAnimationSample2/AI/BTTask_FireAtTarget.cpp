@@ -92,9 +92,12 @@ EBTNodeResult::Type UBTTask_FireAtTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	Mem->RestTime      = FMath::Max(0.f,  Rest  + FMath::FRandRange(-DurationDeviation, DurationDeviation));
 	Mem->bResting      = false;
 
-	// 새로 교전을 시작하는 경우에만 겨누는 시간을 준다 (연사 도중에는 끊지 않는다)
+	// 새로 교전을 시작하는 경우에만 겨누는 시간을 준다 (연사 도중에는 끊지 않는다).
+	// 진행 상황은 폰이 들고 있어서, 태스크가 중간에 끊겼다 다시 들어와도 이어서 센다.
+	AActor* AimTargetActor = bVectorKey ? nullptr : Cast<AActor>(BB->GetValueAsObject(TargetKey.SelectedKeyName));
 	const bool bFreshEngage = Enemy->GetWorld()->TimeSince(Enemy->GetLastFireTime()) > ReengageGap;
-	Mem->AimTime = (bFreshEngage && AimDelay > 0.f) ? AimDelay : 0.f;
+	const bool bAimReady    = !bFreshEngage || Enemy->UpdateAimReady(AimTargetActor, AimDelay);
+	Mem->AimTime = bAimReady ? 0.f : AimDelay;
 	Mem->bFiring = false;
 
 	// 겨누는 동안 타겟을 바라본다 (포커스 서비스가 없더라도 최소한 이 태스크에서는 조준한다)
@@ -124,12 +127,14 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 
 	FBTFireAtTargetMemory* Mem = CastInstanceNodeMemory<FBTFireAtTargetMemory>(NodeMemory);
 
-	// 겨누는 중 — 다 겨누면 그때 쏘기 시작한다
-	if (Mem->AimTime > 0.f)
+	// 겨누는 중 — 다 겨누면 그때 쏘기 시작한다 (판정은 폰이 기억하는 진행 상황 기준)
+	if (Mem->AimTime > 0.f && !Mem->bFiring)
 	{
-		Mem->AimTime -= DeltaSeconds;
-		if (Mem->AimTime <= 0.f)
+		UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
+		AActor* AimTargetActor = BB ? Cast<AActor>(BB->GetValueAsObject(TargetKey.SelectedKeyName)) : nullptr;
+		if (Enemy->UpdateAimReady(AimTargetActor, AimDelay))
 		{
+			Mem->AimTime = 0.f;
 			Mem->bFiring = true;
 			Enemy->FireAtTarget();
 			Enemy->OnAttack();

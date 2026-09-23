@@ -197,6 +197,26 @@ void AEnemyCharacter::SetFaceTargetMode(bool bFaceTarget)
     }
 }
 
+bool AEnemyCharacter::UpdateAimReady(AActor* Target, float AimDelay)
+{
+    if (AimDelay <= 0.f) return true;
+
+    const float Now = GetWorld()->GetTimeSeconds();
+    // 대상이 바뀌었거나 아직 겨눈 적이 없으면 지금부터 겨눈다
+    if (AimTarget.Get() != Target || AimReadyTime < 0.f)
+    {
+        AimTarget    = Target;
+        AimReadyTime = Now + AimDelay;
+    }
+    return Now >= AimReadyTime;
+}
+
+void AEnemyCharacter::ClearAimProgress()
+{
+    AimTarget.Reset();
+    AimReadyTime = -1.f;
+}
+
 void AEnemyCharacter::AlertEnemy(AActor* Target)
 {
     if (bIsAlerted) return;

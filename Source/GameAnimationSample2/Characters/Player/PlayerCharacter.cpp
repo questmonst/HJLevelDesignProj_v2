@@ -190,6 +190,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 		ClearTrajectory();
 	}
 	UpdateCoverPeek(DeltaTime);
+	UpdateWeaponDebugTrail();
 	UpdateCrouchCamera(DeltaTime);
 
 	if (bIsAiming)
@@ -233,7 +234,7 @@ bool APlayerCharacter::IsLandPoseInterrupted() const
 float APlayerCharacter::GetLandHoldTime() const
 {
 	// 클립을 지정해두면 길이가 기준 — 클립을 잘라내거나 늘려도 자동으로 따라간다
-	const float Rate = FMath::Max(JumpAnimPlayRate, 0.1f);
+	const float Rate = FMath::Max(LandAnimPlayRate, 0.1f);   // 착지 유지 시간은 착지 재생 속도 기준
 	if (LandAnimation)
 	{
 		const float Remaining = LandAnimation->GetPlayLength() - LandAnimStartTime;

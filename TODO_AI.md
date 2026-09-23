@@ -228,6 +228,12 @@
 - [x] (빌드 완료 2026-09-23) 장전 총 크기·위치 2차 수정 — 상대 좌표 계산은 캐릭터 메시 배율(≠1) 때문에 단위가 어긋남. **월드 기준**으로 `GripInActor.Inverse() * HandWorld` 계산 후 `SetActorTransform`, 배율은 기존 값 유지
 - [x] (빌드 완료 2026-09-23) 적이 감지해도 안 돌아보는 문제 — 감지 시 `SetFocus(Actor)` + `AEnemyCharacter::SetFaceTargetMode(true)`(컨트롤러 Yaw 사용·이동 방향 회전 끔). `ForgetTarget()`에서 `ClearFocus` + 원복
 - [x] (빌드 완료 2026-09-23) 반동 몽타주 전신 — 재생과 동시에 `bIsPunchFullBody` 켜고 몽타주 실제 길이 뒤 `EndPunchFullBody` 타이머
+- [x] (빌드 완료 2026-09-23) 착지 재생 속도 분리 — DA `LandAnimPlayRate`(0.6) / `JumpAnimPlayRate`(0.1). ABP 변수 `LandPlayRate`를 Land 노드 PlayRate에 배선. `GetLandHoldTime()`은 LandAnimPlayRate 기준
+- [x] (빌드 완료 2026-09-23) 반동 백덤블링 착지 어긋남 — `AMikaCharacter::Landed()`에서 반동 몽타주 재생 중이면 `StopAnimMontage` + 전신 해제 → 몽타주의 자체 착지는 버리고 공용 착지 모션이 이어받음
+- [x] (빌드 완료 2026-09-23) 무기 디버그 표시 — DA `bDebugWeaponTrail`. `DebugWeaponTrailInterval`(10프레임)마다 총 루트(구)·LeftHandGrip(자홍 구)·둘 사이 선, 이전 위치와 잇는 선, 배율·손까지 거리 텍스트. 왼손 부착 중이면 노랑
+- [x] (빌드 완료 2026-09-23) 적이 멈추는 문제 — 조준 진행을 폰이 기억(`UpdateAimReady`/`ClearAimProgress`). BT 태스크가 중간에 끊겨도 1초를 처음부터 다시 세지 않음
+- [x] (빌드 완료 2026-09-23) 전투 BGM 자동 — `EnemyAIController::UpdateCombatMusic()`이 경계+타겟 보유 상태에서 1초마다 `NotifyCombat()`. 보스(`AEnemyCharacter::bIsBoss`)는 제외. **사람:** 보스 BP에 bIsBoss 체크
+- [x] (2026-09-23) 카와이 중력 — 16개 노드 `UseWorldSpaceGravity` 켜고 `Gravity` Z 치마 -2.0 / 머리 -1.2, Damping 0.6, Stiffness 치마 0.35·머리 0.25, Radius 치마 3·머리 2. 치마 리밋 구 7개로 확장(골반 14, 허벅지 위·아래 10/9, 종아리 8)
 - [x] (2026-09-23) 점프 골반 높이 축소 — `Jmp_Base_B_mika` 골반 Z 트랙에서 기준 높이(0.6626) 위 성분을 40%로 축소. 정점 +94cm → +37cm. 착지 웅크림(0.39)은 유지. 원본 백업: `Jmp_Base_B_mika_Backup`
 - [ ] (빌드 대기) 착지 포즈 중단 — `IsLandPoseInterrupted()`(이동 입력·조준, 미카는 충전·대시·펀치 전신·수류탄 추가) 참이면 착지 유지 즉시 종료. 착지 모션 끝에서 멈춰 다른 행동이 안 되던 문제
 - [ ] 점프 중 펀치 카메라 = A안 확정(메시 쪽 수정). `Jmp_Base_B_mika`의 골반 Z 트랙에 점프 높이가 구워져 있음 → 본 트랙 키 수정(복제본 백업 후)으로 캡슐과의 높이 차 줄이기. `bCameraFollowMesh`(B안)는 코드에 남아 있고 기본 끔으로 두면 됨
