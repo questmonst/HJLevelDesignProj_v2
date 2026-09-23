@@ -32,7 +32,9 @@ public class GameAnimationSample2 : ModuleRules
 			"NavigationSystem",
 			"MotionWarping",
 			"Niagara",
-			"UMG"
+			"UMG",
+			"Slate",          // FSlateBrush 등 UI 스타일 구조체
+			"SlateCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
