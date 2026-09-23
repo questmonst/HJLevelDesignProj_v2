@@ -200,6 +200,11 @@ public:
 
     // 마지막으로 사격을 시작한 시각 — "새로 교전을 시작했는지" 판정에 쓴다 (조준 대기)
     float GetLastFireTime() const { return LastFireTime; }
+
+    // 타겟을 인지한 동안에는 이동 방향이 아니라 컨트롤러(포커스) 방향으로 몸을 돌린다.
+    // 이게 없으면 감지만 하고 플레이어 쪽을 쳐다보지 않는다.
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+    void SetFaceTargetMode(bool bFaceTarget);
     float LastFireTime = -1000.f;
 
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")

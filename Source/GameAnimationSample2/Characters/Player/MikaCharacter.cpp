@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MikaCharacter.h"
+#include "Animation/AnimMontage.h"
 #include "IDestructible.h"
 #include "HealthRegenComponent.h"
 #include "WeaponBase.h"
@@ -692,7 +693,21 @@ void AMikaCharacter::BeginReboundMove()
 {
 	// 초기 속도만 주고 끊지 않는다 — 지상은 걷기 제동, 공중은 관성·중력으로 자연스럽게 줄어듦
 	bIsRebounding = false;
-	if (PunchReboundMontage) PlayAnimMontage(PunchReboundMontage, PunchReboundMontagePlayRate);
+	// 반동 모션은 전신으로 — bIsPunchFullBody가 켜져 있는 동안만 ABP가 전신 분기를 쓴다
+	if (PunchReboundMontage)
+	{
+		// PlayAnimMontage는 원본 길이를 돌려주므로 Rate Scale·재생 속도로 나눠 실제 재생 시간을 구한다
+		const float RawLength = PlayAnimMontage(PunchReboundMontage, PunchReboundMontagePlayRate);
+		const float Length = RawLength
+			/ FMath::Max(PunchReboundMontage->RateScale * PunchReboundMontagePlayRate, KINDA_SMALL_NUMBER);
+		bIsPunchFullBody = true;
+		GetWorldTimerManager().ClearTimer(PunchFullBodyTimerHandle);
+		if (Length > 0.f)
+		{
+			GetWorldTimerManager().SetTimer(PunchFullBodyTimerHandle, this,
+				&AMikaCharacter::EndPunchFullBody, Length, false);
+		}
+	}
 	UCharacterMovementComponent* Move = GetCharacterMovement();
 	Move->BrakingFrictionFactor     = DefaultBrakingFrictionFactor;
 	Move->BrakingDecelerationFlying = DefaultBrakingDecelerationFly;

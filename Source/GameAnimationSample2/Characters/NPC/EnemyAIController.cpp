@@ -116,6 +116,10 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
             DamageEngageTime = GetWorld()->GetTimeSeconds();
         }
 
+        // 감지하면 그 쪽을 쳐다본다 — 총성(청각)만 들었을 때도 돌아보게 한다
+        SetFocus(Actor, EAIFocusPriority::Gameplay);
+        if (Enemy) Enemy->SetFaceTargetMode(true);
+
         if (Enemy) Enemy->AlertEnemy(Actor);
     }
     else if (bSight)
@@ -202,9 +206,11 @@ void AEnemyAIController::ForgetTarget()
         BB->SetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget, false);
         BB->SetValueAsBool(AEnemyCharacter::BBKey_bIsAlerted,    false);
     }
+    ClearFocus(EAIFocusPriority::Gameplay);
     if (AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn()))
     {
         Enemy->StopFiring();
         Enemy->ResetAlert();
+        Enemy->SetFaceTargetMode(false);   // 다시 이동 방향으로 회전
     }
 }

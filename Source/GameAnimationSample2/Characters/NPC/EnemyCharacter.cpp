@@ -188,6 +188,15 @@ void AEnemyCharacter::SetMoveMode(EEnemyMoveMode NewMode)
     }
 }
 
+void AEnemyCharacter::SetFaceTargetMode(bool bFaceTarget)
+{
+    bUseControllerRotationYaw = bFaceTarget;
+    if (UCharacterMovementComponent* Move = GetCharacterMovement())
+    {
+        Move->bOrientRotationToMovement = !bFaceTarget;
+    }
+}
+
 void AEnemyCharacter::AlertEnemy(AActor* Target)
 {
     if (bIsAlerted) return;
