@@ -305,4 +305,39 @@ void APlayerCharacter::Reload()
 		const float PlayRate     = (ReloadTime > 0.f) ? BaseDuration / ReloadTime : 1.f;
 		PlayAnimMontage(ReloadMontage, PlayRate);
 	}
+
+	// 장전이 실제로 시작됐으면 총을 왼손으로 옮겼다가 장전 시간 뒤 되돌린다
+	if (!bWasReloading && CurrentWeapon->IsReloading() && bAttachWeaponToLeftHandOnReload)
+	{
+		AttachWeaponToLeftHand();
+		const float ReloadTime = FMath::Max(CurrentWeapon->GetReloadTime(), 0.01f);
+		GetWorldTimerManager().SetTimer(ReloadAttachTimerHandle, this,
+			&APlayerCharacter::RestoreWeaponToRightHand, ReloadTime, false);
+	}
+}
+
+void APlayerCharacter::AttachWeaponToLeftHand()
+{
+	if (!CurrentWeapon || !GetMesh() || !GetMesh()->DoesSocketExist(ReloadLeftHandSocket)) return;
+
+	CurrentWeapon->AttachToComponent(GetMesh(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale, ReloadLeftHandSocket);
+
+	// 무기 루트가 아니라 LeftHandGrip 소켓이 손에 오도록, 그 소켓의 역트랜스폼만큼 되민다
+	const FTransform GripWorld = CurrentWeapon->GetLeftHandGripTransform();
+	const FTransform GripLocal = GripWorld.GetRelativeTransform(CurrentWeapon->GetActorTransform());
+	CurrentWeapon->SetActorRelativeTransform(GripLocal.Inverse());
+
+	bWeaponInLeftHand = true;
+}
+
+void APlayerCharacter::RestoreWeaponToRightHand()
+{
+	if (!bWeaponInLeftHand) return;
+	bWeaponInLeftHand = false;
+
+	if (!CurrentWeapon || !GetMesh()) return;
+	CurrentWeapon->AttachToComponent(GetMesh(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocket);
+	CurrentWeapon->SetActorRelativeTransform(FTransform::Identity);
 }

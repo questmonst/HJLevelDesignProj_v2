@@ -72,6 +72,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="플레이어 발사 시 카메라 트레이스 시작점 전방 오프셋 (cm). 엄폐물 클리핑 방지용"))
 	float TraceStartOffset = 30.f;
 
+	// --- 소리 지각 (AI 청각) ---
+	// 총을 쏠 때만 소음을 낸다. 적 AI의 Hearing 감각이 이 이벤트를 듣고 위치를 조사한다.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Perception", meta=(ClampMin="0", ToolTip="발사 소음이 퍼지는 거리 (cm). 0이면 소음을 내지 않는다. DataAsset에서 설정"))
+	float FireNoiseRange = 3000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Perception", meta=(ClampMin="0", ToolTip="발사 소음 크기 배율. 적 AI 청각 감지 범위에 곱해진다. DataAsset에서 설정"))
+	float FireNoiseLoudness = 1.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="발사 트레이스 디버그 라인 표시 여부"))
 	bool bDebugTrace = false;
 

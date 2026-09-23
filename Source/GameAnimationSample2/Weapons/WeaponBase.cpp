@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WeaponBase.h"
+#include "Perception/AISense_Hearing.h"
 #include "GrenadeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
@@ -96,6 +97,8 @@ void AWeaponBase::BeginPlay()
 		HitVFX                  = WeaponData->HitVFX;
 		MuzzleVFX               = WeaponData->MuzzleVFX;
 		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
+		FireNoiseRange          = WeaponData->FireNoiseRange;
+		FireNoiseLoudness       = WeaponData->FireNoiseLoudness;
 	}
 
 	RefreshMeshTransform();
@@ -229,6 +232,13 @@ void AWeaponBase::Fire()
 			MuzzleTransform.GetLocation(),
 			MuzzleTransform.GetRotation().Rotator(),
 			FVector(MuzzleVFXScale));
+	}
+
+	// 총성은 AI가 듣는다 (발사할 때만 — 발소리·이동 소음은 내지 않는다)
+	if (FireNoiseRange > 0.f)
+	{
+		UAISense_Hearing::ReportNoiseEvent(GetWorld(), MuzzleTransform.GetLocation(),
+			FireNoiseLoudness, Cast<APawn>(GetOwner()), FireNoiseRange, TEXT("Gunshot"));
 	}
 
 	switch (FireMode)

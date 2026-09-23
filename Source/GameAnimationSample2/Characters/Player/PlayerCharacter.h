@@ -343,6 +343,22 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ToolTip="재장전 몽타주(UpperBody 슬롯). MikaData에서 설정"))
 	UAnimMontage* ReloadMontage = nullptr;
 
+	// --- 장전 중 왼손 부착 ---
+	// 장전 모션에서는 총을 왼손이 들고 오른손이 탄창을 다룬다. 무기의 LeftHandGrip 소켓이
+	// 캐릭터의 왼손 소켓에 오도록 무기를 옮겼다가, 장전이 끝나면 원래 손으로 되돌린다.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="true면 장전하는 동안 무기를 왼손 소켓으로 옮긴다. MikaData에서 설정"))
+	bool bAttachWeaponToLeftHandOnReload = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Weapon", meta=(ToolTip="장전 중 무기를 붙일 캐릭터 메시 소켓 (미카 왼손). MikaData에서 설정"))
+	FName ReloadLeftHandSocket = TEXT("LeftHand");
+
+	FTimerHandle ReloadAttachTimerHandle;
+	bool bWeaponInLeftHand = false;
+
+	void AttachWeaponToLeftHand();
+	void RestoreWeaponToRightHand();
+
 	// 맨손 동작(펀치·수류탄) 동안 총을 숨긴다 — 애니가 총을 쥔 손과 겹쳐 보이지 않도록
 	void SetCurrentWeaponHidden(bool bHideWeapon);
 

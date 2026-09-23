@@ -401,6 +401,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Mika|State", meta=(ToolTip="대시 시작 ~ 펀치 몽타주 끝까지 true. ABP 전신 분기에 사용"))
 	bool bIsPunchFullBody = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Punch", meta=(ToolTip="펀치 반동(뒤로 튕김) 몽타주. MikaData에서 설정"))
+	UAnimMontage* PunchReboundMontage = nullptr;
+
 	FTimerHandle PunchFullBodyTimerHandle;
 	void EndPunchFullBody();
 

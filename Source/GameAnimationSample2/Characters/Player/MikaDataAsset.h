@@ -432,9 +432,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="재장전 몽타주(UpperBody 슬롯 → 상체만). 장전이 실제로 시작될 때만 재생. 길이는 무기 ReloadTime에 맞추는 걸 권장"))
 	UAnimMontage* ReloadMontage = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="true면 장전하는 동안 무기를 왼손 소켓으로 옮긴다 (무기의 LeftHandGrip 소켓이 손에 오도록 정렬)"))
+	bool bAttachWeaponToLeftHandOnReload = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="장전 중 무기를 붙일 캐릭터 메시 소켓 이름 (미카 왼손 소켓)"))
+	FName ReloadLeftHandSocket = TEXT("LeftHand");
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="펀치 충전 중 몽타주 (UpperBody 슬롯 — ABP에서 Layered blend per bone으로 상체만 적용). 충전이 길어질 수 있으니 반복 섹션으로 구성"))
 	UAnimMontage* PunchChargeMontage = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Punch", meta=(ToolTip="대시 펀치 몽타주. 제자리(비 Root) 애니 사용 — 이동은 코드가 담당"))
 	UAnimMontage* PunchDashMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="펀치가 적·벽에 맞아 뒤로 튕겨 나올 때 재생할 몽타주 (구르기 등). 비우면 재생 안 함"))
+	UAnimMontage* PunchReboundMontage = nullptr;
 };

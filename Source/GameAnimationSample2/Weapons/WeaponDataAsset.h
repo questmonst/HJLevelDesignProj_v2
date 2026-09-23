@@ -163,4 +163,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="머즐 VFX 스케일"))
 	float MuzzleVFXScale = 1.f;
+
+	// --- Perception ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perception", meta=(ClampMin="0", ToolTip="발사 소음이 퍼지는 거리 (cm). 0이면 소음 없음. 적 AI 청각이 이 이벤트를 듣는다"))
+	float FireNoiseRange = 3000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Perception", meta=(ClampMin="0", ToolTip="발사 소음 크기 배율 (1 = 기본)"))
+	float FireNoiseLoudness = 1.f;
 };
