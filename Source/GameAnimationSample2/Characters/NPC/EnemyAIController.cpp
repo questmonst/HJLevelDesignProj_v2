@@ -90,11 +90,14 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
     const bool bSight  = Sense == UAISense_Sight::StaticClass();
     const bool bDamage = Sense == UAISense_Damage::StaticClass();
 
-    // 총성이 실제로 들어오는지 확인용 — 출력 로그에서 [AIPerception] 검색
-    UE_LOG(LogTemp, Log, TEXT("[AIPerception] %s ← %s (%s) sensed=%d dist=%.0f"),
-        *GetNameSafe(GetPawn()), *GetNameSafe(Actor), *GetNameSafe(Sense.Get()),
-        Stimulus.WasSuccessfullySensed() ? 1 : 0,
-        GetPawn() ? FVector::Dist(GetPawn()->GetActorLocation(), Stimulus.StimulusLocation) : -1.f);
+    // 감지 확인용 로그 — 필요할 때만 켠다 (출력 로그에서 [AIPerception] 검색)
+    if (bDebugPerceptionLog)
+    {
+        UE_LOG(LogTemp, Log, TEXT("[AIPerception] %s ← %s (%s) sensed=%d dist=%.0f"),
+            *GetNameSafe(GetPawn()), *GetNameSafe(Actor), *GetNameSafe(Sense.Get()),
+            Stimulus.WasSuccessfullySensed() ? 1 : 0,
+            GetPawn() ? FVector::Dist(GetPawn()->GetActorLocation(), Stimulus.StimulusLocation) : -1.f);
+    }
 
     if (Stimulus.WasSuccessfullySensed())
     {

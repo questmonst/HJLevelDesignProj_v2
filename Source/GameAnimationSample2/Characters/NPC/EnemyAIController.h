@@ -65,6 +65,9 @@ private:
     // 타겟 정보(시야·피격)를 마지막으로 얻은 시각. 잊기 판정 기준
     float LastTargetInfoTime = 0.f;
 
+    UPROPERTY(EditAnywhere, Category = "Enemy|Debug", meta=(ToolTip="true면 감지 이벤트를 [AIPerception] 로그로 남긴다. 평소에는 꺼둘 것"))
+    bool bDebugPerceptionLog = false;
+
     // 전투 BGM — 적이 플레이어를 인지하고 있는 동안 주기적으로 신호를 보낸다
     void UpdateCombatMusic();
     float LastCombatNotifyTime = -1000.f;
