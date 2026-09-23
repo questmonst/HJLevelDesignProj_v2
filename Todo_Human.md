@@ -236,9 +236,11 @@ BT는 하나를 공유해. Use Enemy Data가 켜져 있으면 적마다 다르�
 - [ ] **카와이 리밋 조정** — `KawaiiPhysics/DA_KawaiiLimits_MikaSkirt`(골반·허벅지 구) / `DA_KawaiiLimits_MikaHair`(머리·목·상체 구). 반경·위치는 임시값이라 뚫리거나 뜨면 조정. 노드에는 이미 다 연결돼 있어서 에셋 하나만 고치면 전부 반영됨
 - [ ] **카와이 피직스 세부 조정** — 미카 ABP AnimGraph 끝부분 카와이 노드 16개(치마 8·머리 8). 미유와 같은 기본값(Damping 1 / WorldDampingLocation 2 / WorldDampingRotation 0.8 / Stiffness 1 / Radius 1)으로 넣어둠. 흔들림·충돌 반경은 취향대로
 - [ ] **미카 `LeftHand` 소켓 위치 조정** — 장전 중 총이 붙는 자리. 지금은 WeaponSocketLeft와 같은 값으로 임시 배치. 무기에 `LeftHandGrip` 소켓이 없으면 총 루트 기준으로 붙으니 소켓도 확인
-- [ ] **BGM 곡 넣기** — `/Game/V2_HJContents/Data/BGMData`에 Explore·Combat·Boss 곡 지정 → 레벨 BP에서 BGM 서브시스템 `SetBGMData` → `StartBGM`, 전투 지점에서 `NotifyCombat`
+- [x] **BGM 곡 넣기** — 동작 확인 완료 (전투 감지는 적 인지 상태로 자동) — `/Game/V2_HJContents/Data/BGMData`에 Explore·Combat·Boss 곡 지정 → 레벨 BP에서 BGM 서브시스템 `SetBGMData` → `StartBGM`, 전투 지점에서 `NotifyCombat`
 - [ ] **펀치 반동 구르기 몽타주** — 만들어서 MikaData › Animation › `PunchReboundMontage`에 지정
 - [ ] **적 AI Perception 청각 확인** — 총성만 소음을 낸다(`FireNoiseRange` 3000). 적 컨트롤러에 Hearing 감각이 켜져 있어야 반응
 - [ ] **점프 확인** — `JumpAnimPlayRate`(MikaData › Fall, 현재 0.8) 조정, 착지 1번·즉시 나오는지. 끊겨 보이면 ABP Land 상태 Start Position 0.05 → 0.03/0. `LandAnticipationTime`은 0 유지(올리면 착지 루프)
 - [ ] **점프 중 펀치 시 캐릭터가 화면 밖으로 나감** — 카메라는 캡슐 고정(랙 없음)이라 메시가 캡슐에서 벗어나는 것으로 추정. 추천 A: PIE 캡처로 캡슐/메시 위치 확인 후 메시 쪽 수정 (보완: `DashSpringArmLength`·`DashFOV` 키우기). AI에 요청
-- [ ] **수류탄 NS 수정** — 끝나면 AI에 `OnProjectileVFXFinished` 제거 요청
+- [ ] (나중에) **수류탄 NS 수정** — `NS_Bomb_Projectile` 복제본에서 이미터 Loop Behavior = Infinite. 끝나면 AI에 `OnProjectileVFXFinished` 제거 요청
+- [ ] (나중에) **보스 BP에 `bIsBoss` 체크** — 전투 BGM 판정에서 제외됨
+- [ ] (보류) **치마 다리 관통** — 충돌 구를 다리 전체에 깔아도 결국 뚫림. 치마 8가닥이 각각 별도 카와이 노드라 면이 아니라 선으로 동작하는 한계. 리그에서 치마 본을 공통 부모 아래로 묶으면 본 제약(Bone Constraints)으로 면처럼 묶을 수 있음. 스윙 각도 제한은 각 노드 `PhysicsSettings.LimitAngle`(현재 치마 55도) — 더 크게 움직이길 원하면 이 값을 올리거나 0(무제한)
