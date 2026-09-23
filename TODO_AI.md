@@ -212,6 +212,8 @@
 - 주의: MikaData 값은 BeginPlay에서 복사 — **PIE 실행 중 DA를 바꾸면 PIE 재시작해야 적용**
 - [ ] (진행 중) `JumpAnimPlayRate` 바인딩 의심 — PIE에서 캐릭터 값은 정상(0.1, LandAnimation 세팅됨) 확인. ABP Property Access 바인딩이 실제로 먹는지 불명. 구분 실험: 노드 PlayRate 기본값 0.6 + DA 0.1 → 매우 느림=바인딩 동작 / 적당히 느림=기본값만 동작(바인딩 실패, ABP 변수 배선으로 교체 필요) / 변화 없음=AirLoco가 아닌 다른 경로
   - 1차 결과(0.6): 변화 없음 → 0.15로 재실험. DA 재생 속도는 1로 복구(착지 유지 시간이 ÷배율이라 0.1이면 4초간 착지 포즈에 갇힘)
+  - **결론(2026-09-23): Property Access 바인딩은 먹지 않음. 원인은 시퀀스 플레이어의 PlayRate가 핀으로 노출돼 있지 않았던 것.** 조치: 노드 `ShowPinForProperties`에서 PlayRate 노출(Python) → ABP 변수 `JumpPlayRate` 추가 → 이벤트 그래프에서 `Set Land Pose Alpha` 뒤에 `Set JumpPlayRate ← Character.JumpAnimPlayRate` 연결 → 5개 상태의 PlayRate 핀에 변수 Get 배선. **ABP 핀 바인딩이 안 먹으면 핀 노출부터 확인할 것**
+- [x] (2026-09-23) 점프 골반 높이 축소 — `Jmp_Base_B_mika` 골반 Z 트랙에서 기준 높이(0.6626) 위 성분을 40%로 축소. 정점 +94cm → +37cm. 착지 웅크림(0.39)은 유지. 원본 백업: `Jmp_Base_B_mika_Backup`
 - [ ] (빌드 대기) 착지 포즈 중단 — `IsLandPoseInterrupted()`(이동 입력·조준, 미카는 충전·대시·펀치 전신·수류탄 추가) 참이면 착지 유지 즉시 종료. 착지 모션 끝에서 멈춰 다른 행동이 안 되던 문제
 - [ ] 점프 중 펀치 카메라 = A안 확정(메시 쪽 수정). `Jmp_Base_B_mika`의 골반 Z 트랙에 점프 높이가 구워져 있음 → 본 트랙 키 수정(복제본 백업 후)으로 캡슐과의 높이 차 줄이기. `bCameraFollowMesh`(B안)는 코드에 남아 있고 기본 끔으로 두면 됨
 - [x] (빌드 완료) 충전 중 카메라 아래 각도 확장 — `MikaData` › Camera › **`ChargeCameraPitchMin`**(-89.9). 충전 시작 시 적용, 끝나면 `CameraPitchMin`으로 복귀
