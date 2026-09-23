@@ -238,6 +238,8 @@
 - [x] (2026-09-23) 점프 블렌드 2배 — AirLoco 전환 크로스페이드 8개 0.08→0.16, `AirPoseBlendSpeed` 12→6
 - [x] (2026-09-23) **카와이 충돌 구 단위 버그** — 이 스켈레톤은 본 컴포넌트 스케일이 **100**이라 `OffsetLocation`은 **미터 단위**(0.09 = 9cm). 처음에 4·12·22로 넣어 구가 4~22m 밖에 있었고 무릎이 전혀 안 막혔음. 반경(Radius)은 컴포넌트 cm 그대로. 치마 구 13개(골반 + 좌우 허벅지 3·종아리 3)로 재배치
 - 참고: 카와이 본 제약(Bone Constraints)은 **같은 노드 안의 본끼리만** 연결 가능. 치마 8가닥이 각각 별도 노드라 가닥끼리 묶을 수 없음. 가닥을 면처럼 묶으려면 치마 본들이 공통 부모 하나 아래로 묶인 리그가 필요 (지금은 충돌 + LimitAngle 55도로 대응)
+- [x] (빌드 완료 2026-09-23) 점프 중 달리기가 공중 모션에 섞이는 문제 — `LocoGroundSpeed`(공중이면 0) 추가, ABP 이벤트 그래프의 `Set GroundSpeed` 입력을 `Character.LocoGroundSpeed`로 교체. DA 토글 `bFreezeLocoSpeedInAir`(기본 true)
+- 주의: 애님 그래프 포즈 출력은 **한 곳에만** 연결된다. 다른 노드에 이으면 기존 연결이 조용히 끊긴다 (T포즈 원인). A/B 테스트 후 반드시 원래 연결을 복구할 것
 - [x] (2026-09-23) **프레임 드랍 원인 규명** — 게임 스레드가 TG_PostPhysics에서 애니 병렬 평가를 기다리며 정체. 원인은 **카와이 충돌 구가 매 프레임 누적**된 것.
   - 카와이는 `#if WITH_EDITOR`에서 매 평가마다 `ApplyLimitsDataAsset()` 호출 → `SourceType == DataAsset`인 항목만 지우고 데이터 에셋 내용을 다시 Append.
   - 그런데 `SourceType = DataAsset`은 **에디터 디테일 패널에서 사람이 편집할 때(PostEditChangeChainProperty)만** 설정됨. **스크립트(Python)로 만든 리밋은 이 표시가 없어 지워지지 않고 무한 누적** → 프레임당 +13개.
