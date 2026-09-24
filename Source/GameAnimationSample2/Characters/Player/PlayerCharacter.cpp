@@ -569,6 +569,16 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 }
 
+void APlayerCharacter::NotifyHitConfirmed(bool bHeadshot)
+{
+	OnHitConfirmed.Broadcast(bHeadshot);
+}
+
+void APlayerCharacter::NotifyEnemyKilled()
+{
+	OnEnemyKilled.Broadcast();
+}
+
 void APlayerCharacter::OnLanding_Implementation(bool bHardLanding)
 {
 }

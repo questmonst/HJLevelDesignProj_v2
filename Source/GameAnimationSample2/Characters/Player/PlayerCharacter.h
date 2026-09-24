@@ -25,6 +25,11 @@ class UMotionWarpingComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGrenadeThrowReadyChangedSignature, bool, bReady);
 
+// 적을 맞혔을 때 HUD 히트마커용 — bHeadshot이면 강한 마커(빨강)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitConfirmedSignature, bool, bHeadshot);
+// 적을 쓰러뜨렸을 때
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyKilledSignature);
+
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API APlayerCharacter : public ACharacterBase
 {
@@ -276,6 +281,24 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Character|Grenade", meta=(ToolTip="손에 든 수류탄이 던질 수 있게 되면 true, 던지거나 취소하면 false. UI 표시용"))
 	FOnGrenadeThrowReadyChangedSignature OnGrenadeThrowReadyChanged;
+
+	// --- 히트마커 ---
+
+	UPROPERTY(BlueprintAssignable, Category = "Character|HUD", meta=(ToolTip="적 적중 시 방송. bHeadshot이면 헤드샷"))
+	FOnHitConfirmedSignature OnHitConfirmed;
+
+	UPROPERTY(BlueprintAssignable, Category = "Character|HUD", meta=(ToolTip="적 처치 시 방송"))
+	FOnEnemyKilledSignature OnEnemyKilled;
+
+	// 무기가 호출 — 적을 맞혔음을 HUD에 알린다
+	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
+	void NotifyHitConfirmed(bool bHeadshot);
+
+	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
+	void NotifyEnemyKilled();
+
+	UFUNCTION(BlueprintPure, Category = "Character|Grenade")
+	int32 GetGrenadeCount() const { return GrenadeCount; }
 
 protected:
 	// 손에 든 수류탄의 준비 완료 알림을 받아 OnGrenadeThrowReadyChanged(true) 방송

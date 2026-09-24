@@ -81,6 +81,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Perception", meta=(ClampMin="0", ToolTip="발사 소음 크기 배율. 적 AI 청각 감지 범위에 곱해진다. DataAsset에서 설정"))
 	float FireNoiseLoudness = 1.f;
 
+	// --- 히트마커 ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ToolTip="이 문자열이 들어간 본에 맞으면 헤드샷으로 친다 (대소문자 무시)"))
+	FString HeadBoneKeyword = TEXT("head");
+
+	// 맞은 대상이 적 캐릭터면 플레이어 HUD에 히트마커를 알린다
+	void ReportHitToPlayer(const FHitResult& Hit);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="발사 트레이스 디버그 라인 표시 여부"))
 	bool bDebugTrace = false;
 

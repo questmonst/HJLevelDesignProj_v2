@@ -462,6 +462,12 @@ void AMikaCharacter::StartPunchCooldown()
 	GetWorldTimerManager().SetTimer(PunchCooldownTimerHandle, this, &AMikaCharacter::ResetPunchCooldown, PunchCooldown, false);
 }
 
+float AMikaCharacter::GetPunchCooldownRemaining() const
+{
+	if (bCanPunch) return 0.f;
+	return FMath::Max(GetWorldTimerManager().GetTimerRemaining(PunchCooldownTimerHandle), 0.f);
+}
+
 void AMikaCharacter::ResetPunchCooldown()
 {
 	bCanPunch = true;

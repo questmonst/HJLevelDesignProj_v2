@@ -238,6 +238,12 @@
 - [x] (2026-09-23) 점프 블렌드 2배 — AirLoco 전환 크로스페이드 8개 0.08→0.16, `AirPoseBlendSpeed` 12→6
 - [x] (2026-09-23) **카와이 충돌 구 단위 버그** — 이 스켈레톤은 본 컴포넌트 스케일이 **100**이라 `OffsetLocation`은 **미터 단위**(0.09 = 9cm). 처음에 4·12·22로 넣어 구가 4~22m 밖에 있었고 무릎이 전혀 안 막혔음. 반경(Radius)은 컴포넌트 cm 그대로. 치마 구 13개(골반 + 좌우 허벅지 3·종아리 3)로 재배치
 - 참고: 카와이 본 제약(Bone Constraints)은 **같은 노드 안의 본끼리만** 연결 가능. 치마 8가닥이 각각 별도 노드라 가닥끼리 묶을 수 없음. 가닥을 면처럼 묶으려면 치마 본들이 공통 부모 하나 아래로 묶인 리그가 필요 (지금은 충돌 + LimitAngle 55도로 대응)
+- [x] (빌드 완료 2026-09-24) 스킬 쿨타임 아이콘 — `USkillIconWidget`(UI/)가 아이콘·시계방향 덮개·번쩍임·숫자를 코드로 조립. `SkillType`(Punch/Grenade/Custom)으로 자동 갱신. 펀치는 `GetPunchCooldownRemaining()/GetPunchCooldownDuration()`(신규), 수류탄은 `GetGrenadeCount()`로 개수 표시 후 0이면 어둡게. 쿨타임 종료 시 `FlashDuration`(0.25초) 동안 번쩍임
+  - 머티리얼 `M_UI_RadialCooldown` — UI 도메인·Translucent. Custom HLSL이 `atan2`로 12시 기준 시계방향 각도를 구해 `Percent`와 비교. 파라미터: `Percent`(0~1), `SweepColor`. 위젯이 MID로 매 프레임 갱신
+  - 에셋: `WBP_SkillIcon_Punch`(라벨 우클릭), `WBP_SkillIcon_Grenade`(라벨 G). HUD 우하단 배치. **사람:** `Icon Texture` 지정 필요
+- [x] (빌드 완료 2026-09-24) 히트마커 C++ 연결 — `UCrosshairWidget`(UI/)이 기존 WBP 애니(`Anim_Hit`·`Anim_HeadShot`·`Anim_Killed`)를 재생. `WBP_Crosshair_V2` 부모를 이 클래스로 변경
+  - `APlayerCharacter::OnHitConfirmed(bool bHeadshot)` / `OnEnemyKilled` 델리게이트 추가, `AWeaponBase::ReportHitToPlayer()`가 히트스캔 명중 시 호출. 헤드샷 판정은 `Hit.BoneName`에 `HeadBoneKeyword`("head") 포함 여부. 맞은 대상이 이미 죽었으면 처치 마커
+  - 주의: BP 그래프가 애니 변수를 읽고 있어 C++ 애니 프로퍼티에 `BlueprintReadOnly` 필요했음
 - [x] (빌드 완료 2026-09-23) 플레이어 체력바 오버워치2 스타일 — `UPlayerHealthBarWidget`(UI/)가 칸을 **코드로 자동 생성**. 기본 10칸, 칸 하나 = 최대 체력 ÷ 칸 수. 각 칸은 작은 ProgressBar(배경=빈 칸, 채움=흰색)이고 `RefreshSegments()`가 `(현재체력 - 칸시작)/칸당체력`을 0~1로 잘라 칸마다 채움. `ACharacterBase::OnHealthChanged`에 자동 연결(`bAutoBindToPlayer`). 조절값: SegmentCount·SegmentSize·SegmentGap·CornerRadius·FillColor·EmptyColor·OutlineColor/Width
   - 에셋: `WBP_PlayerHealthBar`(부모 = PlayerHealthBarWidget), `WBP_Crosshair_V2`의 HPBar 안에 배치. 옛 ProgressBar와 HP_Segments 묶음은 제거
   - Build.cs에 `Slate`·`SlateCore` 추가 (FSlateBrush/FProgressBarStyle 링크)

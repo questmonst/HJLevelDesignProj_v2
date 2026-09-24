@@ -378,6 +378,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Mika|Punch")
 	float GetPunchChargeRatio() const { return bIsChargingPunch ? GetChargeRatio() : 0.f; }
 
+	// --- 스킬 쿨타임 (HUD 아이콘용) ---
+
+	UFUNCTION(BlueprintPure, Category = "Character|Punch")
+	bool IsPunchReady() const { return bCanPunch; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Punch", meta=(ToolTip="펀치 쿨타임 남은 시간(초). 준비됐으면 0"))
+	float GetPunchCooldownRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "Character|Punch", meta=(ToolTip="펀치 쿨타임 전체 길이(초)"))
+	float GetPunchCooldownDuration() const { return PunchCooldown; }
+
 protected:
 	bool bFullChargeNotified = false;   // 이번 충전에서 풀 충전 알림을 보냈는지
 	bool bDashFullCharge     = false;   // 이번 대시가 풀 충전인지 → 메인 히트 연출(메인 FX·히트스톱·폭발) 여부

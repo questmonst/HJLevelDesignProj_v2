@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WeaponBase.h"
+#include "CharacterBase.h"
 #include "Perception/AISense_Hearing.h"
 #include "GrenadeBase.h"
 #include "Kismet/GameplayStatics.h"
@@ -255,6 +256,26 @@ void AWeaponBase::Fire()
 
 }
 
+void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit)
+{
+	APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
+	if (!Player) return;
+
+	// 적 캐릭터를 맞혔을 때만 — 벽·소품은 마커를 띄우지 않는다
+	ACharacterBase* Victim = Cast<ACharacterBase>(Hit.GetActor());
+	if (!Victim || Victim == Player) return;
+
+	if (Victim->IsDead())
+	{
+		Player->NotifyEnemyKilled();
+		return;
+	}
+
+	const bool bHeadshot = !HeadBoneKeyword.IsEmpty()
+		&& Hit.BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase);
+	Player->NotifyHitConfirmed(bHeadshot);
+}
+
 void AWeaponBase::HitscanFire()
 {
 	APawn* OwnerPawn       = Cast<APawn>(GetOwner());
@@ -324,8 +345,11 @@ void AWeaponBase::HitscanFire()
 					Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
 
 			if (Hit.GetActor())
+			{
 				UGameplayStatics::ApplyPointDamage(Hit.GetActor(), ActualDamage,
 					PelletDir, Hit, OwnerCtrl, this, nullptr);
+				ReportHitToPlayer(Hit);   // 대미지 적용 뒤 — 죽었는지까지 보고 판단
+			}
 
 			if (!RepresentativeHit.bBlockingHit)
 				RepresentativeHit = Hit;
