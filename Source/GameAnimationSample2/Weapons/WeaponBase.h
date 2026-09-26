@@ -89,6 +89,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ClampMin="0", ToolTip="본 이름을 못 얻었을 때, 머리 본에서 이 거리(cm) 안에 맞으면 헤드샷으로 친다. 0이면 거리 판정 끔"))
 	float HeadHitRadius = 22.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ClampMin="1", ToolTip="헤드샷 대미지 배율. DataAsset에서 설정"))
+	float HeadshotDamageMultiplier = 2.f;
+
+	// 머리에 맞았는지. 대미지 배율과 히트마커가 같은 판정을 쓰도록 한 곳에 모았다
+	bool IsHeadshot(const FHitResult& Hit, const class ACharacterBase* Victim) const;
+
 	// 맞은 대상이 적 캐릭터면 플레이어 HUD에 히트마커를 알린다
 	void ReportHitToPlayer(const FHitResult& Hit);
 

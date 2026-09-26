@@ -70,6 +70,7 @@ void AWeaponBase::BeginPlay()
 		GrenadeClass            = WeaponData->GrenadeClass;
 		// --- Stats ---
 		Damage                  = WeaponData->Damage;
+		HeadshotDamageMultiplier = WeaponData->HeadshotDamageMultiplier;
 		FireRate                = WeaponData->FireRate;
 		Range                   = WeaponData->Range;
 		ReloadTime              = WeaponData->ReloadTime;
@@ -265,6 +266,38 @@ void AWeaponBase::Fire()
 
 }
 
+bool AWeaponBase::IsHeadshot(const FHitResult& Hit, const ACharacterBase* Victim) const
+{
+	if (!Victim || HeadBoneKeyword.IsEmpty()) return false;
+
+	if (Hit.BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase)) return true;
+
+	// 트레이스가 캡슐에 막히면 BoneName이 비어 있다. 그때는 머리 본까지의 거리로 판단한다
+	if (HeadHitRadius <= 0.f) return false;
+
+	const USkeletalMeshComponent* VictimMesh = Victim->GetMesh();
+	if (!VictimMesh) return false;
+
+	FName HeadBone = NAME_None;
+	for (const FName& BoneName : VictimMesh->GetAllSocketNames())
+	{
+		if (BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase)) { HeadBone = BoneName; break; }
+	}
+	if (HeadBone == NAME_None)
+	{
+		// 소켓에 없으면 본 이름으로 다시 찾는다
+		const int32 BoneCount = VictimMesh->GetNumBones();
+		for (int32 i = 0; i < BoneCount; ++i)
+		{
+			const FName BoneName = VictimMesh->GetBoneName(i);
+			if (BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase)) { HeadBone = BoneName; break; }
+		}
+	}
+	if (HeadBone == NAME_None) return false;
+
+	return FVector::Dist(Hit.ImpactPoint, VictimMesh->GetBoneLocation(HeadBone)) <= HeadHitRadius;
+}
+
 void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit)
 {
 	APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
@@ -280,38 +313,7 @@ void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit)
 		return;
 	}
 
-	bool bHeadshot = !HeadBoneKeyword.IsEmpty()
-		&& Hit.BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase);
-
-	// 트레이스가 캡슐에 막히면 BoneName이 비어 있다. 그때는 머리 본까지의 거리로 판단한다
-	if (!bHeadshot && HeadHitRadius > 0.f && !HeadBoneKeyword.IsEmpty())
-	{
-		if (const USkeletalMeshComponent* VictimMesh = Victim->GetMesh())
-		{
-			FName HeadBone = NAME_None;
-			for (const FName& BoneName : VictimMesh->GetAllSocketNames())
-			{
-				if (BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase)) { HeadBone = BoneName; break; }
-			}
-			if (HeadBone == NAME_None)
-			{
-				// 소켓에 없으면 본 이름으로 다시 찾는다
-				const int32 BoneCount = VictimMesh->GetNumBones();
-				for (int32 i = 0; i < BoneCount; ++i)
-				{
-					const FName BoneName = VictimMesh->GetBoneName(i);
-					if (BoneName.ToString().Contains(HeadBoneKeyword, ESearchCase::IgnoreCase)) { HeadBone = BoneName; break; }
-				}
-			}
-			if (HeadBone != NAME_None)
-			{
-				const FVector HeadLoc = VictimMesh->GetBoneLocation(HeadBone);
-				bHeadshot = FVector::Dist(Hit.ImpactPoint, HeadLoc) <= HeadHitRadius;
-			}
-		}
-	}
-
-	Player->NotifyHitConfirmed(bHeadshot);
+	Player->NotifyHitConfirmed(IsHeadshot(Hit, Victim));
 }
 
 void AWeaponBase::HitscanFire()
@@ -384,7 +386,13 @@ void AWeaponBase::HitscanFire()
 
 			if (Hit.GetActor())
 			{
-				UGameplayStatics::ApplyPointDamage(Hit.GetActor(), ActualDamage,
+				// 머리에 맞으면 배율. 판정은 히트마커와 같은 함수를 쓴다 (둘이 어긋나면 안 된다)
+				float HitDamage = ActualDamage;
+				if (const ACharacterBase* Victim = Cast<ACharacterBase>(Hit.GetActor()))
+				{
+					if (IsHeadshot(Hit, Victim)) HitDamage *= HeadshotDamageMultiplier;
+				}
+				UGameplayStatics::ApplyPointDamage(Hit.GetActor(), HitDamage,
 					PelletDir, Hit, OwnerCtrl, this, nullptr);
 				ReportHitToPlayer(Hit);   // 대미지 적용 뒤 — 죽었는지까지 보고 판단
 			}

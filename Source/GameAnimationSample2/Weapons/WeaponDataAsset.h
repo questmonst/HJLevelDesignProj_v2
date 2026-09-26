@@ -56,6 +56,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="발사 1회당 피해량"))
 	float Damage = 20.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ClampMin="1", ToolTip="헤드샷 대미지 배율. 머리 본에 맞거나(HeadBoneKeyword) 머리에서 HeadHitRadius 안에 맞으면 Damage에 이 값을 곱한다. 1이면 부위 무관 동일 대미지"))
+	float HeadshotDamageMultiplier = 2.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="초당 발사 횟수 (rounds per second)"))
 	float FireRate = 10.f;
 

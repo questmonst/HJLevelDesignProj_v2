@@ -298,6 +298,17 @@
   - **빌드 실패 1회**: 같은 UPROPERTY를 헤더에 두 번 선언 (스크립트가 앞서 일부만 적용된 줄 모르고 다시 추가).
     UHT는 shadowing을 에러로 잡는다 — 스크립트로 헤더를 수정할 땐 적용 여부를 먼저 grep으로 확인할 것
 
+- [x] (빌드 완료 2026-09-26) 헤드샷 대미지 배율 + UI 머티리얼 검정 원인 수정
+  - `WeaponDataAsset.HeadshotDamageMultiplier`(2.0). 판정 로직을 `AWeaponBase::IsHeadshot()`으로 분리해
+    **대미지 배율과 히트마커가 같은 판정을 쓰게** 했다 (어긋나면 "빨간 마커인데 평타"가 나온다)
+  - **UI 머티리얼이 검정으로 나오던 원인**: `VectorParameter`의 기본 출력 핀은 **RGB(float3)** 인데
+    Custom HLSL에서 `float4 C = BgColor;`로 받았다. float3→float4 암시적 변환은 HLSL 컴파일 에러라
+    셰이더가 실패하고 **검정**으로 떨어진다. `AppendVector`로 RGB+A를 float4로 합쳐서 넣어 해결
+  - **교훈: `validate_material`의 "0 issues"는 셰이더 컴파일 통과를 뜻하지 않는다.**
+    스크립트로 만든 머티리얼은 반드시 MaterialInstance를 하나 만들어 **미리보기를 눈으로 확인**할 것.
+    이걸 안 해서 `M_UI_RadialCooldown`·`M_UI_ChargeArc` 두 개가 연달아 검정인 채로 며칠 갔다
+  - Custom 노드에 색을 넣을 때는 항상 `AppendVector(RGB, A)`를 거칠 것
+
 - [ ] **몽타주 슬롯을 `DefaultSlot`으로 통일 (보류 — 레벨 디자인 후)**
   - 현재 **두 ABP 모두 `UpperBody` 슬롯 하나**만 있다:
     - `ABP_AREnemy`: 레이어드 없이 출력 포즈로 직결 → **UpperBody가 사실상 전신**
