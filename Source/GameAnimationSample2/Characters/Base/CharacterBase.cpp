@@ -258,7 +258,10 @@ void ACharacterBase::OnDeath_Implementation()
 	// 렉돌을 쓰면 제거 시점은 렉돌 흐름이 정한다 (화면 밖으로 나가면 사라짐)
 	if (bRagdollOnDeath)
 	{
-		const float Delay = (DeathMontage) ? FMath::Max(PlayAnimMontage(DeathMontage), RagdollDelay) : RagdollDelay;
+		// 몽타주가 실제로 재생됐을 때만 기다린다. 슬롯이 없어 재생이 안 됐는데 기다리면
+		// 아무 모션 없이 멍하니 서 있다가 뒤늦게 쓰러진다
+		const float MontageLength = PlayRandomMontage(DeathMontages, 0.1f);
+		const float Delay = MontageLength * FMath::Clamp(RagdollDelayRate, 0.f, 1.f);
 		if (Delay > 0.f)
 		{
 			GetWorldTimerManager().SetTimer(
@@ -286,6 +289,39 @@ void ACharacterBase::OnDeath_Implementation()
 void ACharacterBase::FinishDeath()
 {
 	Destroy();
+}
+
+float ACharacterBase::PlayRandomMontage(const TArray<UAnimMontage*>& Montages, float BlendTime)
+{
+	UAnimInstance* Anim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!Anim || Montages.Num() == 0) return 0.f;
+
+	// 비어 있는 칸이 섞여 있을 수 있으니 유효한 것만 모아서 고른다
+	TArray<UAnimMontage*> Valid;
+	Valid.Reserve(Montages.Num());
+	for (UAnimMontage* M : Montages)
+	{
+		if (M) Valid.Add(M);
+	}
+	if (Valid.Num() == 0) return 0.f;
+
+	UAnimMontage* Picked = Valid[FMath::RandRange(0, Valid.Num() - 1)];
+	Anim->Montage_PlayWithBlendIn(Picked, FAlphaBlendArgs(BlendTime));
+
+	// 슬롯이 ABP에 없으면 재생되지 않는다 — 그걸 길이로 착각하면 아무것도 안 나오는 채로 기다리게 된다
+	if (!Anim->Montage_IsPlaying(Picked)) return 0.f;
+
+	return Picked->GetPlayLength() / FMath::Max(Picked->RateScale, KINDA_SMALL_NUMBER);
+}
+
+void ACharacterBase::PlayHitReactMontage()
+{
+	if (bIsDead || bIsRagdoll) return;
+	if (GetWorld()->TimeSince(LastHitMontageTime) < HitMontageMinInterval) return;
+	if (PlayRandomMontage(HitMontages, HitMontageBlendTime) > 0.f)
+	{
+		LastHitMontageTime = GetWorld()->GetTimeSeconds();
+	}
 }
 
 // --- Ragdoll ---
@@ -326,10 +362,41 @@ void ACharacterBase::KnockdownToRagdoll(const FVector& Impulse)
 	EnterRagdoll();
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
 	{
-		MeshComp->AddImpulse(Impulse, NAME_None, true);   // 질량 무관 속도 변화
+		// 모든 바디에 속도를 줘야 한다. 골반 하나만 밀면 나머지 뼈가 정지 상태로 붙잡고 늘어져
+		// 운동량이 관절을 늘리는 데 소모되고, 몸은 거의 날아가지 않는다
+		MeshComp->SetAllPhysicsLinearVelocity(Impulse);
 	}
+
+	// 정해진 시간이 아니라 "멈출 때까지" 누워 있는다. 0.1초마다 속도를 본다
 	GetWorldTimerManager().SetTimer(
-		RagdollTimerHandle, this, &ACharacterBase::ExitRagdollAndGetUp, KnockbackRagdollTime, false);
+		RagdollTimerHandle, this, &ACharacterBase::TickKnockbackRagdoll, 0.1f, true, KnockbackRagdollMinTime);
+}
+
+void ACharacterBase::TickKnockbackRagdoll()
+{
+	if (!bIsRagdoll || bIsDead)
+	{
+		GetWorldTimerManager().ClearTimer(RagdollTimerHandle);
+		return;
+	}
+
+	const float Elapsed = GetWorld()->TimeSince(RagdollStartTime);
+	bool bDone = Elapsed >= KnockbackRagdollMaxTime;   // 계속 굴러떨어져도 언젠가는 일어난다
+
+	if (!bDone)
+	{
+		if (USkeletalMeshComponent* MeshComp = GetMesh())
+		{
+			const float Speed = MeshComp->GetPhysicsLinearVelocity(RagdollPelvisBone).Size();
+			bDone = Speed <= KnockbackSettleSpeed;
+		}
+	}
+
+	if (bDone)
+	{
+		GetWorldTimerManager().ClearTimer(RagdollTimerHandle);
+		ExitRagdollAndGetUp();
+	}
 }
 
 void ACharacterBase::ExitRagdollAndGetUp()
@@ -371,7 +438,16 @@ void ACharacterBase::ExitRagdollAndGetUp()
 
 	bIsRagdoll = false;
 
-	if (GetUpMontage) PlayAnimMontage(GetUpMontage);
+	// 일어나는 동안에도 공격은 막는다 (BT는 bIsRagdoll만 보면 기상 순간부터 다시 쏜다)
+	if (GetUpMontage)
+	{
+		const float Length = PlayRandomMontage({ GetUpMontage }, 0.1f);
+		if (Length > 0.f)
+		{
+			bIsGettingUp = true;
+			GetWorldTimerManager().SetTimer(GetUpTimerHandle, this, &ACharacterBase::EndGetUp, Length, false);
+		}
+	}
 }
 
 void ACharacterBase::BeginDeathRagdoll()
@@ -416,6 +492,7 @@ float ACharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 	SpawnDamageNumber(Actual, HitLoc);
 	ShowHealthBar();
 	OnDamaged.Broadcast(Actual, HitLoc);
+	PlayHitReactMontage();   // 사망·렉돌 중이면 내부에서 무시
 
 	TakeDamageCustom(Actual);   // 체력 감소 + OnHealthChanged + (사망 시) Die
 	return Actual;

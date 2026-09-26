@@ -220,6 +220,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
     void StopFiring();
 
+    // 쓰러지는 순간 쏘던 것을 끊는다 (BT는 다음 틱에야 태스크를 다시 평가한다)
+    virtual void EnterRagdoll() override;
+
     UFUNCTION(BlueprintCallable, Category = "Enemy|AI")
     void AlertEnemy(AActor* Target);
 

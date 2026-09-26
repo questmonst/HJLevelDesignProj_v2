@@ -258,6 +258,46 @@
     ⚠️ `bAimWaistFollowInvert` — ABP가 `AimWaistYaw × -1`로 적용해서 부호는 실제로 보고 정해야 함. 반대면 클램프까지 발산
   - `DodgeAirEntryMomentumRatio`(1) — 공중 회피만 기존 속도 합산. 지상은 거리 정확성 때문에 제외
 
+- [x] (빌드 완료 2026-09-26) 발사 모션 매 발·폭발 넉백·렉돌 사격 차단·넉백 관성·백덤블링·충전 게이지
+  - **발사 몽타주가 매 발 안 나오던 이유**: `StartFire`에서 한 번만 재생 → 연사는 첫 발만.
+    `AWeaponBase::Fire()`가 한 발 쏠 때마다 `APlayerCharacter::OnWeaponFired()`를 부르게 함.
+    **이미 재생 중이면 `Montage_SetPosition(0)`로 되감는다** — 다시 `PlayAnimMontage`하면 블렌드 인이 겹쳐 뚝뚝 끊긴다.
+    샷건 팰릿은 `bAmmoPerPellet || CurrentPelletShot == 0` 조건으로 첫 발에만
+  - **넉백이 약했던 진짜 원인**: `AddImpulse(..., NAME_None, ...)`는 스켈레탈 메시의 **루트 바디 하나에만** 들어간다.
+    나머지 뼈가 정지 상태로 붙잡고 늘어져 운동량이 관절을 늘리는 데 소모됨 → `SetAllPhysicsLinearVelocity()`로 교체.
+    (비용 걱정 있었으나 넉백 순간 1회, 바디 10~20개 벡터 대입이라 무시할 수준. 실제 비용은 매 프레임 도는 시뮬레이션)
+  - 폭발 넉백(`PunchExplode`)도 렉돌 경로 추가 — `LaunchCharacter`는 물리 시뮬 중인 적에게 안 먹힌다
+  - `BTTask_FireAtTarget`이 `bIsRagdoll`이면 즉시 실패 + `AEnemyCharacter::EnterRagdoll` 오버라이드로 즉시 사격 중단
+    (BT는 다음 틱에야 재평가하므로 태스크 차단만으로는 쏘던 연사가 안 끊긴다)
+  - 백덤블링(`PunchReboundMontage`)은 `bDashFullCharge`일 때만
+  - **충전 게이지** `UChargeGaugeWidget` + `M_UI_ChargeArc`:
+    아래 반원 도넛, 왼→오, 전체 눈금 = `ForcedMaxChargeTime`(2초), 마커 = `MaxChargeTime`(1.5초) 지점.
+    마커를 넘으면 채운 부분이 `FullColor`(흰색)로. `GetPunchChargeForcedRatio()`/`GetPunchChargeMarkerRatio()` 추가
+    - 머티리얼: Custom HLSL float4 출력 → **ComponentMask 2개(RGB/A)** 로 나눠 Emissive/Opacity에 연결.
+      Custom 노드 출력은 핀이 하나(`None`)뿐이라 `from_pin: "RGB"`로는 직접 못 잇는다
+    - **배치는 사용자가 직접** (WBP 자식 위젯 MCP 추가 금지 교훈)
+
+- [x] (빌드 완료 2026-09-26) 몽타주 리스트·렉돌 개선·착지 공격 죽은 구간·게이지 수정
+  - **충전 게이지가 안 보이던 원인**: `NativeConstruct`에서 위젯 **자기 자신**을 `Hidden`으로 했다.
+    Slate는 `SWidget::Tick`을 **`SWidget::Paint` 안에서** 부르기 때문에(SWidget.cpp:1439)
+    안 그려지는 위젯은 틱도 안 돌고 → 스스로 다시 나타날 수 없다. **루트는 항상 보이게 두고 안쪽 이미지만 숨길 것**
+  - **백덤블링이 가끔 상체만 나오던 원인**: `BeginReboundMove`가 `bIsPunchFullBody`만 켜고
+    **ABP가 실제로 읽는 `bFullBodyMontage`는 안 켰다**. 대시 몽타주 타이머가 반동 딜레이보다 먼저 끝난 경우에만 발생 → 간헐적
+  - **적이 죽을 때 멍때리던 원인 2개**: ① BT를 안 멈춰서 사망 몽타주가 로코모션에 묻힘 → `StopLogic` + 이동 정지
+    ② 몽타주가 재생되지 않았는데도(슬롯 없음 등) 길이만큼 기다렸다 → `Montage_IsPlaying` 확인 후에만 대기
+  - 발사 반동: `Montage_SetPosition(0)` 되감기는 포즈가 순간이동해 촐싹거린다 →
+    `Montage_PlayWithBlendIn(FAlphaBlendArgs(FireMontageBlendTime))`로 교체
+  - `DeathMontages`/`HitMontages` 배열 + 무작위 재생(`PlayRandomMontage`). 피격은 `HitMontageMinInterval`로 연사 떨림 방지
+  - `RagdollDelay`(초) → `RagdollDelayRate`(0~1, 몽타주 길이 비율)
+  - 넉백 렉돌은 시간 고정이 아니라 **멈출 때까지** (`KnockbackSettleSpeed` 이하로 느려지면 기상).
+    `KnockbackRagdollMaxTime` 안전장치 + `KnockbackRagdollMinTime`(날아가는 중 기상 방지)
+  - `bIsGettingUp` + `IsIncapacitated()` — BT는 렉돌 중·기상 중 모두 사격 금지
+  - 착지 공격 **죽은 구간**: `PunchSlamShallowMaxPitch`(10) 이내 또는 `PunchSlamMinDownPitch`(30) 이상일 때만 발동
+  - `bPunchSlamRebound` + 안전장치: `bPunchReboundUpward`가 이미 위를 향한 반동을 **눕히지 않게**
+    (착지 공격 반동은 원래 거의 수직 위인데 30도로 꺾으면 뒤로 날아간다)
+  - **빌드 실패 1회**: 같은 UPROPERTY를 헤더에 두 번 선언 (스크립트가 앞서 일부만 적용된 줄 모르고 다시 추가).
+    UHT는 shadowing을 에러로 잡는다 — 스크립트로 헤더를 수정할 땐 적용 여부를 먼저 grep으로 확인할 것
+
 - [ ] **다음 세션 예정 (2026-09-26 결정)**
   - **적 사망 렉돌**: 사망 몽타주 → 렉돌 → **화면 밖(유저가 안 볼 때) 소멸**.
     디더/디졸브 머티리얼 작업이 비싸서 뺐다. `WasRecentlyRendered()`로 판정하고, 안전장치로 최대 대기 시간도 둘 것.

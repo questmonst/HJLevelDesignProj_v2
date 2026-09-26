@@ -4,6 +4,9 @@
 #include "WeaponBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
+#include "AlphaBlend.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 
 float APlayerCharacter::PlayMontageForDuration(UAnimMontage* Montage)
@@ -244,6 +247,25 @@ void APlayerCharacter::SwapToLastWeapon()
 		EquipWeapon(LastWeaponIndex);
 }
 
+void APlayerCharacter::OnWeaponFired()
+{
+	// 한 발마다 반동 몽타주를 처음부터 다시 재생한다.
+	// StartFire에서 한 번만 틀면 연사 중에는 첫 발에만 반동이 보인다
+	ActiveFireMontage = SelectFireMontage();
+	if (!ActiveFireMontage) return;
+
+	UAnimInstance* Anim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!Anim)
+	{
+		PlayAnimMontage(ActiveFireMontage);
+		return;
+	}
+
+	// 매 발 처음부터 다시 재생하되, 지금 포즈에서 짧게 블렌드해 들어간다.
+	// 위치만 0으로 되감으면 포즈가 순간이동해서 촐싹거린다
+	Anim->Montage_PlayWithBlendIn(ActiveFireMontage, FAlphaBlendArgs(FireMontageBlendTime));
+}
+
 UAnimMontage* APlayerCharacter::SelectFireMontage() const
 {
 	// 앉기 전용 몽타주가 지정돼 있을 때만 교체 — 비어 있으면 기존 동작 그대로
@@ -263,9 +285,7 @@ void APlayerCharacter::StartFire()
 	CurrentWeapon->StartFire();
 	if (!bWillFire) return;
 
-	ActiveFireMontage = SelectFireMontage();
-	if (ActiveFireMontage)
-		PlayAnimMontage(ActiveFireMontage);
+	// 실제 재생은 무기가 한 발 쏠 때마다 OnWeaponFired()에서 한다 (연사면 매 발)
 }
 
 void APlayerCharacter::OnWeaponShotFired()

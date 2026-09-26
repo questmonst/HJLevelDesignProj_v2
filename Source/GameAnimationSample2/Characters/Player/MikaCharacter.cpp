@@ -175,6 +175,7 @@ void AMikaCharacter::BeginPlay()
 		PunchReboundDelayNormal    = MikaData->PunchReboundDelayNormal;
 		PunchSlamRadius            = MikaData->PunchSlamRadius;
 		PunchSlamMinDownPitch      = MikaData->PunchSlamMinDownPitch;
+		PunchSlamShallowMaxPitch   = MikaData->PunchSlamShallowMaxPitch;
 		// Punch FX
 		ChargeHandVFX              = MikaData->ChargeHandVFX;
 		ChargeHandVFXMinScale      = MikaData->ChargeHandVFXMinScale;
@@ -204,6 +205,7 @@ void AMikaCharacter::BeginPlay()
 		ChargeShakeFrequency       = MikaData->ChargeShakeFrequency;
 		FireMontage                = MikaData->FireMontage;
 		FireMontageCrouch          = MikaData->FireMontageCrouch;
+		FireMontageBlendTime       = MikaData->FireMontageBlendTime;
 		GrenadePrepareMontage      = MikaData->GrenadePrepareMontage;
 		GrenadeThrowMontage        = MikaData->GrenadeThrowMontage;
 		ReloadMontage              = MikaData->ReloadMontage;
@@ -233,6 +235,7 @@ void AMikaCharacter::BeginPlay()
 		AimSpringArmLength         = MikaData->AimSpringArmLength;
 
 		bPunchReboundUpward        = MikaData->bPunchReboundUpward;
+		bPunchSlamRebound          = MikaData->bPunchSlamRebound;
 		PunchReboundUpPitch        = MikaData->PunchReboundUpPitch;
 	}
 
@@ -799,7 +802,11 @@ void AMikaCharacter::ReboundFromHit()
 		}
 		Horizontal.Normalize();
 		const float PitchRad = FMath::DegreesToRadians(PunchReboundUpPitch);
-		Back = Horizontal * FMath::Cos(PitchRad) + FVector::UpVector * FMath::Sin(PitchRad);
+		const FVector Raised = Horizontal * FMath::Cos(PitchRad) + FVector::UpVector * FMath::Sin(PitchRad);
+
+		// 이미 더 가파르게 위를 향하고 있으면 그대로 둔다.
+		// 바닥을 내려찍은 뒤의 반동은 원래 거의 수직 위인데, 여기서 30도로 눕히면 오히려 뒤로 날아간다
+		if (Raised.Z > Back.Z) Back = Raised;
 	}
 
 	EndDash();
@@ -832,14 +839,19 @@ void AMikaCharacter::BeginReboundMove()
 {
 	// 초기 속도만 주고 끊지 않는다 — 지상은 걷기 제동, 공중은 관성·중력으로 자연스럽게 줄어듦
 	bIsRebounding = false;
-	// 반동 모션은 전신으로 — bIsPunchFullBody가 켜져 있는 동안만 ABP가 전신 분기를 쓴다
-	if (PunchReboundMontage)
+	// 반동 모션은 전신으로 — bIsPunchFullBody가 켜져 있는 동안만 ABP가 전신 분기를 쓴다.
+	// 백덤블링은 풀 충전에서만 (일반 충전은 그냥 밀려나기만 한다)
+	if (PunchReboundMontage && bDashFullCharge)
 	{
 		// PlayAnimMontage는 원본 길이를 돌려주므로 Rate Scale·재생 속도로 나눠 실제 재생 시간을 구한다
 		const float RawLength = PlayAnimMontage(PunchReboundMontage, PunchReboundMontagePlayRate);
 		const float Length = RawLength
 			/ FMath::Max(PunchReboundMontage->RateScale * PunchReboundMontagePlayRate, KINDA_SMALL_NUMBER);
+		// 둘 다 켜야 한다 — ABP 전신 분기가 읽는 건 bFullBodyMontage 쪽이다.
+		// 여기서 bIsPunchFullBody만 켜면, 대시 몽타주 타이머가 먼저 끝나 bFullBodyMontage가 꺼진 경우
+		// 백덤블링이 상체에만 재생된다 (반동 딜레이 길이에 따라 간헐적으로 발생)
 		bIsPunchFullBody = true;
+		bFullBodyMontage = true;
 		GetWorldTimerManager().ClearTimer(PunchFullBodyTimerHandle);
 		if (Length > 0.f)
 		{
@@ -884,7 +896,9 @@ void AMikaCharacter::PunchSlam(const FVector& ImpactPoint)
 		ApplyPunchHit(Actor, Result.GetComponent(), Dir, 1.f, 1.f);
 	}
 
-	EndDash();
+	// 착지 공격 뒤에도 튕겨 오를지. 대시가 아래를 향했으므로 반대 방향은 대체로 위쪽이 된다
+	if (bPunchSlamRebound) ReboundFromHit();
+	else                   EndDash();
 }
 
 // --- 범위 데칼 ---
@@ -894,7 +908,12 @@ AMikaCharacter::EPunchPathEnd AMikaCharacter::TracePunchPath(float ChargeRatio, 
 	const FVector Start = GetActorLocation();
 	OutDir    = GetPunchAimDirection();
 	OutNormal = FVector::UpVector;
-	const bool bSteepDown = OutDir.Rotation().Pitch <= -PunchSlamMinDownPitch;
+	// 아래 각도에 죽은 구간을 둔다: 거의 수평(PunchSlamShallowMaxPitch 이내)이거나
+	// 충분히 가파르면(PunchSlamMinDownPitch 이상) 착지 공격, 그 사이는 수평 펀치.
+	// 애매하게 아래를 볼 때 바닥을 찍는 게 의도와 다르게 나오는 걸 막는다
+	const float DownPitch = -OutDir.Rotation().Pitch;   // 아래를 볼수록 +
+	const bool bSteepDown = DownPitch >= PunchSlamMinDownPitch
+	                     || (DownPitch <= PunchSlamShallowMaxPitch && OutDir.Z < 0.f);
 	const bool bGrounded  = GetCharacterMovement()->IsMovingOnGround();
 
 	// 지상에서 얕게 아래를 보면 수평 대시 (착지 공격도, 바닥 원도 없음)
@@ -996,6 +1015,13 @@ void AMikaCharacter::UpdatePunchRangeDecal(float ChargeRatio)
 }
 
 // --- 손 FX ---
+
+float AMikaCharacter::GetPunchChargeForcedRatio() const
+{
+	if (!bIsChargingPunch) return 0.f;
+	const float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
+	return FMath::Clamp(HeldTime / FMath::Max(ForcedMaxChargeTime, KINDA_SMALL_NUMBER), 0.f, 1.f);
+}
 
 float AMikaCharacter::GetChargeRatio() const
 {
@@ -1145,6 +1171,25 @@ void AMikaCharacter::PunchExplode(const FVector& Location)
 				FVector Dir = (Actor->GetActorLocation() - Location).GetSafeNormal2D();
 				if (Dir.IsNearlyZero()) Dir = DashVelocity.GetSafeNormal2D();
 				const FVector Knockback = Dir * KnockbackSpeed + FVector::UpVector * KnockbackSpeed * PunchKnockbackUpRatio;
+
+				// 렉돌로 바뀐 적에겐 LaunchCharacter가 통하지 않는다 (물리 시뮬이라 무브먼트를 안 쓴다)
+				if (ACharacterBase* HitBase = Cast<ACharacterBase>(Actor))
+				{
+					if (HitBase->bIsRagdoll)
+					{
+						if (USkeletalMeshComponent* RagdollMesh = HitBase->GetMesh())
+						{
+							RagdollMesh->SetAllPhysicsLinearVelocity(Knockback);
+						}
+						continue;
+					}
+					if (HitBase->bRagdollOnKnockback && !HitBase->IsDead())
+					{
+						HitBase->KnockdownToRagdoll(Knockback);
+						continue;
+					}
+				}
+
 				if (ACharacter* HitCharacter = Cast<ACharacter>(Actor))
 				{
 					HitCharacter->LaunchCharacter(Knockback, true, true);

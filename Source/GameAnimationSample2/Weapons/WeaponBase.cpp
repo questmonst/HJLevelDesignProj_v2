@@ -221,6 +221,15 @@ void AWeaponBase::Fire()
 		? WeaponMesh->GetSocketTransform(MuzzleSocketName)
 		: GetActorTransform();
 
+	// 발사 반동 몽타주는 한 발마다 (연사면 매 발). 샷건 팰릿은 첫 발에만
+	if (bAmmoPerPellet || CurrentPelletShot == 0)
+	{
+		if (APlayerCharacter* OwnerPlayer = Cast<APlayerCharacter>(GetOwner()))
+		{
+			OwnerPlayer->OnWeaponFired();
+		}
+	}
+
 	if (FireSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleTransform.GetLocation());

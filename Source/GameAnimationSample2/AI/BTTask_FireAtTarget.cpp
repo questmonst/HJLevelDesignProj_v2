@@ -51,6 +51,9 @@ EBTNodeResult::Type UBTTask_FireAtTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	AWeaponBase* Weapon = Enemy->GetEnemyWeapon();
 	if (!Weapon) return EBTNodeResult::Failed;
 
+	// 쓰러져 있거나(날아가는 중 포함) 일어나는 중에는 못 쏜다. 다 일어나면 다시 이 태스크로 돌아온다
+	if (Enemy->IsIncapacitated()) return EBTNodeResult::Failed;
+
 	// 탄창이 비었으면 쏠 수 없다 — 재장전 분기가 곧바로 잡도록 키를 세우고 실패
 	if (!Weapon->CanFire())
 	{

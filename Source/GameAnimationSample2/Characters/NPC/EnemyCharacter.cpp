@@ -8,6 +8,8 @@
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "AIController.h"
+#include "BrainComponent.h"
 
 // Blackboard 키 이름 정의 (AEnemyAIController와 반드시 일치)
 const FName AEnemyCharacter::BBKey_TargetActor    = TEXT("TargetActor");
@@ -57,12 +59,17 @@ void AEnemyCharacter::ApplyEnemyData()
     ForgetTime           = EnemyData->ForgetTime;
 
     bRagdollOnDeath      = EnemyData->bRagdollOnDeath;
-    DeathMontage         = EnemyData->DeathMontage;
-    RagdollDelay         = EnemyData->RagdollDelay;
+    DeathMontages        = EnemyData->DeathMontages;
+    RagdollDelayRate     = EnemyData->RagdollDelayRate;
     CorpseMinTime        = EnemyData->CorpseMinTime;
     CorpseMaxTime        = EnemyData->CorpseMaxTime;
     bRagdollOnKnockback  = EnemyData->bRagdollOnKnockback;
-    KnockbackRagdollTime = EnemyData->KnockbackRagdollTime;
+    KnockbackRagdollMaxTime = EnemyData->KnockbackRagdollMaxTime;
+    KnockbackRagdollMinTime = EnemyData->KnockbackRagdollMinTime;
+    KnockbackSettleSpeed    = EnemyData->KnockbackSettleSpeed;
+    HitMontages             = EnemyData->HitMontages;
+    HitMontageBlendTime     = EnemyData->HitMontageBlendTime;
+    HitMontageMinInterval   = EnemyData->HitMontageMinInterval;
     GetUpMontage         = EnemyData->GetUpMontage;
     RagdollPelvisBone    = EnemyData->RagdollPelvisBone;
 }
@@ -258,9 +265,28 @@ void AEnemyCharacter::AlertEnemy(AActor* Target)
 
 // ---------------------------------------------------------------------------
 
+void AEnemyCharacter::EnterRagdoll()
+{
+    StopFiring();
+    Super::EnterRagdoll();
+}
+
 void AEnemyCharacter::OnDeath_Implementation()
 {
     StopFiring();
+
+    // BT를 멈추지 않으면 죽은 뒤에도 이동·회전·로코모션이 계속 돌아,
+    // 사망 몽타주가 묻히고 그냥 서 있는 것처럼 보인다
+    if (AAIController* AICon = Cast<AAIController>(GetController()))
+    {
+        if (UBrainComponent* Brain = AICon->GetBrainComponent())
+        {
+            Brain->StopLogic(TEXT("Dead"));
+        }
+        AICon->StopMovement();
+    }
+    GetCharacterMovement()->StopMovementImmediately();
+    GetCharacterMovement()->DisableMovement();
 
     // 캐릭터만 사라지면 무기가 공중에 남고 연사 타이머도 계속 돈다.
     // 미카의 무기 버리기와 같은 경로(SetDropped)로 발밑에 내려놔 줍기도 가능하게 한다

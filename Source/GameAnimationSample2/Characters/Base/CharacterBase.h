@@ -72,8 +72,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="true면 사망 시 렉돌로 쓰러진다. DataAsset에서 설정"))
 	bool bRagdollOnDeath = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="사망 후 렉돌 전환까지 대기 시간(초). 사망 몽타주를 보여줄 시간. DataAsset에서 설정"))
-	float RagdollDelay = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ClampMax="1", ToolTip="사망 몽타주를 어디까지 보여주고 렉돌로 넘어갈지 (0=즉시, 1=끝까지). DataAsset에서 설정"))
+	float RagdollDelayRate = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="쓰러진 뒤 최소 이 시간(초)은 남아 있는다. DataAsset에서 설정"))
 	float CorpseMinTime = 3.f;
@@ -81,15 +81,36 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="화면 밖으로 나가길 기다리는 최대 시간(초). 계속 보고 있어도 이 시간이 지나면 제거. DataAsset에서 설정"))
 	float CorpseMaxTime = 30.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="사망 시 재생할 몽타주. 비우면 바로 렉돌. DataAsset에서 설정"))
-	UAnimMontage* DeathMontage = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="사망 몽타주 목록. 이 중 하나를 무작위로 재생. 비우면 바로 렉돌. DataAsset에서 설정"))
+	TArray<UAnimMontage*> DeathMontages;
+
+	// --- Hit Reaction ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|HitReact", meta=(ToolTip="피격 반응 몽타주 목록. 이 중 하나를 무작위로 재생. DataAsset에서 설정"))
+	TArray<UAnimMontage*> HitMontages;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|HitReact", meta=(ClampMin="0", ToolTip="피격 몽타주 블렌드 시간(초). 현재 동작에서 부드럽게 섞여 들어간다. DataAsset에서 설정"))
+	float HitMontageBlendTime = 0.12f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|HitReact", meta=(ClampMin="0", ToolTip="피격 몽타주 최소 재생 간격(초). 연사에 맞으면 매 발 끊기므로 제한. DataAsset에서 설정"))
+	float HitMontageMinInterval = 0.35f;
+
+	// 피격 반응 몽타주를 (랜덤으로) 재생. 사망·렉돌 중에는 무시
+	void PlayHitReactMontage();
+	float LastHitMontageTime = -100.f;
 
 	// 넉백 렉돌 (미카 펀치 등)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="true면 넉백당할 때 렉돌로 굴렀다가 일어난다. DataAsset에서 설정"))
 	bool bRagdollOnKnockback = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0.1", ToolTip="넉백 렉돌 유지 시간(초). 이 뒤에 일어난다. DataAsset에서 설정"))
-	float KnockbackRagdollTime = 1.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0.1", ToolTip="넉백 렉돌 최대 시간(초). 굴러떨어지는 등 안 멈춰도 이 시간이면 일어난다. DataAsset에서 설정"))
+	float KnockbackRagdollMaxTime = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="넉백 렉돌 최소 시간(초). 날아가는 중에 바로 일어나지 않게. DataAsset에서 설정"))
+	float KnockbackRagdollMinTime = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="이 속도(cm/s) 아래로 느려지면 멈춘 걸로 보고 일어난다. DataAsset에서 설정"))
+	float KnockbackSettleSpeed = 60.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="렉돌에서 일어날 때 재생할 몽타주. 비우면 즉시 복귀. DataAsset에서 설정"))
 	UAnimMontage* GetUpMontage = nullptr;
@@ -100,13 +121,21 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Ragdoll", meta=(ToolTip="현재 렉돌 상태인지"))
 	bool bIsRagdoll = false;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Ragdoll", meta=(ToolTip="기상 몽타주 재생 중인지. 일어나는 도중에도 공격을 막는다"))
+	bool bIsGettingUp = false;
+
+	// 쓰러져 있거나(날아가는 중 포함) 일어나는 중 — 공격·사격 불가
+	UFUNCTION(BlueprintPure, Category = "Character|Ragdoll")
+	bool IsIncapacitated() const { return bIsRagdoll || bIsGettingUp; }
+
 	// 넉백으로 쓰러뜨린다. 이미 렉돌이거나 사망이면 무시. Impulse는 질량 무관 속도 변화
 	UFUNCTION(BlueprintCallable, Category = "Character|Ragdoll")
 	void KnockdownToRagdoll(const FVector& Impulse);
 
 protected:
-	// 메시를 물리 시뮬레이션으로 전환 (캡슐 콜리전·이동 정지)
-	void EnterRagdoll();
+	// 메시를 물리 시뮬레이션으로 전환 (캡슐 콜리전·이동 정지).
+	// 자식이 자기 동작(사격 등)을 멈추도록 오버라이드할 수 있다
+	virtual void EnterRagdoll();
 
 	// 렉돌 해제 → 캡슐을 골반 위치로 옮기고 기상 몽타주 재생
 	void ExitRagdollAndGetUp();
@@ -114,6 +143,15 @@ protected:
 	// 사망 렉돌 흐름
 	void BeginDeathRagdoll();
 	void TickCorpseDespawn();
+
+	// 넉백 렉돌: 멈췄는지(또는 최대 시간이 됐는지) 주기적으로 확인
+	void TickKnockbackRagdoll();
+
+	void EndGetUp() { bIsGettingUp = false; }
+	FTimerHandle GetUpTimerHandle;
+
+	// 목록에서 하나를 무작위로 골라 블렌드 재생. 실제로 재생됐으면 길이(초), 아니면 0
+	float PlayRandomMontage(const TArray<UAnimMontage*>& Montages, float BlendTime);
 
 	FTimerHandle RagdollTimerHandle;
 	FTimerHandle CorpseDespawnTimerHandle;

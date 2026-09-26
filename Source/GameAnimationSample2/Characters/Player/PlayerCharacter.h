@@ -506,6 +506,15 @@ protected:
 	// 원본 길이를 돌려주므로 보정 — 펀치 대시·수류탄 던지기처럼 애니 길이에 로직을 맞출 때 공용으로 사용
 	float PlayMontageForDuration(UAnimMontage* Montage);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Animation", meta=(ClampMin="0", ToolTip="발사 반동 몽타주를 매 발 다시 재생할 때의 블렌드 시간(초). MikaData에서 설정"))
+	float FireMontageBlendTime = 0.08f;
+
+public:
+	// 무기가 실제로 한 발 쏠 때마다 호출 — 발사 반동 몽타주를 매 발 재생
+	void OnWeaponFired();
+
+protected:
+
 	// 실제로 재생 중인 발사 몽타주. 사격 도중 앉기/서기가 바뀌어도
 	// StopFire가 엉뚱한 몽타주를 멈추지 않도록 시작 시점의 것을 들고 있는다.
 	UPROPERTY(Transient)

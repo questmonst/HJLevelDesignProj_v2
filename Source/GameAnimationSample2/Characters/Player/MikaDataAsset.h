@@ -304,6 +304,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="0.01", ToolTip="반동 초기 속도 계산용 시간(초). 짧을수록 초기 속도가 커서 세게 튕김 (이 시간에 멈추는 게 아님)"))
 	float PunchReboundTime = 0.2f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ToolTip="켜면 바닥을 내려찍은 뒤에도 반동으로 튕겨 오른다. 착지 공격은 대시가 아래를 향했으므로 반동은 거의 수직 위가 된다. 끄면 찍은 자리에 그대로 멈춤(기존 동작)"))
+	bool bPunchSlamRebound = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ToolTip="켜면 반동이 수평 기준 위쪽으로 꺾여 웬만하면 떠오른다 (벽을 치고 위로 튀는 연출). 끄면 대시 반대 방향 그대로"))
 	bool bPunchReboundUpward = false;
 
@@ -343,6 +346,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="0", ClampMax="89", ToolTip="착지 공격 최소 아래 각도(도). 이보다 얕게 아래를 보면 지상에선 수평 대시, 바닥 원도 안 뜸"))
 	float PunchSlamMinDownPitch = 30.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="0", ClampMax="89", ToolTip="이 각도 이내로 '살짝만' 아래를 보면 착지 공격을 허용한다(도). 0~이 값 = 착지 공격, 이 값~PunchSlamMinDownPitch = 죽은 구간(수평 펀치), 그 위 = 다시 착지 공격. 0이면 죽은 구간 없이 예전처럼 동작"))
+	float PunchSlamShallowMaxPitch = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="0", ToolTip="착지 범위 공격 반경(cm). 반경 안 전원에 충전 비례 피해·넉백"))
 	float PunchSlamRadius = 300.f;
@@ -452,6 +458,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="발사(반동) 시 캐릭터에 재생할 몽타주 (UpperBody 슬롯). 모든 무기 공통"))
 	UAnimMontage* FireMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ClampMin="0", ToolTip="발사 반동 몽타주는 한 발마다 처음부터 다시 재생된다. 그때 현재 포즈에서 블렌드해 들어가는 시간(초). 0이면 포즈가 순간이동해 촐싹거린다. 연사 간격보다 짧게 (0.05~0.12 권장)"))
+	float FireMontageBlendTime = 0.08f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ToolTip="앉은 상태 발사 몽타주. 비워두면 FireMontage를 그대로 쓴다"))
 	UAnimMontage* FireMontageCrouch = nullptr;

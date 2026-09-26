@@ -102,11 +102,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="켜면 죽을 때 렉돌로 쓰러지고, 플레이어 화면 밖으로 나가면 사라진다. 끄면 기존대로 DeathEffectDuration 뒤 그냥 제거"))
 	bool bRagdollOnDeath = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="사망 시 재생할 몽타주. 비우면 즉시 렉돌. 지정하면 몽타주 길이만큼 기다렸다 쓰러진다"))
-	UAnimMontage* DeathMontage = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="사망 몽타주 목록. 이 중 하나를 무작위로 재생. 비우면 즉시 렉돌. 슬롯이 적 ABP에 있어야 재생된다"))
+	TArray<UAnimMontage*> DeathMontages;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnDeath", ToolTip="사망 후 렉돌 전환까지 대기 시간(초). 사망 몽타주가 있으면 둘 중 긴 쪽을 쓴다"))
-	float RagdollDelay = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", ClampMax="1", EditCondition="bRagdollOnDeath", ToolTip="사망 몽타주를 어디까지 보여주고 렉돌로 넘어갈지. 0=즉시 렉돌, 0.5=절반 재생 후, 1=끝까지 재생 후. 몽타주가 없으면 무조건 즉시"))
+	float RagdollDelayRate = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnDeath", ToolTip="쓰러진 뒤 최소 이 시간(초)은 남아 있는다. 이 시간 전에는 화면 밖이어도 안 사라짐"))
 	float CorpseMinTime = 3.f;
@@ -117,11 +117,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="켜면 미카 펀치 넉백에 렉돌로 굴렀다가 일어난다. 끄면 기존대로 밀려남"))
 	bool bRagdollOnKnockback = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0.1", EditCondition="bRagdollOnKnockback", ToolTip="넉백 렉돌 유지 시간(초). 이 뒤에 일어난다"))
-	float KnockbackRagdollTime = 1.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0.1", EditCondition="bRagdollOnKnockback", ToolTip="넉백 렉돌 최대 시간(초). 계단을 굴러떨어지는 등 안 멈춰도 이 시간이 되면 일어난다"))
+	float KnockbackRagdollMaxTime = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnKnockback", ToolTip="넉백 렉돌 최소 시간(초). 날아가는 도중에 일어나 버리지 않게"))
+	float KnockbackRagdollMinTime = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnKnockback", ToolTip="이 속도(cm/s) 아래로 느려지면 착지·정지로 보고 일어난다. 크게 잡으면 구르는 중에 일어나고, 너무 작으면 미세하게 떨릴 때 못 일어난다"))
+	float KnockbackSettleSpeed = 60.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(EditCondition="bRagdollOnKnockback", ToolTip="일어날 때 재생할 몽타주. 비우면 즉시 선 자세로 복귀"))
 	UAnimMontage* GetUpMontage = nullptr;
+
+	// --- Hit Reaction ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitReact", meta=(ToolTip="피격 반응 몽타주 목록. 이 중 하나를 무작위로 재생. 상체 슬롯으로 만들면 이동 중에도 자연스럽게 섞인다"))
+	TArray<UAnimMontage*> HitMontages;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitReact", meta=(ClampMin="0", ToolTip="피격 몽타주 블렌드 시간(초). 현재 동작에서 부드럽게 섞여 들어간다"))
+	float HitMontageBlendTime = 0.12f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitReact", meta=(ClampMin="0", ToolTip="피격 몽타주 최소 재생 간격(초). 연사에 맞으면 매 발 처음부터 다시 재생돼 덜덜 떨리므로 제한"))
+	float HitMontageMinInterval = 0.35f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="골반 본 이름. 일어날 때 캡슐을 이 본 아래 바닥으로 옮긴다. 스켈레톤에 맞춰 지정 (UE 마네킹 = pelvis)"))
 	FName RagdollPelvisBone = TEXT("pelvis");

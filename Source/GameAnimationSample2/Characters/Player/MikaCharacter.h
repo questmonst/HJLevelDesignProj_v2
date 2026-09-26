@@ -144,6 +144,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="true면 반동을 위쪽으로 꺾는다. MikaData에서 설정"))
 	bool bPunchReboundUpward = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="true면 착지 공격 뒤에도 반동으로 튕긴다. MikaData에서 설정"))
+	bool bPunchSlamRebound = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="반동 위쪽 각도(도). MikaData에서 설정"))
 	float PunchReboundUpPitch = 30.f;
 
@@ -405,6 +408,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Mika|Punch")
 	float GetPunchChargeRatio() const { return bIsChargingPunch ? GetChargeRatio() : 0.f; }
 
+	UFUNCTION(BlueprintPure, Category = "Mika|Punch")
+	bool IsPunchCharging() const { return bIsChargingPunch; }
+
+	// 충전 게이지용 — 강제 발동 시간(ForcedMaxChargeTime) 기준 0~1.
+	// GetPunchChargeRatio는 최대 위력(MaxChargeTime) 기준이라 1.5초에서 이미 1이 된다
+	UFUNCTION(BlueprintPure, Category = "Mika|Punch", meta=(ToolTip="강제 발동까지의 진행도(0~1)"))
+	float GetPunchChargeForcedRatio() const;
+
+	// 게이지 위에서 최대 위력 지점이 어디인지 (MaxChargeTime / ForcedMaxChargeTime)
+	UFUNCTION(BlueprintPure, Category = "Mika|Punch", meta=(ToolTip="최대 위력 지점의 게이지 비율(0~1). 화살표 마커 위치"))
+	float GetPunchChargeMarkerRatio() const
+	{
+		return FMath::Clamp(MaxChargeTime / FMath::Max(ForcedMaxChargeTime, KINDA_SMALL_NUMBER), 0.f, 1.f);
+	}
+
 	// --- 스킬 쿨타임 (HUD 아이콘용) ---
 
 	UFUNCTION(BlueprintPure, Category = "Character|Punch")
@@ -498,6 +516,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="착지 공격 최소 아래 각도(도). MikaData에서 설정"))
 	float PunchSlamMinDownPitch = 30.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="이 각도 이내로 얕게 아래를 보면 착지 공격 허용(도). MikaData에서 설정"))
+	float PunchSlamShallowMaxPitch = 10.f;
 
 	// 경로 끝의 종류 — Floor: 착지 공격 지점, Blocked: 벽·장애물(반동+폭발), Air: 허공(폭발 없음)
 	enum class EPunchPathEnd : uint8 { Air, Floor, Blocked };
