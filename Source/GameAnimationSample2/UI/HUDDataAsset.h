@@ -6,6 +6,8 @@
 #include "Engine/DataAsset.h"
 #include "HUDDataAsset.generated.h"
 
+class USoundBase;
+
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UHUDDataAsset : public UDataAsset
 {
@@ -44,4 +46,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Crosshair|Spread", meta=(ToolTip="초당 크로스헤어 퍼짐 회복량"))
 	float SpreadRecoverySpeed = 15.f;
+
+	// --- 히트마커 사운드 ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ToolTip="적 몸통 적중 시 소리"))
+	USoundBase* HitSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ToolTip="헤드샷 적중 시 소리"))
+	USoundBase* HeadshotSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ToolTip="적 처치 시 소리"))
+	USoundBase* KillSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ClampMin="0", ToolTip="히트마커 소리 볼륨 배율"))
+	float HitSoundVolume = 1.f;
 };

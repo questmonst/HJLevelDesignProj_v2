@@ -922,14 +922,23 @@ void AMikaCharacter::UpdateChargeVFXCameraOffset()
 
 void AMikaCharacter::StopFullChargeVFX()
 {
-	if (ActiveFullChargeVFX) ActiveFullChargeVFX->Deactivate();
+	if (ActiveFullChargeVFX)
+	{
+		ActiveFullChargeVFX->DeactivateImmediate();
+		ActiveFullChargeVFX->DestroyComponent();
+	}
 	ActiveFullChargeVFX = nullptr;
 }
 
 void AMikaCharacter::StopHandVFX()
 {
-	// Deactivate: 새 파티클만 멈추고 남은 파티클은 자연 소멸 (자동 파괴)
-	if (ActiveHandVFX) ActiveHandVFX->Deactivate();
+	// Deactivate만으로는 이미 나온 파티클이 남는다 (수명이 긴 이펙트면 손에 계속 붙어 있음).
+	// 즉시 정리하고 컴포넌트까지 파괴한다
+	if (ActiveHandVFX)
+	{
+		ActiveHandVFX->DeactivateImmediate();
+		ActiveHandVFX->DestroyComponent();
+	}
 	ActiveHandVFX = nullptr;
 }
 

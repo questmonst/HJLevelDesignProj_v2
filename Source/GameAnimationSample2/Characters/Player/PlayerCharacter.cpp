@@ -572,11 +572,23 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 void APlayerCharacter::NotifyHitConfirmed(bool bHeadshot)
 {
 	OnHitConfirmed.Broadcast(bHeadshot);
+
+	if (HUDData)
+	{
+		USoundBase* Sound = bHeadshot ? HUDData->HeadshotSound : HUDData->HitSound;
+		// 2D로 재생 — 거리와 무관하게 항상 같은 크기로 들린다
+		if (Sound) UGameplayStatics::PlaySound2D(this, Sound, HUDData->HitSoundVolume);
+	}
 }
 
 void APlayerCharacter::NotifyEnemyKilled()
 {
 	OnEnemyKilled.Broadcast();
+
+	if (HUDData && HUDData->KillSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HUDData->KillSound, HUDData->HitSoundVolume);
+	}
 }
 
 void APlayerCharacter::OnLanding_Implementation(bool bHardLanding)

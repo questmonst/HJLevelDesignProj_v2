@@ -81,9 +81,44 @@ void USkillIconWidget::NativeConstruct()
 	Super::NativeConstruct();
 	if (!IconBox) BuildLayout();
 
+	// 위젯 트리는 클래스에서 복제돼 오므로, 디자이너에서 바꾼 값들을 여기서 다시 적용한다.
+	// 특히 머티리얼 인스턴스는 컴파일 시점에 만들어진 것이라 런타임에 새로 만들어야 한다.
+	RefreshVisualsFromSettings();
+
 	Mika = Cast<AMikaCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 	bWasReady = true;
 	ApplyCooldownVisual(0.f, 1.f);
+}
+
+void USkillIconWidget::RefreshVisualsFromSettings()
+{
+	if (IconBox)
+	{
+		IconBox->SetWidthOverride(IconSize.X);
+		IconBox->SetHeightOverride(IconSize.Y);
+	}
+	if (IconImage && IconTexture)
+	{
+		IconImage->SetBrushFromTexture(IconTexture, false);
+	}
+	if (SweepImage)
+	{
+		if (SweepMaterial)
+		{
+			SweepMID = UMaterialInstanceDynamic::Create(SweepMaterial, this);
+			SweepMID->SetVectorParameterValue(TEXT("SweepColor"), SweepColor);
+			SweepMID->SetScalarParameterValue(TEXT("Percent"), 1.f);
+			SweepImage->SetBrushFromMaterial(SweepMID);
+		}
+		else
+		{
+			SweepMID = nullptr;
+		}
+	}
+	if (CountText)
+	{
+		CountText->SetText(KeyLabel);
+	}
 }
 
 void USkillIconWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)

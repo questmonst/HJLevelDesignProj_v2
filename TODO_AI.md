@@ -238,6 +238,12 @@
 - [x] (2026-09-23) 점프 블렌드 2배 — AirLoco 전환 크로스페이드 8개 0.08→0.16, `AirPoseBlendSpeed` 12→6
 - [x] (2026-09-23) **카와이 충돌 구 단위 버그** — 이 스켈레톤은 본 컴포넌트 스케일이 **100**이라 `OffsetLocation`은 **미터 단위**(0.09 = 9cm). 처음에 4·12·22로 넣어 구가 4~22m 밖에 있었고 무릎이 전혀 안 막혔음. 반경(Radius)은 컴포넌트 cm 그대로. 치마 구 13개(골반 + 좌우 허벅지 3·종아리 3)로 재배치
 - 참고: 카와이 본 제약(Bone Constraints)은 **같은 노드 안의 본끼리만** 연결 가능. 치마 8가닥이 각각 별도 노드라 가닥끼리 묶을 수 없음. 가닥을 면처럼 묶으려면 치마 본들이 공통 부모 하나 아래로 묶인 리그가 필요 (지금은 충돌 + LimitAngle 55도로 대응)
+- [x] (빌드 완료 2026-09-26) 히트마커 4건 수정
+  - 헤드샷 미작동: 대소문자 문제가 아니라 **트레이스가 캡슐에 막혀 `Hit.BoneName`이 비어 있던 것**. 본 이름이 없으면 머리 본 위치와의 거리로 판정 (`HeadHitRadius` 22cm)
+  - 히트마커 사운드: `UHUDDataAsset`에 `HitSound`·`HeadshotSound`·`KillSound`·`HitSoundVolume`. `PlaySound2D`로 재생
+  - 대시 손 VFX 잔상: `Deactivate()`는 기존 파티클을 남긴다 → `DeactivateImmediate()` + `DestroyComponent()` (풀차지 VFX도 동일)
+  - 쿨타임 시계방향 채움 미작동: 머티리얼은 정상(MI 미리보기로 Percent 0.5 = 절반 확인). **MID가 컴파일 시점에 생성돼 런타임 인스턴스에 없었음** — 위젯 트리가 클래스에서 복제되면서 `BuildLayout()`이 건너뛰어짐. `NativeConstruct`에서 `RefreshVisualsFromSettings()`로 MID 재생성 + 아이콘·색·라벨 재적용
+  - **교훈: 코드로 위젯 트리를 만드는 UserWidget은 런타임 초기화를 NativeConstruct에서 다시 해야 한다** (RebuildWidget은 CDO 컴파일 때만 돌 수 있음)
 - [x] (빌드 완료 2026-09-24) 스킬 쿨타임 아이콘 — `USkillIconWidget`(UI/)가 아이콘·시계방향 덮개·번쩍임·숫자를 코드로 조립. `SkillType`(Punch/Grenade/Custom)으로 자동 갱신. 펀치는 `GetPunchCooldownRemaining()/GetPunchCooldownDuration()`(신규), 수류탄은 `GetGrenadeCount()`로 개수 표시 후 0이면 어둡게. 쿨타임 종료 시 `FlashDuration`(0.25초) 동안 번쩍임
   - 머티리얼 `M_UI_RadialCooldown` — UI 도메인·Translucent. Custom HLSL이 `atan2`로 12시 기준 시계방향 각도를 구해 `Percent`와 비교. 파라미터: `Percent`(0~1), `SweepColor`. 위젯이 MID로 매 프레임 갱신
   - 에셋: `WBP_SkillIcon_Punch`(라벨 우클릭), `WBP_SkillIcon_Grenade`(라벨 G). HUD 우하단 배치. **사람:** `Icon Texture` 지정 필요

@@ -83,8 +83,11 @@ protected:
 
 	// --- 히트마커 ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ToolTip="이 문자열이 들어간 본에 맞으면 헤드샷으로 친다 (대소문자 무시)"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ToolTip="이 문자열이 들어간 본에 맞으면 헤드샷 (대소문자 무시). 트레이스가 캡슐에 맞으면 본 이름이 비므로 아래 거리 판정으로 보완한다"))
 	FString HeadBoneKeyword = TEXT("head");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ClampMin="0", ToolTip="본 이름을 못 얻었을 때, 머리 본에서 이 거리(cm) 안에 맞으면 헤드샷으로 친다. 0이면 거리 판정 끔"))
+	float HeadHitRadius = 22.f;
 
 	// 맞은 대상이 적 캐릭터면 플레이어 HUD에 히트마커를 알린다
 	void ReportHitToPlayer(const FHitResult& Hit);

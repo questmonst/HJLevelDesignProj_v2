@@ -95,6 +95,8 @@ protected:
 	UPROPERTY(Transient) UMaterialInstanceDynamic* SweepMID = nullptr;
 
 	void BuildLayout();
+	// 디자이너 설정값(아이콘·색·머티리얼)을 실제 위젯에 다시 적용 — 런타임 인스턴스용
+	void RefreshVisualsFromSettings();
 	void ApplyCooldownVisual(float Remaining, float Duration);
 	void ReadFromPlayer();
 
