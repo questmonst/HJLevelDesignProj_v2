@@ -92,7 +92,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Aim", meta=(ClampMin="0", ToolTip="조준 중 스프링암 길이(cm). 기본 길이(300)보다 짧게 두면 위를 볼 때 카메라가 바닥에 부딪히는 게 줄어든다. 0이면 기본 길이 그대로. 권장 150~200"))
 	float AimSpringArmLength = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="-90", ClampMax="90", ToolTip="조준 중 허리(Spine1)를 오른쪽으로 더 트는 각도(도, 음수면 왼쪽). ABP가 AimWaistYaw로 적용"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ToolTip="켜면 고정 각도 대신 '지금 쏘면 맞을 지점'으로 허리를 튼다. 총알은 원래 조준점에 맞으므로 이건 총구가 그쪽을 보게 하는 시각 보정. 카메라가 오른쪽으로 치우쳐 있어 필요한 각도가 거리마다 다르기 때문에 고정 각도로는 한 거리에서만 맞는다"))
+	bool bAimWaistFollowTarget = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="0.1", EditCondition="bAimWaistFollowTarget", ToolTip="조준점 추종 보간 속도. 낮으면 총구가 천천히 따라간다. 너무 높이면 가까운 물체를 스칠 때 홱 돈다"))
+	float AimWaistFollowInterpSpeed = 8.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="0", ClampMax="90", EditCondition="bAimWaistFollowTarget", ToolTip="허리를 틀 수 있는 최대 각도(도). 몸이 과하게 꺾이는 걸 막는 안전장치"))
+	float AimWaistFollowMaxYaw = 45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="0", EditCondition="bAimWaistFollowTarget", ToolTip="이 거리보다 가까운 조준점은 무시하고 고정 각도로 돌아간다(cm). 코앞에 벽이 있으면 필요한 각도가 폭발하기 때문"))
+	float AimWaistMinTargetDistance = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(EditCondition="bAimWaistFollowTarget", ToolTip="보정이 반대 방향으로 가면(총구가 조준점에서 더 멀어지면) 체크. ABP가 AimWaistYaw를 -1 곱해 적용하므로 부호는 실제로 보고 정해야 한다"))
+	bool bAimWaistFollowInvert = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="-90", ClampMax="90", ToolTip="조준 중 허리(Spine1)를 오른쪽으로 더 트는 각도(도, 음수면 왼쪽). ABP가 AimWaistYaw로 적용. bAimWaistFollowTarget이 꺼져 있을 때 쓰는 고정값"))
 	float AimWaistYawOffset = 15.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="0", ToolTip="조준 시작·해제 때 허리 틀기 보간 속도. 클수록 빠르게 (0이면 즉시)"))
@@ -146,6 +161,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ToolTip="하드 랜딩 판정 최소 낙하 속도 (cm/s). 이 이상 속도로 착지하면 경착지 애니메이션 재생"))
 	float HardLandingSpeedThreshold = 600.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="이 속도(cm/s) 미만으로 착지하면 착지 모션을 아예 재생하지 않는다. 낮은 턱·계단·회피 종료처럼 사실상 떨어지지 않은 경우를 걸러낸다. 0이면 항상 재생(예전 동작)"))
+	float LandPoseMinSpeed = 200.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="착지 후 공중 포즈(점프 상태 머신)를 유지하는 시간(초). 착지 모션 길이에 맞춘다. ABP는 bIsInAirPose를 읽음"))
 	float LandPoseHoldTime = 0.47f;
@@ -481,6 +499,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge", meta=(ClampMin="0", ToolTip="회피 쿨타임(초). 회피가 끝난 시점부터 카운트. 0이면 쿨타임 없음"))
 	float DodgeCooldown = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge", meta=(ClampMin="0", ToolTip="공중 회피 시작 시 기존 속도를 더하는 비율. 1이면 하던 움직임을 그대로 이어가고(달리다 뛰어 회피하면 더 멀리, 떨어지던 중이면 계속 떨어지며 옆으로), 0이면 기존 속도를 무시하고 회피 속도만. 지상 회피는 거리가 정확히 지켜져야 하므로 영향 없음"))
+	float DodgeAirEntryMomentumRatio = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge", meta=(ToolTip="앞(W) 회피 몽타주. 슬롯은 반드시 DefaultGroup.UpperBody (전신 분기도 이 슬롯 결과를 쓴다 — ADR-009). 제자리(비 Root) 애니, 이동은 코드가 담당"))
 	UAnimMontage* DodgeMontageForward = nullptr;

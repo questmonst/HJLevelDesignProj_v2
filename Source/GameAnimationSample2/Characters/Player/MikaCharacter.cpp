@@ -96,6 +96,11 @@ void AMikaCharacter::BeginPlay()
 		AimSocketOffsetRight       = MikaData->AimSocketOffsetRight;
 		AimSocketOffsetUp          = MikaData->AimSocketOffsetUp;
 		AimWaistYawOffset          = MikaData->AimWaistYawOffset;
+		bAimWaistFollowTarget      = MikaData->bAimWaistFollowTarget;
+		AimWaistFollowInterpSpeed  = MikaData->AimWaistFollowInterpSpeed;
+		AimWaistFollowMaxYaw       = MikaData->AimWaistFollowMaxYaw;
+		AimWaistMinTargetDistance  = MikaData->AimWaistMinTargetDistance;
+		bAimWaistFollowInvert      = MikaData->bAimWaistFollowInvert;
 		AimWaistBlendSpeed         = MikaData->AimWaistBlendSpeed;
 			AimSpineInterpSpeed        = MikaData->AimSpineInterpSpeed;
 			// TurnInPlace
@@ -105,6 +110,7 @@ void AMikaCharacter::BeginPlay()
 		SoftTurnSpeed              = MikaData->SoftTurnSpeed;
 		// Fall
 		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
+		LandPoseMinSpeed           = MikaData->LandPoseMinSpeed;
 		LandPoseHoldTime           = MikaData->LandPoseHoldTime;
 		LandAnticipationTime       = MikaData->LandAnticipationTime;
 		AirPoseBlendSpeed          = MikaData->AirPoseBlendSpeed;
@@ -213,6 +219,7 @@ void AMikaCharacter::BeginPlay()
 		DodgeDuration              = MikaData->DodgeDuration;
 		bDodgeDurationFromMontage  = MikaData->bDodgeDurationFromMontage;
 		DodgeCooldown              = MikaData->DodgeCooldown;
+		DodgeAirEntryMomentumRatio = MikaData->DodgeAirEntryMomentumRatio;
 		DodgeMontageForward        = MikaData->DodgeMontageForward;
 		DodgeMontageBackward       = MikaData->DodgeMontageBackward;
 		DodgeMontageLeft           = MikaData->DodgeMontageLeft;
@@ -316,7 +323,7 @@ void AMikaCharacter::Tick(float DeltaTime)
 		CameraComponent->FieldOfView, TargetFov, DeltaTime, CameraInterpSpeed);
 
 	// 조준 중 허리를 더 틀기 (ABP가 AimWaistYaw를 Spine1에 더함)
-	AimWaistYaw = FMath::FInterpTo(AimWaistYaw, bIsAiming ? AimWaistYawOffset : 0.f, DeltaTime, AimWaistBlendSpeed);
+	UpdateAimWaistYaw(DeltaTime);
 
 	// 충전 중 캐릭터가 카메라 yaw 방향을 바라봄
 	if (bIsChargingPunch)
@@ -662,6 +669,16 @@ void AMikaCharacter::ApplyPunchHit(AActor* Target, UPrimitiveComponent* TargetCo
 	const float Speed = DashDistance * PunchKnockbackPerDistance * KnockbackScale;
 	const FVector Knockback = KnockbackDir * Speed + FVector::UpVector * Speed * PunchKnockbackUpRatio;
 
+	// 렉돌을 쓰는 캐릭터는 굴렀다가 일어난다. 아니면 기존처럼 밀려난다
+	if (ACharacterBase* HitBase = Cast<ACharacterBase>(Target))
+	{
+		if (HitBase->bRagdollOnKnockback && !HitBase->IsDead())
+		{
+			HitBase->KnockdownToRagdoll(Knockback);
+			return;
+		}
+	}
+
 	if (ACharacter* HitCharacter = Cast<ACharacter>(Target))
 	{
 		HitCharacter->LaunchCharacter(Knockback, true, true);
@@ -717,6 +734,51 @@ bool AMikaCharacter::IsFrontHit(const AActor* Target) const
 	const FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
 	const FVector Lateral  = ToTarget - Dir * FVector::DotProduct(ToTarget, Dir);
 	return Lateral.Size() <= PunchFrontHalfWidth;
+}
+
+void AMikaCharacter::UpdateAimWaistYaw(float DeltaTime)
+{
+	if (!bIsAiming)
+	{
+		AimWaistYaw = FMath::FInterpTo(AimWaistYaw, 0.f, DeltaTime, AimWaistBlendSpeed);
+		return;
+	}
+
+	// 고정 오프셋 방식 (기존). 거리와 무관하게 항상 같은 각도만 튼다
+	if (!bAimWaistFollowTarget || !CurrentWeapon)
+	{
+		AimWaistYaw = FMath::FInterpTo(AimWaistYaw, AimWaistYawOffset, DeltaTime, AimWaistBlendSpeed);
+		return;
+	}
+
+	FVector TargetPoint;
+	if (!CurrentWeapon->GetAimImpactPoint(TargetPoint))
+	{
+		AimWaistYaw = FMath::FInterpTo(AimWaistYaw, AimWaistYawOffset, DeltaTime, AimWaistBlendSpeed);
+		return;
+	}
+
+	// 총구가 조준점을 향하도록 남은 각도(오차)를 재서 그만큼 더 튼다.
+	// 허리를 틀면 총구도 같이 움직이므로 목표각을 한 번에 계산할 수 없다 —
+	// 매 틱 현재 총구 기준으로 오차를 다시 재는 폐루프로 수렴시킨다
+	const FVector MuzzleLoc = CurrentWeapon->GetMuzzleLocation();
+	const FVector ToTarget  = TargetPoint - MuzzleLoc;
+
+	// 코앞에 벽이 있으면 각도가 폭발하므로 무시
+	if (ToTarget.SizeSquared() < FMath::Square(AimWaistMinTargetDistance))
+	{
+		AimWaistYaw = FMath::FInterpTo(AimWaistYaw, AimWaistYawOffset, DeltaTime, AimWaistBlendSpeed);
+		return;
+	}
+
+	const float ErrorYaw = FMath::FindDeltaAngleDegrees(
+		CurrentWeapon->GetMuzzleForward().Rotation().Yaw, ToTarget.Rotation().Yaw);
+
+	const float Desired = FMath::Clamp(
+		AimWaistYaw + (bAimWaistFollowInvert ? -ErrorYaw : ErrorYaw),
+		-AimWaistFollowMaxYaw, AimWaistFollowMaxYaw);
+
+	AimWaistYaw = FMath::FInterpTo(AimWaistYaw, Desired, DeltaTime, AimWaistFollowInterpSpeed);
 }
 
 void AMikaCharacter::ReboundFromHit()

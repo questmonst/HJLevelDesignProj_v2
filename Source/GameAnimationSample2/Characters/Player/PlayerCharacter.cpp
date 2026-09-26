@@ -536,7 +536,16 @@ void APlayerCharacter::StartDodge()
 	UCharacterMovementComponent* Move = GetCharacterMovement();
 	DodgePrevFrictionFactor = Move->BrakingFrictionFactor;
 	DodgePrevBrakingFlying  = Move->BrakingDecelerationFlying;
+
+	// 공중 회피는 하던 움직임을 이어간다 — 달리다 뛰어서 회피하면 더 멀리, 떨어지던 중이면 계속 떨어지며 옆으로.
+	// 지상은 거리(DodgeDistance)가 정확히 지켜져야 하므로 그대로 둔다.
+	// 이동 모드를 바꾸기 전에 읽어야 한다
+	const FVector EntryVelocity = Move->Velocity;
 	DodgeVelocity = DodgeDir * (DodgeDistance / DodgeTime);
+	if (bInAir && DodgeAirEntryMomentumRatio > 0.f)
+	{
+		DodgeVelocity += EntryVelocity * DodgeAirEntryMomentumRatio;
+	}
 	Move->BrakingFrictionFactor     = 0.f;
 	Move->BrakingDecelerationFlying = 0.f;
 	Move->SetMovementMode(MOVE_Flying);
@@ -561,7 +570,12 @@ void APlayerCharacter::EndDodge()
 	Move->BrakingFrictionFactor     = DodgePrevFrictionFactor;
 	Move->BrakingDecelerationFlying = DodgePrevBrakingFlying;
 	Move->Velocity = FVector::ZeroVector;   // 회피는 그 자리에서 멈춘다
-	Move->SetMovementMode(MOVE_Falling);
+
+	// 땅 위에서 끝났는데 낙하 모드로 돌리면 한두 프레임 "떨어졌다"가 되어 Landed()가 불리고,
+	// 높이도 속도도 0인데 착지 모션이 재생된다. 발밑에 바닥이 있으면 바로 걷기로 복귀
+	FFindFloorResult Floor;
+	Move->FindFloor(GetCapsuleComponent()->GetComponentLocation(), Floor, false);
+	Move->SetMovementMode(Floor.IsWalkableFloor() ? MOVE_Walking : MOVE_Falling);
 
 	if (!bIsAiming)
 	{
@@ -703,9 +717,14 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	CurrentFallSpeed = 0.f;
 	bIsFalling       = false;
 	bIsHardLanding   = bHard;
-	LandedTime       = GetWorld()->GetTimeSeconds();
 
-	OnLanding(bHard);
+	// 낮은 턱·계단처럼 살짝 떨어진 건 착지 모션을 쓰지 않는다.
+	// LandedTime을 찍지 않으면 착지 유지 구간(bInLandHold)에 들어가지 않는다
+	if (LandingSpeed >= LandPoseMinSpeed)
+	{
+		LandedTime = GetWorld()->GetTimeSeconds();
+		OnLanding(bHard);
+	}
 
 	Super::Landed(Hit);
 }

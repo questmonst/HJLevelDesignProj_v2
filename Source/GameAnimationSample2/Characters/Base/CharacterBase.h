@@ -63,8 +63,64 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|UI", meta=(ToolTip="체력바가 완전히 사라지기까지 걸리는 페이드 시간(초). 0=즉시"))
 	float HealthBarFadeDuration = 0.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|UI", meta=(ToolTip="사망 시 연출(체력바 확대·소멸) 재생 후 액터를 실제 제거하기까지의 시간(초)"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|UI", meta=(ToolTip="사망 시 연출(체력바 확대·소멸) 재생 후 액터를 실제 제거하기까지의 시간(초). 렉돌을 쓰면 이 값 대신 렉돌 흐름이 제거 시점을 정한다"))
 	float DeathEffectDuration = 0.5f;
+
+	// --- Ragdoll ---
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="true면 사망 시 렉돌로 쓰러진다. DataAsset에서 설정"))
+	bool bRagdollOnDeath = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="사망 후 렉돌 전환까지 대기 시간(초). 사망 몽타주를 보여줄 시간. DataAsset에서 설정"))
+	float RagdollDelay = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="쓰러진 뒤 최소 이 시간(초)은 남아 있는다. DataAsset에서 설정"))
+	float CorpseMinTime = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0", ToolTip="화면 밖으로 나가길 기다리는 최대 시간(초). 계속 보고 있어도 이 시간이 지나면 제거. DataAsset에서 설정"))
+	float CorpseMaxTime = 30.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="사망 시 재생할 몽타주. 비우면 바로 렉돌. DataAsset에서 설정"))
+	UAnimMontage* DeathMontage = nullptr;
+
+	// 넉백 렉돌 (미카 펀치 등)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="true면 넉백당할 때 렉돌로 굴렀다가 일어난다. DataAsset에서 설정"))
+	bool bRagdollOnKnockback = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ClampMin="0.1", ToolTip="넉백 렉돌 유지 시간(초). 이 뒤에 일어난다. DataAsset에서 설정"))
+	float KnockbackRagdollTime = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="렉돌에서 일어날 때 재생할 몽타주. 비우면 즉시 복귀. DataAsset에서 설정"))
+	UAnimMontage* GetUpMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Ragdoll", meta=(ToolTip="골반 본 이름. 렉돌에서 일어날 때 캡슐을 이 본 아래로 옮긴다. DataAsset에서 설정"))
+	FName RagdollPelvisBone = TEXT("pelvis");
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Ragdoll", meta=(ToolTip="현재 렉돌 상태인지"))
+	bool bIsRagdoll = false;
+
+	// 넉백으로 쓰러뜨린다. 이미 렉돌이거나 사망이면 무시. Impulse는 질량 무관 속도 변화
+	UFUNCTION(BlueprintCallable, Category = "Character|Ragdoll")
+	void KnockdownToRagdoll(const FVector& Impulse);
+
+protected:
+	// 메시를 물리 시뮬레이션으로 전환 (캡슐 콜리전·이동 정지)
+	void EnterRagdoll();
+
+	// 렉돌 해제 → 캡슐을 골반 위치로 옮기고 기상 몽타주 재생
+	void ExitRagdollAndGetUp();
+
+	// 사망 렉돌 흐름
+	void BeginDeathRagdoll();
+	void TickCorpseDespawn();
+
+	FTimerHandle RagdollTimerHandle;
+	FTimerHandle CorpseDespawnTimerHandle;
+	float RagdollStartTime = 0.f;
+
+	// 렉돌 전 메시의 캡슐 기준 상대 트랜스폼 (복귀할 때 되돌린다)
+	FTransform MeshRelativeTransformBeforeRagdoll;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|UI", meta=(ToolTip="체력바 높이 오프셋 (캡슐 기준 위쪽 cm)"))
 	float HealthBarHeightOffset = 100.f;

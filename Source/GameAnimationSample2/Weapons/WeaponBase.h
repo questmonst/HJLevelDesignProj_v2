@@ -266,6 +266,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	FVector GetMuzzleLocation() const;
 
+	// 총구가 향하는 방향 (MuzzleSocket의 앞쪽)
+	FVector GetMuzzleForward() const;
+
+	// 지금 쏘면 맞을 지점. 발사와 똑같은 카메라 트레이스를 쓴다 (플레이어 전용, 실패 시 false).
+	// 총이 조준점을 향하도록 허리를 트는 보정에 사용
+	bool GetAimImpactPoint(FVector& OutPoint) const;
+
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	float GetProjectileSpeedForTrajectory() const { return FMath::Max(ProjectileSpeedOverride, 100.f); }
 

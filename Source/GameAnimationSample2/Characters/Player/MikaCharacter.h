@@ -57,6 +57,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="허리 틀기 보간 속도. MikaData에서 설정"))
 	float AimWaistBlendSpeed = 10.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="true면 허리를 실제 조준점 쪽으로 튼다. MikaData에서 설정"))
+	bool bAimWaistFollowTarget = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="조준점 추종 보간 속도. MikaData에서 설정"))
+	float AimWaistFollowInterpSpeed = 8.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="허리 틀기 최대 각도(도). MikaData에서 설정"))
+	float AimWaistFollowMaxYaw = 45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="이 거리보다 가까운 조준점은 무시(cm). MikaData에서 설정"))
+	float AimWaistMinTargetDistance = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="보정 방향이 반대면 체크. MikaData에서 설정"))
+	bool bAimWaistFollowInvert = false;
+
+	// 조준 중 허리 틀기 갱신 (고정 오프셋 또는 조준점 추종)
+	void UpdateAimWaistYaw(float DeltaTime);
+
 	// ABP용: 조준 중이면 AimWaistYawOffset 쪽으로, 아니면 0으로 보간되는 현재 허리 추가 회전(도)
 	UPROPERTY(BlueprintReadOnly, Category = "Mika|Camera", meta=(ToolTip="조준 허리 틀기 현재값(도). ABP에서 Spine1 ModifyBone에 사용"))
 	float AimWaistYaw = 0.f;

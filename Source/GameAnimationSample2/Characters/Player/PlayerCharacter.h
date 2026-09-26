@@ -126,6 +126,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge", meta=(ClampMin="0", ToolTip="회피 쿨타임(초). MikaData에서 설정"))
 	float DodgeCooldown = 0.8f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge", meta=(ClampMin="0", ToolTip="공중 회피 시작 시 기존 속도를 더하는 비율. 0이면 무시. MikaData에서 설정"))
+	float DodgeAirEntryMomentumRatio = 1.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="앞 회피 몽타주 (전신). MikaData에서 설정"))
 	UAnimMontage* DodgeMontageForward = nullptr;
 
@@ -608,6 +611,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="이 속도(cm/s) 이상으로 착지하면 하드 랜딩 판정"))
 	float HardLandingSpeedThreshold = 600.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="이 속도(cm/s) 미만으로 착지하면 착지 모션을 쓰지 않는다. MikaData에서 설정"))
+	float LandPoseMinSpeed = 200.f;
 
 	// ABP 점프 상태 머신 분기용 — 착지 모션이 끝까지 재생되도록 착지 후에도 잠시 유지한다
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="공중 포즈를 쓸지 (낙하 중이거나 착지 후 LandPoseHoldTime 이내). AnimBP 점프 분기에서 읽기"))

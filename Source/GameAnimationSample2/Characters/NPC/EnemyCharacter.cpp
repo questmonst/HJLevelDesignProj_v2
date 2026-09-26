@@ -55,6 +55,16 @@ void AEnemyCharacter::ApplyEnemyData()
     SeekCoverChance      = EnemyData->SeekCoverChance;
     LeashDistance        = EnemyData->LeashDistance;
     ForgetTime           = EnemyData->ForgetTime;
+
+    bRagdollOnDeath      = EnemyData->bRagdollOnDeath;
+    DeathMontage         = EnemyData->DeathMontage;
+    RagdollDelay         = EnemyData->RagdollDelay;
+    CorpseMinTime        = EnemyData->CorpseMinTime;
+    CorpseMaxTime        = EnemyData->CorpseMaxTime;
+    bRagdollOnKnockback  = EnemyData->bRagdollOnKnockback;
+    KnockbackRagdollTime = EnemyData->KnockbackRagdollTime;
+    GetUpMontage         = EnemyData->GetUpMontage;
+    RagdollPelvisBone    = EnemyData->RagdollPelvisBone;
 }
 
 void AEnemyCharacter::BeginPlay()

@@ -10,6 +10,9 @@
 #include "DamageNumberActor.h"
 #include "EnemyHealthBarWidget.h"
 #include "Blueprint/UserWidget.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimInstance.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -252,6 +255,22 @@ void ACharacterBase::OnDeath_Implementation()
 
 	OnDeathEffect();   // BP: 체력바 위젯의 확대·소멸 애니 재생
 
+	// 렉돌을 쓰면 제거 시점은 렉돌 흐름이 정한다 (화면 밖으로 나가면 사라짐)
+	if (bRagdollOnDeath)
+	{
+		const float Delay = (DeathMontage) ? FMath::Max(PlayAnimMontage(DeathMontage), RagdollDelay) : RagdollDelay;
+		if (Delay > 0.f)
+		{
+			GetWorldTimerManager().SetTimer(
+				RagdollTimerHandle, this, &ACharacterBase::BeginDeathRagdoll, Delay, false);
+		}
+		else
+		{
+			BeginDeathRagdoll();
+		}
+		return;
+	}
+
 	// 연출 시간 후 실제 제거. (즉시 Destroy하면 연출이 재생될 틈이 없음)
 	if (DeathEffectDuration > 0.f)
 	{
@@ -267,6 +286,113 @@ void ACharacterBase::OnDeath_Implementation()
 void ACharacterBase::FinishDeath()
 {
 	Destroy();
+}
+
+// --- Ragdoll ---
+
+void ACharacterBase::EnterRagdoll()
+{
+	if (bIsRagdoll) return;
+
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp) return;
+
+	bIsRagdoll       = true;
+	RagdollStartTime = GetWorld()->GetTimeSeconds();
+	MeshRelativeTransformBeforeRagdoll = MeshComp->GetRelativeTransform();
+
+	// 몽타주가 계속 돌면 물리와 싸운다
+	if (UAnimInstance* Anim = MeshComp->GetAnimInstance())
+	{
+		Anim->StopAllMontages(0.1f);
+	}
+
+	// 캡슐은 비켜준다 — 안 그러면 렉돌이 자기 캡슐에 걸려 튄다
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	MeshComp->SetAllBodiesSimulatePhysics(true);
+	MeshComp->WakeAllRigidBodies();
+	MeshComp->bBlendPhysics = true;
+}
+
+void ACharacterBase::KnockdownToRagdoll(const FVector& Impulse)
+{
+	if (bIsDead || bIsRagdoll || !bRagdollOnKnockback) return;
+
+	EnterRagdoll();
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		MeshComp->AddImpulse(Impulse, NAME_None, true);   // 질량 무관 속도 변화
+	}
+	GetWorldTimerManager().SetTimer(
+		RagdollTimerHandle, this, &ACharacterBase::ExitRagdollAndGetUp, KnockbackRagdollTime, false);
+}
+
+void ACharacterBase::ExitRagdollAndGetUp()
+{
+	if (!bIsRagdoll) return;
+	if (bIsDead) return;   // 렉돌로 구르는 중에 죽었으면 그대로 시체
+
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		bIsRagdoll = false;
+		return;
+	}
+
+	// 캡슐은 쓰러진 자리에 그대로 남아 있다. 골반 아래 바닥을 찾아 캡슐을 옮기지 않으면
+	// 물리를 끄는 순간 메시가 캡슐 자리로 순간이동한다
+	const FVector PelvisLoc  = MeshComp->GetBoneLocation(RagdollPelvisBone);
+	const float   HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	FVector TargetLoc = PelvisLoc + FVector(0.f, 0.f, HalfHeight);
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(
+			Hit, PelvisLoc, PelvisLoc - FVector(0.f, 0.f, 500.f), ECC_Visibility, Params))
+	{
+		TargetLoc = Hit.ImpactPoint + FVector(0.f, 0.f, HalfHeight);
+	}
+
+	MeshComp->SetAllBodiesSimulatePhysics(false);
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MeshComp->SetCollisionProfileName(TEXT("CharacterMesh"));
+	MeshComp->bBlendPhysics = false;
+	MeshComp->SetRelativeTransform(MeshRelativeTransformBeforeRagdoll);
+
+	SetActorLocation(TargetLoc, false, nullptr, ETeleportType::TeleportPhysics);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+	bIsRagdoll = false;
+
+	if (GetUpMontage) PlayAnimMontage(GetUpMontage);
+}
+
+void ACharacterBase::BeginDeathRagdoll()
+{
+	GetWorldTimerManager().ClearTimer(RagdollTimerHandle);   // 넉백 기상 예약이 있으면 취소
+	EnterRagdoll();
+
+	// 최소 시간이 지난 뒤부터, 화면 밖으로 나갔는지 주기적으로 확인
+	GetWorldTimerManager().SetTimer(
+		CorpseDespawnTimerHandle, this, &ACharacterBase::TickCorpseDespawn, 0.5f, true, CorpseMinTime);
+}
+
+void ACharacterBase::TickCorpseDespawn()
+{
+	// 계속 보고 있어도 CorpseMaxTime이 지나면 정리한다 (시체가 영원히 쌓이지 않게)
+	const bool bTimedOut = GetWorld()->TimeSince(RagdollStartTime) >= CorpseMaxTime;
+	if (bTimedOut || !WasRecentlyRendered(0.5f))
+	{
+		GetWorldTimerManager().ClearTimer(CorpseDespawnTimerHandle);
+		Destroy();
+	}
 }
 
 float ACharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,

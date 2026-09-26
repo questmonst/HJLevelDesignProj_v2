@@ -763,6 +763,39 @@ FVector AWeaponBase::GetMuzzleLocation() const
 	return GetActorLocation();
 }
 
+FVector AWeaponBase::GetMuzzleForward() const
+{
+	if (WeaponMesh->DoesSocketExist(MuzzleSocketName))
+		return WeaponMesh->GetSocketTransform(MuzzleSocketName).GetRotation().GetForwardVector();
+	return GetActorForwardVector();
+}
+
+bool AWeaponBase::GetAimImpactPoint(FVector& OutPoint) const
+{
+	APawn* OwnerPawn       = Cast<APawn>(GetOwner());
+	AController* OwnerCtrl = OwnerPawn ? OwnerPawn->GetController() : nullptr;
+	APlayerController* PC  = Cast<APlayerController>(OwnerCtrl);
+	if (!PC) return false;
+
+	// 발사(Fire)와 같은 시작점·방향이어야 총구 정렬이 실제 탄착점과 맞는다
+	FVector  CamLoc;
+	FRotator CamRot;
+	PC->GetPlayerViewPoint(CamLoc, CamRot);
+
+	const FVector TraceStart = CamLoc + CamRot.Vector() * TraceStartOffset;
+	const FVector TraceEnd   = TraceStart + CamRot.Vector() * Range;
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	if (OwnerPawn) Params.AddIgnoredActor(OwnerPawn);
+
+	FHitResult Hit;
+	OutPoint = GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, Params)
+		? Hit.ImpactPoint
+		: TraceEnd;   // 허공이면 사거리 끝을 겨눈다
+	return true;
+}
+
 void AWeaponBase::OnPickupSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {

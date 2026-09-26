@@ -96,4 +96,33 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Patrol", meta=(ToolTip="순찰 반경 (cm). PatrolOrigin 기준 이 범위 내 랜덤 지점"))
 	float PatrolRadius = 500.f;
+
+	// --- Ragdoll ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="켜면 죽을 때 렉돌로 쓰러지고, 플레이어 화면 밖으로 나가면 사라진다. 끄면 기존대로 DeathEffectDuration 뒤 그냥 제거"))
+	bool bRagdollOnDeath = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="사망 시 재생할 몽타주. 비우면 즉시 렉돌. 지정하면 몽타주 길이만큼 기다렸다 쓰러진다"))
+	UAnimMontage* DeathMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnDeath", ToolTip="사망 후 렉돌 전환까지 대기 시간(초). 사망 몽타주가 있으면 둘 중 긴 쪽을 쓴다"))
+	float RagdollDelay = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnDeath", ToolTip="쓰러진 뒤 최소 이 시간(초)은 남아 있는다. 이 시간 전에는 화면 밖이어도 안 사라짐"))
+	float CorpseMinTime = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0", EditCondition="bRagdollOnDeath", ToolTip="화면 밖으로 나가길 기다리는 최대 시간(초). 계속 쳐다보고 있어도 이 시간이 지나면 제거 — 시체가 무한정 쌓이는 걸 막는 안전장치"))
+	float CorpseMaxTime = 30.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="켜면 미카 펀치 넉백에 렉돌로 굴렀다가 일어난다. 끄면 기존대로 밀려남"))
+	bool bRagdollOnKnockback = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ClampMin="0.1", EditCondition="bRagdollOnKnockback", ToolTip="넉백 렉돌 유지 시간(초). 이 뒤에 일어난다"))
+	float KnockbackRagdollTime = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(EditCondition="bRagdollOnKnockback", ToolTip="일어날 때 재생할 몽타주. 비우면 즉시 선 자세로 복귀"))
+	UAnimMontage* GetUpMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ragdoll", meta=(ToolTip="골반 본 이름. 일어날 때 캡슐을 이 본 아래 바닥으로 옮긴다. 스켈레톤에 맞춰 지정 (UE 마네킹 = pelvis)"))
+	FName RagdollPelvisBone = TEXT("pelvis");
 };
