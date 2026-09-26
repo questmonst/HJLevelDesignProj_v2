@@ -123,6 +123,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="반동 이동 시간(초). MikaData에서 설정"))
 	float PunchReboundTime = 0.2f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="true면 반동을 위쪽으로 꺾는다. MikaData에서 설정"))
+	bool bPunchReboundUpward = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="반동 위쪽 각도(도). MikaData에서 설정"))
+	float PunchReboundUpPitch = 30.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch", meta=(ToolTip="풀 충전 반동 딜레이(게임 초). MikaData에서 설정"))
 	float PunchReboundDelayFull = 0.1f;
 
@@ -311,6 +317,9 @@ protected:
 		bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
 
 	// --- Punch Camera ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="조준 중 스프링암 길이(cm). 0이면 기본 길이. MikaData에서 설정"))
+	float AimSpringArmLength = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Camera", meta=(ToolTip="충전 중 스프링암 길이 (cm). 짧을수록 카메라가 캐릭터에 가까워짐"))
 	float ChargeSpringArmLength = 180.0f;

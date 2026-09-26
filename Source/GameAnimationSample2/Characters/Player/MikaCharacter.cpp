@@ -222,6 +222,11 @@ void AMikaCharacter::BeginPlay()
 		DodgeAimMontageBackward    = MikaData->DodgeAimMontageBackward;
 		DodgeAimMontageLeft        = MikaData->DodgeAimMontageLeft;
 		DodgeAimMontageRight       = MikaData->DodgeAimMontageRight;
+
+		AimSpringArmLength         = MikaData->AimSpringArmLength;
+
+		bPunchReboundUpward        = MikaData->bPunchReboundUpward;
+		PunchReboundUpPitch        = MikaData->PunchReboundUpPitch;
 	}
 
 	PunchHitCapsule->SetCapsuleSize(PunchHitRadius, PunchHitHalfHeight);
@@ -284,7 +289,9 @@ void AMikaCharacter::Tick(float DeltaTime)
 	float TargetArm, TargetFov;
 	if (bIsAiming)
 	{
-		TargetArm = NormalSpringArmLength;
+		// 조준 중에는 카메라를 당겨 둔다. 위를 볼 때 스프링암이 뒤·아래로 향하면서
+		// 바닥에 부딪혀 카메라가 튀는 걸 줄이려는 것 (0이면 기본 길이 유지)
+		TargetArm = (AimSpringArmLength > 0.f) ? AimSpringArmLength : NormalSpringArmLength;
 		TargetFov = AimFOV;
 	}
 	else if (bIsDashing)
@@ -715,7 +722,24 @@ bool AMikaCharacter::IsFrontHit(const AActor* Target) const
 void AMikaCharacter::ReboundFromHit()
 {
 	// 타격감: 멈춘 뒤 대시 반대 방향으로 튕긴다. 초기 속도 = 대시 거리 × 비율 ÷ 반동 시간 (충전 비례)
-	const FVector Back = -DashVelocity.GetSafeNormal();
+	FVector Back = -DashVelocity.GetSafeNormal();
+
+	// 위로 띄우기: 반동 방향을 수평 기준 위쪽으로 꺾어, 벽을 치면 대체로 떠오르게 한다.
+	// 원래 방향에서 더 돌리면 위를 치고 튕길 때 뒤로 넘어가므로, 수평 성분 기준으로 각도를 다시 잡는다
+	if (bPunchReboundUpward)
+	{
+		FVector Horizontal = FVector(Back.X, Back.Y, 0.f);
+		if (Horizontal.IsNearlyZero())
+		{
+			// 바로 위·아래를 쳐서 수평 성분이 없으면 미카가 보던 반대쪽을 기준으로
+			Horizontal = -GetActorForwardVector();
+			Horizontal.Z = 0.f;
+		}
+		Horizontal.Normalize();
+		const float PitchRad = FMath::DegreesToRadians(PunchReboundUpPitch);
+		Back = Horizontal * FMath::Cos(PitchRad) + FVector::UpVector * FMath::Sin(PitchRad);
+	}
+
 	EndDash();
 
 	const float ReboundDistance = DashDistance * PunchReboundDistanceRatio;

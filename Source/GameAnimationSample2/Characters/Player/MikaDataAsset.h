@@ -89,6 +89,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Aim", meta=(ToolTip="조준 중 카메라를 위로 올리는 거리(cm, 음수=아래)"))
 	float AimSocketOffsetUp = 15.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Aim", meta=(ClampMin="0", ToolTip="조준 중 스프링암 길이(cm). 기본 길이(300)보다 짧게 두면 위를 볼 때 카메라가 바닥에 부딪히는 게 줄어든다. 0이면 기본 길이 그대로. 권장 150~200"))
+	float AimSpringArmLength = 0.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="-90", ClampMax="90", ToolTip="조준 중 허리(Spine1)를 오른쪽으로 더 트는 각도(도, 음수면 왼쪽). ABP가 AimWaistYaw로 적용"))
 	float AimWaistYawOffset = 15.f;
 
@@ -282,6 +285,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="0.01", ToolTip="반동 초기 속도 계산용 시간(초). 짧을수록 초기 속도가 커서 세게 튕김 (이 시간에 멈추는 게 아님)"))
 	float PunchReboundTime = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ToolTip="켜면 반동이 수평 기준 위쪽으로 꺾여 웬만하면 떠오른다 (벽을 치고 위로 튀는 연출). 끄면 대시 반대 방향 그대로"))
+	bool bPunchReboundUpward = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="-89", ClampMax="89", EditCondition="bPunchReboundUpward", ToolTip="반동을 위로 꺾는 각도(도). 30이면 수평에서 30도 위. 위·아래를 쳐서 수평 성분이 없으면 미카가 보던 반대쪽 기준"))
+	float PunchReboundUpPitch = 30.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch|Hit", meta=(ClampMin="0", ToolTip="풀 충전 대시: 정면 적중·벽에서 멈춘 뒤 반동 시작까지 제자리에 머무는 시간(게임 초). 히트스톱 중엔 그만큼 길게 느껴짐"))
 	float PunchReboundDelayFull = 0.1f;

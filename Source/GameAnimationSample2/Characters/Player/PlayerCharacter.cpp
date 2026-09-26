@@ -502,11 +502,14 @@ void APlayerCharacter::StartDodge()
 {
 	if (!CanStartDodge()) return;
 
-	// 조준 중이면 총을 든 채 구르는 세트 — 하체만 몽타주, 상체는 조준 유지
-	const bool bAimDodge = bIsAiming;
+	// 공중에서는 구르기가 어색하므로 조준용(대시) 세트를 쓰되, 상체를 고정할 이유가 없으니 전신으로 재생한다.
+	// 하체만 몽타주 = 지상에서 조준 중일 때만
+	const bool bInAir     = GetCharacterMovement()->IsFalling();
+	const bool bUseAimSet = bIsAiming || bInAir;
+	const bool bAimDodge  = bIsAiming && !bInAir;
 
 	UAnimMontage* Montage = nullptr;
-	const FVector DodgeDir = GetDodgeDirection(bAimDodge, Montage);
+	const FVector DodgeDir = GetDodgeDirection(bUseAimSet, Montage);
 
 	StopFire();   // 회피 중에는 공격 불가 — 누르고 있던 연사도 끊는다
 
