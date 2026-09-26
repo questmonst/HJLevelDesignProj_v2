@@ -238,6 +238,40 @@
 - [x] (2026-09-23) 점프 블렌드 2배 — AirLoco 전환 크로스페이드 8개 0.08→0.16, `AirPoseBlendSpeed` 12→6
 - [x] (2026-09-23) **카와이 충돌 구 단위 버그** — 이 스켈레톤은 본 컴포넌트 스케일이 **100**이라 `OffsetLocation`은 **미터 단위**(0.09 = 9cm). 처음에 4·12·22로 넣어 구가 4~22m 밖에 있었고 무릎이 전혀 안 막혔음. 반경(Radius)은 컴포넌트 cm 그대로. 치마 구 13개(골반 + 좌우 허벅지 3·종아리 3)로 재배치
 - 참고: 카와이 본 제약(Bone Constraints)은 **같은 노드 안의 본끼리만** 연결 가능. 치마 8가닥이 각각 별도 노드라 가닥끼리 묶을 수 없음. 가닥을 면처럼 묶으려면 치마 본들이 공통 부모 하나 아래로 묶인 리그가 필요 (지금은 충돌 + LimitAngle 55도로 대응)
+- [!] **교훈 (2026-09-26): WBP에 자식 위젯은 MCP로 넣지 말고 사용자가 디자이너에서 드래그 앤 드롭할 것**
+  - AI가 `ui_query add_widget`으로 `WBP_Crosshair_V2`에 넣은 스킬 아이콘은 **화면에 보이긴 하는데 갱신이 안 됐다**
+    (쿨타임 틴트·시계방향 덮개 모두 미동작). 사용자가 같은 위젯을 계층구조에 직접 드래그 앤 드롭하니 정상 동작.
+  - 정확한 이유는 미확인 — 스크립트로 추가한 자식 위젯이 위젯 트리 아키타입/인스턴스 생성 경로에 제대로
+    등록되지 않는 것으로 추정. **다시 파지 말고 그냥 사용자에게 배치를 맡길 것**
+  - 며칠간 "머티리얼이 안 그려진다"고 엉뚱한 곳(머티리얼·틱·MID 수명)을 팠던 원인이 이것이었음
+
+- [ ] (빌드 대기 2026-09-26) 회피 2차 — 마우스4·조준 회피·공중 회피·쿨타임 HUD
+  - 입력: `C_IA_Dodge`에 **ThumbMouseButton(마우스4)** 추가 바인딩. LeftControl은 폴백으로 유지
+  - 발사 중단: `StartDodge()`에서 `StopFire()` — 진입 차단만으로는 누르고 있던 연사가 안 끊긴다
+  - 공중 회피 허용: `CanStartDodge()`의 `IsFalling()` 차단 제거. 비행 모드라 회피 동안 중력이 멈췄다가 끝나면 낙하 재개
+  - **조준 회피 세트**: `bIsAiming`이면 `DodgeAimMontage*` 4종 사용 + `bIsAimDodging=true`, `bFullBodyMontage=false`
+    → ABP가 **하체에만** 몽타주를 적용하고 상체는 조준 포즈 유지. 조준용 몽타주가 비어 있으면 일반 세트로 폴백
+  - 쿨타임 HUD: `ESkillSlot::Dodge` + `IsDodgeReady`/`GetDodgeCooldownRemaining`/`GetDodgeCooldownDuration`
+  - **펀치 쿨타임 표시 버그 수정**: 대시 중에는 `bCanPunch=false`인데 쿨타임 타이머가 아직 안 돌아
+    (`StartPunchCooldown`은 `FinishDash`에서 호출) → `GetTimerRemaining`이 0 → HUD가 "준비됨"으로 표시.
+    이제 타이머가 안 돌 때는 `PunchCooldown`(꽉 찬 상태)을 돌려준다. **PIE에서 실측으로 확인한 버그**
+  - 회피는 같은 함정을 피하려고 `DodgeReadyTime`(회피 동작 + 쿨타임)을 따로 들고 계산
+  - **미해결:** 쿨타임 시계방향 채움이 여전히 안 보인다는 보고. 정적 확인은 전부 통과
+    (머티리얼 MD_UI/Translucent 정상, `SweepMaterial` 할당됨, `TickPrediction: WillTick`, `PunchCooldown` 1.0초, 배치 정상).
+    PIE 실측은 MCP 왕복과 게임 시간이 어긋나 결론 못 냄 → 사용자가 직접 확인하기로
+
+- [x] (빌드·ABP 완료 2026-09-26) 회피(Dodge) — Lctrl + WASD
+  - `APlayerCharacter`에 구현 (플레이어 공용). 수치는 `MikaDataAsset` › Dodge / Animation|Dodge → BeginPlay 복사
+  - 이동은 펀치 대시와 같은 방식: **비행 모드 + 일정 속도**(거리 ÷ 시간)라 `DodgeDistance`가 정확히 지켜진다. 끝나면 속도 0 + 낙하 모드
+  - 방향: 캐시한 이동 입력(`MoveInputAxis`)을 4방향으로 스냅. 대각선은 큰 축으로. **입력 없이 Lctrl만 누르면 뒤로**
+    - Enhanced Input은 키를 떼면 Triggered가 안 오므로 `Move`의 Completed도 바인딩해 축을 0으로 되돌린다
+  - 공격 차단: `bIsDodging`이 true면 `StartFire`(기본·미카 펀치 충전)·`StartGrenadeThrow` 진입 차단
+  - 회피 시작 조건(`CanStartDodge`): 쿨타임·중복·수류탄 들고 있음·공중 제외. 미카는 펀치 충전·대시·반동 중에도 금지
+  - **전신 애니**: ABP 전신 분기(ADR-009)가 읽던 `bIsPunchFullBody`를 공용 `bFullBodyMontage`로 바꿈 (회피·펀치 대시 공통).
+    ABP `is Dashing` 변수 소스를 `Character.bIsPunchFullBody` → **`Character.bFullBodyMontage`**로 교체 완료 (VariableGet_36, 낡은 노드 제거·컴파일·저장까지)
+  - **미반영(다음 빌드 때 같이):** `MikaDataAsset.h`의 회피 몽타주 툴팁을 "슬롯은 DefaultGroup.UpperBody"로 고쳐놨음 — 빌드 전까지 에디터 툴팁은 옛 문구
+  - 입력 에셋: `C_IA_Dodge`(bool) 생성 + `IMC_Claude`에 **LeftControl** 바인딩 — AI가 완료
+  - 몽타주가 비어 있으면 애니 없이 이동만 (`bDodgeDurationFromMontage`가 false로 폴백)
 - [x] (빌드 완료 2026-09-26) 히트마커 4건 수정
   - 헤드샷 미작동: 대소문자 문제가 아니라 **트레이스가 캡슐에 막혀 `Hit.BoneName`이 비어 있던 것**. 본 이름이 없으면 머리 본 위치와의 거리로 판정 (`HeadHitRadius` 22cm)
   - 히트마커 사운드: `UHUDDataAsset`에 `HitSound`·`HeadshotSound`·`KillSound`·`HitSoundVolume`. `PlaySound2D`로 재생

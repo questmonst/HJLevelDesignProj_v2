@@ -208,6 +208,20 @@ void AMikaCharacter::BeginPlay()
 		PunchDashMontage           = MikaData->PunchDashMontage;
 		PunchReboundMontage        = MikaData->PunchReboundMontage;
 		PunchReboundMontagePlayRate = MikaData->PunchReboundMontagePlayRate;
+
+		DodgeDistance              = MikaData->DodgeDistance;
+		DodgeDuration              = MikaData->DodgeDuration;
+		bDodgeDurationFromMontage  = MikaData->bDodgeDurationFromMontage;
+		DodgeCooldown              = MikaData->DodgeCooldown;
+		DodgeMontageForward        = MikaData->DodgeMontageForward;
+		DodgeMontageBackward       = MikaData->DodgeMontageBackward;
+		DodgeMontageLeft           = MikaData->DodgeMontageLeft;
+		DodgeMontageRight          = MikaData->DodgeMontageRight;
+		DodgeMontagePlayRate       = MikaData->DodgeMontagePlayRate;
+		DodgeAimMontageForward     = MikaData->DodgeAimMontageForward;
+		DodgeAimMontageBackward    = MikaData->DodgeAimMontageBackward;
+		DodgeAimMontageLeft        = MikaData->DodgeAimMontageLeft;
+		DodgeAimMontageRight       = MikaData->DodgeAimMontageRight;
 	}
 
 	PunchHitCapsule->SetCapsuleSize(PunchHitRadius, PunchHitHalfHeight);
@@ -375,8 +389,17 @@ void AMikaCharacter::Tick(float DeltaTime)
 
 // --- StartFire / StopFire 오버라이드 ---
 
+bool AMikaCharacter::CanStartDodge() const
+{
+	// 펀치 충전·대시·반동 중에는 회피 없음 (둘 다 전신 애니라 겹치면 서로를 끊는다)
+	if (bIsChargingPunch || bIsDashing || bIsPunchFullBody) return false;
+	return Super::CanStartDodge();
+}
+
 void AMikaCharacter::StartFire()
 {
+	if (bIsDodging) return;   // 회피 중에는 펀치 충전도 시작하지 않는다
+
 	if (bIsAiming)
 	{
 		Super::StartFire();
@@ -465,7 +488,13 @@ void AMikaCharacter::StartPunchCooldown()
 float AMikaCharacter::GetPunchCooldownRemaining() const
 {
 	if (bCanPunch) return 0.f;
-	return FMath::Max(GetWorldTimerManager().GetTimerRemaining(PunchCooldownTimerHandle), 0.f);
+
+	const float TimerRemaining = GetWorldTimerManager().GetTimerRemaining(PunchCooldownTimerHandle);
+	if (TimerRemaining > 0.f) return TimerRemaining;
+
+	// 대시 중(충전 포함)에는 쿨타임 타이머가 아직 안 돌고 있다 — FinishDash에서야 시작한다.
+	// 그동안 0을 돌려주면 HUD가 "준비됨"으로 보이므로 꽉 찬 상태로 표시한다
+	return PunchCooldown;
 }
 
 void AMikaCharacter::ResetPunchCooldown()
@@ -512,6 +541,7 @@ void AMikaCharacter::StartDash(float ChargeRatio)
 
 	// 반동으로 대시가 일찍 끝나도 몽타주 끝까지 하반신을 펀치 모션으로 (몽타주가 없으면 대시 끝에서 해제)
 	bIsPunchFullBody = true;
+	bFullBodyMontage = true;
 	GetWorldTimerManager().ClearTimer(PunchFullBodyTimerHandle);
 
 	// 거리 = 충전 비율로 Min~Max, 시간 = 몽타주 길이(또는 DashDuration) → 속도 = 거리 ÷ 시간.
@@ -559,8 +589,9 @@ void AMikaCharacter::StartDash(float ChargeRatio)
 
 void AMikaCharacter::EndPunchFullBody()
 {
-	bIsPunchFullBody = false;
-	DashPitch        = 0.f;
+	bIsPunchFullBody  = false;
+	bFullBodyMontage  = false;
+	DashPitch         = 0.f;
 }
 
 void AMikaCharacter::EndDash()

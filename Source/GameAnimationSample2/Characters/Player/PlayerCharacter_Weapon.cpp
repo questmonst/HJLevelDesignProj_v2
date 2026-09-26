@@ -254,6 +254,7 @@ UAnimMontage* APlayerCharacter::SelectFireMontage() const
 void APlayerCharacter::StartFire()
 {
 	if (!CurrentWeapon) return;
+	if (bIsDodging) return;                        // 회피 중에는 공격 불가
 	if (bIsPreparingThrow || HeldGrenade) return;   // 수류탄 조준·투척 중엔 총을 숨겨 두므로 사격 불가
 	bIsFiring = true;
 

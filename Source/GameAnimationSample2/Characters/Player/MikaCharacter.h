@@ -461,6 +461,9 @@ protected:
 	virtual void StartFire() override;
 	virtual void StopFire() override;
 
+	// 펀치 충전·대시 중에는 회피를 막는다
+	virtual bool CanStartDodge() const override;
+
 	// --- Internal ---
 
 	// 지금 조준 방향 (카메라 시선). 대시·범위 데칼 공용

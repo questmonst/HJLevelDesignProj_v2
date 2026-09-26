@@ -295,8 +295,30 @@ Use 'SlotPose' ─────────────────────�
 조준 허리 틀기 (2026-09-18): 척추 보정 뒤·Component To Local 앞에 **Transform (Modify) Bone**(`ValveBiped.Bip01_Spine1`, Add to Existing, Bone Space, Alpha 1),
 Rotation **X ← `Aim Waist Yaw` × -1** (ValveBiped Spine1은 **X축이 좌우 비틀기**, 부호 반대). 값은 C++ `AimWaistYaw`(조준 중 `MikaData.AimWaistYawOffset`으로 보간).
 
-EventGraph의 ABP 변수 `is Dashing` ← C++ **`bIsPunchFullBody`** (대시 시작 ~ 펀치 몽타주 끝, 2026-09-18 변경).
+**조준 회피 분기 (2026-09-26 추가)** — 위 구조의 *반대*가 하나 더 붙었다:
+
+```
+Use 'SlotPose'(전신 몽타주) → Base ┐
+Use 'LocoPose'(조준 로코)    → Blend0 ┘ Layered blend per bone(spine1, Mesh Space Rotation)
+   = 하체는 몽타주, 상체는 조준 포즈  ─→ True  ┐
+위의 기존 분기(BlendListByBool_7) ──────────→ False ├ Blend Poses by bool → Local To Component
+                              Active = Is Aim Dodging ┘
+```
+
+| 상태 | 결과 |
+|---|---|
+| 일반 회피 | 전신 = 회피 몽타주 (`bFullBodyMontage`) |
+| **조준 중 회피** | **하체 = 회피 몽타주, 상체 = 조준 유지** (`bIsAimDodging`) |
+
+**Mesh Space Rotation Blend는 반드시 켤 것.** 구르는 동안 골반이 크게 돌기 때문에,
+로컬 공간으로 블렌드하면 상체가 그 회전을 물려받아 조준 방향이 같이 돌아간다.
+
+필터 본은 기존 노드와 같은 `valvebiped_bip01_spine1` — 상·하체 경계를 한 곳으로 통일했다.
+(본 이름은 전부 소문자·언더스코어. `ValveBiped.Bip01_Spine1`이 아니다)
+
+EventGraph의 ABP 변수 `is Dashing` ← C++ **`bFullBodyMontage`** (2026-09-26 변경. 그 전엔 `bIsPunchFullBody`).
 `bIsDashing`(실제 대시 이동 중)으로 두면 적중·벽 반동으로 대시가 일찍 끝날 때 하반신이 로코모션(뒷걸음)으로 돌아간다.
+`bFullBodyMontage`는 **펀치 대시·회피 공통** 플래그(`APlayerCharacter`) — 전신 동작이 늘어도 ABP는 이 한 곳만 보면 된다.
 
 EventGraph의 ABP 변수 `Is Aiming` = `bIsAiming OR bIsChargingPunch OR bIsDashing OR bIsPreparingThrow` —
 조준 걷기 하체 선택. **AnimGraph의 Is Aiming 사용처를 각각 고치지 말고 이 한 곳만** 수정한다.
@@ -339,3 +361,5 @@ EventGraph의 ABP 변수 `Is Aiming` = `bIsAiming OR bIsChargingPunch OR bIsDash
 | 2026-09-17 | 적 행동 성향 DA(사격 패턴·확률), 제압 사격, 타겟 잊기, 피격 방향 반응 | ADR-007 보강 |
 | 2026-09-17 | 적 피격 즉시 감지(AISense_Damage) + 시야 인계 확인, 청각이 bCanSeeTarget 켜던 버그 수정 | ADR-007 갱신 |
 | 2026-09-18 | 미카 ABP 몽타주 레이어 구조 기록(상체/전신/척추 보정 분기), 수류탄 투척 노티파이·조준·총 숨김 | ADR-009 |
+| 2026-09-26 | 회피(Lctrl+WASD) 구현 — 전신 분기 조건을 공용 `bFullBodyMontage`로 교체 | ADR-009 갱신 |
+| 2026-09-26 | 조준 회피 — 하체만 몽타주 + 상체 조준 유지 분기 추가 | ADR-009 갱신 |

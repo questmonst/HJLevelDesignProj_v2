@@ -150,6 +150,11 @@ void USkillIconWidget::ReadFromPlayer()
 		ApplyCooldownVisual(Mika->GetPunchCooldownRemaining(), Mika->GetPunchCooldownDuration());
 		break;
 
+	case ESkillSlot::Dodge:
+		// 회피 동작 시간 + 쿨타임을 한 덩어리로 (회피하는 동안 준비됨으로 보이지 않게)
+		ApplyCooldownVisual(Mika->GetDodgeCooldownRemaining(), Mika->GetDodgeCooldownDuration());
+		break;
+
 	case ESkillSlot::Grenade:
 		// 수류탄은 쿨타임이 거의 없다 — 남은 개수만 보여주고, 다 떨어지면 어둡게
 		SetCount(Mika->GetGrenadeCount());

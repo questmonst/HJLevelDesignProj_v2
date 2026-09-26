@@ -21,6 +21,7 @@ enum class ESkillSlot : uint8
 {
 	Punch    UMETA(DisplayName = "미카 펀치"),
 	Grenade  UMETA(DisplayName = "수류탄"),
+	Dodge    UMETA(DisplayName = "회피"),
 	Custom   UMETA(DisplayName = "직접 갱신")   // SetCooldown()을 직접 불러서 쓴다
 };
 

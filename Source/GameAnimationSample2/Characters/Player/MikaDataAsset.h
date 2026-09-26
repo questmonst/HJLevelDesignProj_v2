@@ -458,4 +458,48 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ClampMin="0.1", ToolTip="펀치 반동 몽타주 재생 속도 배율. 1 = 원본, 0.7 = 30% 느리게"))
 	float PunchReboundMontagePlayRate = 1.f;
+
+	// --- Dodge (Lctrl + WASD) ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge", meta=(ClampMin="0", ToolTip="회피 이동 거리(cm). 시간으로 나눠 일정 속도로 이동하므로 이 거리가 정확히 지켜진다"))
+	float DodgeDistance = 450.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge", meta=(ClampMin="0.01", ToolTip="회피 지속 시간(초). bDodgeDurationFromMontage를 끄면 이 값을 쓴다"))
+	float DodgeDuration = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge", meta=(ToolTip="true면 회피 시간 = 방향별 몽타주 재생 길이 (애니와 이동이 정확히 맞는다). 몽타주가 없으면 DodgeDuration 사용"))
+	bool bDodgeDurationFromMontage = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge", meta=(ClampMin="0", ToolTip="회피 쿨타임(초). 회피가 끝난 시점부터 카운트. 0이면 쿨타임 없음"))
+	float DodgeCooldown = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge", meta=(ToolTip="앞(W) 회피 몽타주. 슬롯은 반드시 DefaultGroup.UpperBody (전신 분기도 이 슬롯 결과를 쓴다 — ADR-009). 제자리(비 Root) 애니, 이동은 코드가 담당"))
+	UAnimMontage* DodgeMontageForward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge", meta=(ToolTip="뒤(S) 회피 몽타주. 방향 입력 없이 Lctrl만 눌러도 이것"))
+	UAnimMontage* DodgeMontageBackward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge", meta=(ToolTip="왼쪽(A) 회피 몽타주"))
+	UAnimMontage* DodgeMontageLeft = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge", meta=(ToolTip="오른쪽(D) 회피 몽타주"))
+	UAnimMontage* DodgeMontageRight = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge", meta=(ClampMin="0.1", ToolTip="회피 몽타주 재생 속도 배율. 1 = 원본. 일반·조준 세트 공통"))
+	float DodgeMontagePlayRate = 1.f;
+
+	// --- 조준 중 회피 (총을 든 채 구르는 세트) ---
+	// 이쪽은 하체에만 적용되고 상체는 조준 포즈가 유지된다. 비워두면 위의 일반 세트로 대체.
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge|Aim", meta=(ToolTip="조준 중 앞(W) 회피 몽타주. 슬롯 DefaultGroup.UpperBody, 제자리 애니. 상체는 ABP가 조준 포즈로 덮으므로 하체 동작 위주로 만들 것"))
+	UAnimMontage* DodgeAimMontageForward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge|Aim", meta=(ToolTip="조준 중 뒤(S) 회피 몽타주. 방향 입력 없이 회피해도 이것"))
+	UAnimMontage* DodgeAimMontageBackward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge|Aim", meta=(ToolTip="조준 중 왼쪽(A) 회피 몽타주"))
+	UAnimMontage* DodgeAimMontageLeft = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation|Dodge|Aim", meta=(ToolTip="조준 중 오른쪽(D) 회피 몽타주"))
+	UAnimMontage* DodgeAimMontageRight = nullptr;
 };

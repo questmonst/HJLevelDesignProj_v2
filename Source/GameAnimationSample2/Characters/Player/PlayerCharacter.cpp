@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionWarpingComponent.h"
 #include "Components/ArrowComponent.h"
+#include "Animation/AnimMontage.h"
 #include "HUDDataAsset.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -139,6 +140,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	};
 
 	Bind(TEXT("Move"),    ETriggerEvent::Triggered, &APlayerCharacter::HandleMove);
+	Bind(TEXT("Move"),    ETriggerEvent::Completed, &APlayerCharacter::HandleMoveEnd);
+	Bind(TEXT("Dodge"),   ETriggerEvent::Started,   &APlayerCharacter::StartDodge);
 	Bind(TEXT("Look"),    ETriggerEvent::Triggered, &APlayerCharacter::HandleLook);
 	Bind(TEXT("Jump"),    ETriggerEvent::Started,   &APlayerCharacter::Jump);
 	Bind(TEXT("Jump"),    ETriggerEvent::Completed, &APlayerCharacter::StopJumping);
@@ -429,12 +432,147 @@ void APlayerCharacter::UpdateAimSpinePitch(float DeltaTime)
 void APlayerCharacter::HandleMove(const FInputActionValue& Value)
 {
 	FVector2D Axis = Value.Get<FVector2D>();
+	MoveInputAxis = Axis;
 	if (Controller)
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 		AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X), Axis.Y);
 		AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y), Axis.X);
+	}
+}
+
+void APlayerCharacter::HandleMoveEnd()
+{
+	MoveInputAxis = FVector2D::ZeroVector;
+}
+
+// --- Dodge ---
+
+bool APlayerCharacter::CanStartDodge() const
+{
+	if (!bCanDodge || bIsDodging) return false;
+	if (bIsPreparingThrow || HeldGrenade) return false;   // 수류탄을 손에 든 채로는 회피 없음
+	return true;                                          // 공중에서도 가능 (회피 동안은 중력이 멈춘다)
+}
+
+float APlayerCharacter::GetDodgeCooldownRemaining() const
+{
+	if (bCanDodge) return 0.f;
+	return FMath::Max(DodgeReadyTime - GetWorld()->GetTimeSeconds(), 0.f);
+}
+
+FVector APlayerCharacter::GetDodgeDirection(bool bAimSet, UAnimMontage*& OutMontage) const
+{
+	// 대각선 입력은 큰 축으로 스냅 — 방향별 몽타주가 4개뿐이라 몸과 애니가 어긋나지 않게
+	FVector2D Axis = MoveInputAxis;
+	if (Axis.IsNearlyZero())
+	{
+		Axis = FVector2D(0.f, -1.f);   // 방향 입력 없이 누르면 뒤로
+	}
+	else if (FMath::Abs(Axis.Y) >= FMath::Abs(Axis.X))
+	{
+		Axis = FVector2D(0.f, FMath::Sign(Axis.Y));
+	}
+	else
+	{
+		Axis = FVector2D(FMath::Sign(Axis.X), 0.f);
+	}
+
+	if (bAimSet)
+	{
+		OutMontage = (Axis.Y > 0.f) ? DodgeAimMontageForward
+		           : (Axis.Y < 0.f) ? DodgeAimMontageBackward
+		           : (Axis.X > 0.f) ? DodgeAimMontageRight
+		                            : DodgeAimMontageLeft;
+	}
+	if (!OutMontage)   // 조준용이 아직 없으면 일반 세트로
+	{
+		OutMontage = (Axis.Y > 0.f) ? DodgeMontageForward
+		           : (Axis.Y < 0.f) ? DodgeMontageBackward
+		           : (Axis.X > 0.f) ? DodgeMontageRight
+		                            : DodgeMontageLeft;
+	}
+
+	const FRotationMatrix YawMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f));
+	return (YawMatrix.GetUnitAxis(EAxis::X) * Axis.Y + YawMatrix.GetUnitAxis(EAxis::Y) * Axis.X).GetSafeNormal();
+}
+
+void APlayerCharacter::StartDodge()
+{
+	if (!CanStartDodge()) return;
+
+	// 조준 중이면 총을 든 채 구르는 세트 — 하체만 몽타주, 상체는 조준 유지
+	const bool bAimDodge = bIsAiming;
+
+	UAnimMontage* Montage = nullptr;
+	const FVector DodgeDir = GetDodgeDirection(bAimDodge, Montage);
+
+	StopFire();   // 회피 중에는 공격 불가 — 누르고 있던 연사도 끊는다
+
+	bIsDodging       = true;
+	bCanDodge        = false;
+	bIsAimDodging    = bAimDodge;
+	bFullBodyMontage = !bAimDodge;   // 일반 회피만 전신 몽타주 (ABP 전신 분기)
+
+	// 몸은 카메라 방향에 고정 — 옆·뒤로 굴러도 방향별 애니가 제대로 보인다 (EndDodge에서 원복)
+	SetActorRotation(FRotator(0.f, GetControlRotation().Yaw, 0.f));
+	bUseControllerRotationYaw                         = false;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	// 실제 재생 길이 = 원본 길이 ÷ (입력 배속 × 몽타주 자체 RateScale)
+	float MontageLength = 0.f;
+	if (Montage)
+	{
+		const float EffectiveRate = FMath::Max(DodgeMontagePlayRate * Montage->RateScale, KINDA_SMALL_NUMBER);
+		MontageLength = PlayAnimMontage(Montage, DodgeMontagePlayRate) / EffectiveRate;
+	}
+	const float DodgeTime = FMath::Max((bDodgeDurationFromMontage && MontageLength > 0.f) ? MontageLength : DodgeDuration, KINDA_SMALL_NUMBER);
+
+	// 펀치 대시와 같은 방식 — 낙하 모드는 중력·마찰이 섞여 거리가 들쑥날쑥하므로 비행 모드 + 제동 0
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	DodgePrevFrictionFactor = Move->BrakingFrictionFactor;
+	DodgePrevBrakingFlying  = Move->BrakingDecelerationFlying;
+	DodgeVelocity = DodgeDir * (DodgeDistance / DodgeTime);
+	Move->BrakingFrictionFactor     = 0.f;
+	Move->BrakingDecelerationFlying = 0.f;
+	Move->SetMovementMode(MOVE_Flying);
+	Move->Velocity = DodgeVelocity;
+
+	GetWorldTimerManager().SetTimer(DodgeEndTimerHandle, this, &APlayerCharacter::EndDodge, DodgeTime, false);
+
+	// HUD는 회피 동작 + 쿨타임을 한 덩어리로 보여준다 (회피 중에 "준비됨"으로 보이지 않게)
+	DodgeUnavailableDuration = DodgeTime + DodgeCooldown;
+	DodgeReadyTime           = GetWorld()->GetTimeSeconds() + DodgeUnavailableDuration;
+}
+
+void APlayerCharacter::EndDodge()
+{
+	if (!bIsDodging) return;
+	bIsDodging       = false;
+	bIsAimDodging    = false;
+	bFullBodyMontage = false;
+	GetWorldTimerManager().ClearTimer(DodgeEndTimerHandle);
+
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	Move->BrakingFrictionFactor     = DodgePrevFrictionFactor;
+	Move->BrakingDecelerationFlying = DodgePrevBrakingFlying;
+	Move->Velocity = FVector::ZeroVector;   // 회피는 그 자리에서 멈춘다
+	Move->SetMovementMode(MOVE_Falling);
+
+	if (!bIsAiming)
+	{
+		bUseControllerRotationYaw = false;
+		Move->bOrientRotationToMovement = true;
+	}
+
+	if (DodgeCooldown > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(DodgeCooldownTimerHandle, this, &APlayerCharacter::ResetDodgeCooldown, DodgeCooldown, false);
+	}
+	else
+	{
+		bCanDodge = true;
 	}
 }
 

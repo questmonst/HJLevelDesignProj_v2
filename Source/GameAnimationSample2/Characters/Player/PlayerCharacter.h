@@ -71,7 +71,12 @@ protected:
 
 	const UInputAction* FindActionInIMC(const FString& NameContains) const;
 	void HandleMove(const FInputActionValue& Value);
+	void HandleMoveEnd();
 	void HandleLook(const FInputActionValue& Value);
+
+	// 가장 최근 이동 입력 (X=좌우, Y=전후). 회피 방향 판정용 —
+	// 회피 입력이 같은 프레임의 이동 입력보다 먼저 올 수 있어 값을 들고 있는다
+	FVector2D MoveInputAxis = FVector2D::ZeroVector;
 	// 앉기는 홀드가 아닌 토글: 누를 때마다 앉기<->서기 전환
 	void ToggleCrouch();
 
@@ -104,6 +109,99 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Movement", meta=(ToolTip="앉아서 이동하는 속도 (cm/s). CharacterMovement.MaxWalkSpeedCrouched에 적용"))
 	float CrouchWalkSpeed = 200.f;
+
+	// --- Dodge ---
+	// Lctrl + WASD. 펀치 대시와 같은 방식(비행 모드 + 일정 속도)으로 거리를 정확히 지킨다.
+	// 회피 중에는 공격(사격·펀치·수류탄) 불가.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge", meta=(ClampMin="0", ToolTip="회피 이동 거리(cm). MikaData에서 설정"))
+	float DodgeDistance = 450.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge", meta=(ClampMin="0.01", ToolTip="회피 지속 시간(초). bDodgeDurationFromMontage가 false일 때만 사용. MikaData에서 설정"))
+	float DodgeDuration = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge", meta=(ToolTip="true면 회피 시간 = 방향별 몽타주 재생 길이. MikaData에서 설정"))
+	bool bDodgeDurationFromMontage = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge", meta=(ClampMin="0", ToolTip="회피 쿨타임(초). MikaData에서 설정"))
+	float DodgeCooldown = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="앞 회피 몽타주 (전신). MikaData에서 설정"))
+	UAnimMontage* DodgeMontageForward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="뒤 회피 몽타주 (전신). 방향 입력 없이 회피하면 이것. MikaData에서 설정"))
+	UAnimMontage* DodgeMontageBackward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="왼쪽 회피 몽타주 (전신). MikaData에서 설정"))
+	UAnimMontage* DodgeMontageLeft = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="오른쪽 회피 몽타주 (전신). MikaData에서 설정"))
+	UAnimMontage* DodgeMontageRight = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ClampMin="0.1", ToolTip="회피 몽타주 재생 속도 배율. MikaData에서 설정"))
+	float DodgeMontagePlayRate = 1.f;
+
+	// 조준 중 회피 — 총을 든 채로 구르는 전용 세트. 하체만 몽타주가 적용되고 상체는 조준을 유지한다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="조준 중 앞 회피 몽타주. MikaData에서 설정"))
+	UAnimMontage* DodgeAimMontageForward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="조준 중 뒤 회피 몽타주. MikaData에서 설정"))
+	UAnimMontage* DodgeAimMontageBackward = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="조준 중 왼쪽 회피 몽타주. MikaData에서 설정"))
+	UAnimMontage* DodgeAimMontageLeft = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Dodge|Animation", meta=(ToolTip="조준 중 오른쪽 회피 몽타주. MikaData에서 설정"))
+	UAnimMontage* DodgeAimMontageRight = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Dodge", meta=(ToolTip="현재 회피 중인지. ABP 전신 분기·공격 차단에 사용"))
+	bool bIsDodging = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Dodge", meta=(ToolTip="회피 사용 가능 여부. 쿨타임 중이면 false"))
+	bool bCanDodge = true;
+
+	// 조준 중 회피 — ABP가 하체에만 몽타주를 적용하고 상체는 조준 포즈를 유지하는 분기에 쓴다
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Dodge", meta=(ToolTip="조준 회피(하체만 몽타주) 중인지. ABP 하체 분기에 사용"))
+	bool bIsAimDodging = false;
+
+	// ABP 전신 분기용 (ADR-009) — 회피·펀치 대시처럼 하반신까지 몽타주를 써야 하는 동작 중이면 true.
+	// ABP의 'is Dashing' 변수가 이 값을 읽는다
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Animation", meta=(ToolTip="전신 몽타주 재생 중인지. ABP 전신 분기에 사용"))
+	bool bFullBodyMontage = false;
+
+	void StartDodge();
+	void EndDodge();
+	void ResetDodgeCooldown() { bCanDodge = true; }
+
+	// 회피를 시작할 수 있는 상태인지. 자식이 자기 상태(펀치 충전·대시 등)를 더한다
+	virtual bool CanStartDodge() const;
+
+	// 이동 입력 → 4방향 스냅. 입력이 없으면 뒤(0,-1).
+	// OutMontage = 그 방향 몽타주 (bAimSet이면 조준용, 비어 있으면 일반 세트로 대체)
+	FVector GetDodgeDirection(bool bAimSet, UAnimMontage*& OutMontage) const;
+
+	FVector DodgeVelocity = FVector::ZeroVector;
+	float   DodgePrevFrictionFactor  = 2.f;     // 회피 전 감속 설정 (EndDodge에서 원복)
+	float   DodgePrevBrakingFlying   = 0.f;
+	FTimerHandle DodgeEndTimerHandle;
+	FTimerHandle DodgeCooldownTimerHandle;
+
+	// HUD 표시용 — 회피 동작 + 쿨타임을 하나의 "못 쓰는 구간"으로 본다.
+	// 쿨타임 타이머는 회피가 끝나야 시작하므로, 그것만 보면 회피 중에는 "준비됨"으로 보인다
+	float DodgeReadyTime            = 0.f;   // 이 시각(월드 시간)이 되면 다시 쓸 수 있다
+	float DodgeUnavailableDuration  = 0.f;   // 회피 시간 + 쿨타임
+
+public:
+	UFUNCTION(BlueprintPure, Category = "Character|Dodge")
+	bool IsDodgeReady() const { return bCanDodge; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Dodge", meta=(ToolTip="회피를 다시 쓸 수 있을 때까지 남은 시간(초). 회피 동작 시간도 포함. 준비됐으면 0"))
+	float GetDodgeCooldownRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "Character|Dodge", meta=(ToolTip="회피 못 쓰는 구간 전체 길이(초) = 회피 동작 + 쿨타임"))
+	float GetDodgeCooldownDuration() const { return DodgeUnavailableDuration; }
+
+protected:
 
 	// --- Crosshair ---
 

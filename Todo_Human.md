@@ -226,6 +226,15 @@ BT는 하나를 공유해. Use Enemy Data가 켜져 있으면 적마다 다르�
 - [ ] **`Land_Spawn_Wait`** → **30° 아래 펀치로 바닥 찍을 때(착지 공격)** 모션
 - [ ] **`Land_Base_Wait`** → **고지대 일반 착지** 모션
 
+### 회피 몽타주 4개 (2026-09-26 추가)
+
+Lctrl + WASD 회피가 C++·입력·ABP까지 다 연결됐고, **몽타주만 비어 있다** (없어도 이동은 정상 동작).
+
+- [ ] **앞/뒤/좌/우 회피 몽타주 4개** 만들어 `MikaData` › `Animation|Dodge`의 Forward·Backward·Left·Right에 지정
+  - 슬롯은 **`DefaultGroup.UpperBody`** (이름과 달리 전신 분기도 이 슬롯 결과를 쓴다 — `DefaultSlot`으로 만들면 안 보임)
+  - **제자리(비 Root) 애니** — 이동은 코드가 한다. 리타겟 후 `fix_mika_root_scale.py` 잊지 말기
+  - 길이가 곧 회피 시간이 된다 (`bDodgeDurationFromMontage` 기본 켜짐). 0.35~0.45초 권장, 거리는 `DodgeDistance`(450cm)로 따로 조절
+
 ## 나중에 할 일 (생각날 때)
 
 > 급하지 않은 것. C++이 필요한 건 TODO_AI.md에도 함께 있음.

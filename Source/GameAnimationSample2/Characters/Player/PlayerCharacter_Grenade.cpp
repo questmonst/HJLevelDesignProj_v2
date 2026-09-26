@@ -10,6 +10,7 @@
 void APlayerCharacter::StartGrenadeThrow()
 {
 	if (!GrenadeClass || GrenadeCount <= 0) return;
+	if (bIsDodging) return;		// 회피 중에는 공격 불가
 	if (HeldGrenade) return;	// 이미 손에 들고 있음
 
 	bIsPreparingThrow = true;
