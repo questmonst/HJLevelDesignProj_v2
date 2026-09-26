@@ -128,6 +128,14 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 		return;
 	}
 
+	// 사격 도중에 넉백으로 쓰러졌으면 즉시 끊는다.
+	// ExecuteTask만 막으면 이미 진행 중이던 태스크는 그대로 계속 쏜다
+	if (Enemy->IsIncapacitated())
+	{
+		Finish(OwnerComp, EBTNodeResult::Failed);
+		return;
+	}
+
 	FBTFireAtTargetMemory* Mem = CastInstanceNodeMemory<FBTFireAtTargetMemory>(NodeMemory);
 
 	// 겨누는 중 — 다 겨누면 그때 쏘기 시작한다 (판정은 폰이 기억하는 진행 상황 기준)
