@@ -71,6 +71,7 @@ void AWeaponBase::BeginPlay()
 		GrenadeClass            = WeaponData->GrenadeClass;
 		// --- Stats ---
 		Damage                  = WeaponData->Damage;
+		DamageVariance          = WeaponData->DamageVariance;
 		HeadshotDamageMultiplier = WeaponData->HeadshotDamageMultiplier;
 		HeadBoneKeyword         = WeaponData->HeadBoneKeyword;
 		HeadHitRadius           = WeaponData->HeadHitRadius;
@@ -80,6 +81,7 @@ void AWeaponBase::BeginPlay()
 		MagSize                 = WeaponData->MagSize;
 		CurrentAmmo             = WeaponData->MagSize;
 		ReserveAmmo             = WeaponData->ReserveAmmo;
+		MaxReserveAmmo          = WeaponData->MaxReserveAmmo > 0 ? WeaponData->MaxReserveAmmo : WeaponData->ReserveAmmo;
 		PelletCount             = WeaponData->PelletCount;
 		PelletSpreadAngle       = WeaponData->PelletSpreadAngle;
 		PelletFireInterval      = WeaponData->PelletFireInterval;
@@ -95,6 +97,7 @@ void AWeaponBase::BeginPlay()
 		RecoilYawRange          = WeaponData->RecoilYawRange;
 		MaxRecoilPitch          = WeaponData->MaxRecoilPitch;
 		RecoilRecoverySpeed     = WeaponData->RecoilRecoverySpeed;
+		RecoilMaxRecoveryTime   = WeaponData->RecoilMaxRecoveryTime;
 		// --- Animation ---
 		bOverrideFireMontageBlendTime = WeaponData->bOverrideFireMontageBlendTime;
 		FireMontageBlendTime    = WeaponData->FireMontageBlendTime;
@@ -355,12 +358,6 @@ void AWeaponBase::HitscanFire()
 	const FVector TraceStart = bIsPlayer ? CamLoc + CamRot.Vector() * TraceStartOffset : CamLoc;
 	const FVector BaseDir    = CamRot.Vector();
 
-	float ActualDamage = Damage;
-	if (CosmeticProjectileClass)
-	{
-		if (const AProjectileBase* CDO = CosmeticProjectileClass->GetDefaultObject<AProjectileBase>())
-			ActualDamage = CDO->GetDamage();
-	}
 
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
@@ -409,7 +406,8 @@ void AWeaponBase::HitscanFire()
 				const bool bHeadshot = Victim && !bBarriered && IsHeadshot(Hit, Victim);
 				const bool bWasAlive = Victim && !Victim->IsDead();
 
-				const float HitDamage = ActualDamage * (bHeadshot ? HeadshotDamageMultiplier : 1.f);
+				// 대미지는 무기 값 (코스메틱 투사체는 보이기만 한다)
+				const float HitDamage = RollDamage() * (bHeadshot ? HeadshotDamageMultiplier : 1.f);
 				UGameplayStatics::ApplyPointDamage(Hit.GetActor(), HitDamage,
 					PelletDir, Hit, OwnerCtrl, this, nullptr);
 				ReportHitToPlayer(Hit, bHeadshot, bBarriered, bWasAlive);   // 대미지 적용 뒤 — 이번 발에 죽었는지까지 보고 판단
@@ -523,6 +521,8 @@ void AWeaponBase::ProjectileFire()
 			ProjectileClass, MuzzleLoc, PelletDir.Rotation(), SpawnParams);
 		if (Projectile)
 		{
+			// 투사체 DA의 Damage 대신 무기 대미지 (BeginPlay에서 DA 값이 들어간 뒤라 여기서 덮어쓴다)
+			Projectile->SetDamage(RollDamage());
 			Projectile->AddIgnoredActor(this);
 			Projectile->AddIgnoredActor(GetOwner());
 			if (ProjectileSpeedOverride > 0.f)
@@ -611,6 +611,22 @@ void AWeaponBase::FinishReload()
 void AWeaponBase::OnFire_Implementation(const FHitResult& HitResult)        {}
 void AWeaponBase::OnReloadStart_Implementation()                            {}
 void AWeaponBase::OnReloadFinish_Implementation()                           {}
+
+bool AWeaponBase::IsSameWeaponType(const AWeaponBase* Other) const
+{
+	if (!Other) return false;
+	if (WeaponData && Other->WeaponData) return WeaponData == Other->WeaponData;
+	return GetClass() == Other->GetClass();
+}
+
+int32 AWeaponBase::TakeAmmo(int32 Amount)
+{
+	const int32 FromReserve = FMath::Clamp(Amount, 0, ReserveAmmo);
+	ReserveAmmo -= FromReserve;
+	const int32 FromMag = FMath::Clamp(Amount - FromReserve, 0, CurrentAmmo);
+	CurrentAmmo -= FromMag;
+	return FromReserve + FromMag;
+}
 
 void AWeaponBase::SetDropped(bool bDropped)
 {

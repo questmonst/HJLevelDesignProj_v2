@@ -16,7 +16,7 @@ class GAMEANIMATIONSAMPLE2_API UProjectileDataAsset : public UDataAsset
 public:
 	// --- Stats ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="투사체 피해량"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="투사체 피해량. 무기로 쏘면 무기 DA의 Damage로 덮어써진다 — 무기 없이 스폰될 때만 이 값"))
 	float Damage = 20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="초기 발사 속도 (cm/s)"))

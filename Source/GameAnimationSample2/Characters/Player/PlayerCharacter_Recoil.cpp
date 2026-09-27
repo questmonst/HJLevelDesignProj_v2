@@ -27,11 +27,21 @@ void APlayerCharacter::ApplyRecoilShot()
 // 자동화기: 발사 속도 > 회복 속도면 자연히 누적, 멈추면 회복.
 void APlayerCharacter::UpdateRecoil(float DeltaTime)
 {
-	if (RecoilPitchAccum <= 0.f || !CurrentWeapon || bIsFiring) return;
+	if (RecoilPitchAccum <= 0.f || !CurrentWeapon || bIsFiring)
+	{
+		RecoilRecoverRate = 0.f;   // 다음 회복 시작 때 누적량 기준으로 다시 정한다
+		return;
+	}
 
-	const float RecoveryDelta = FMath::Min(
-		CurrentWeapon->GetRecoilRecoverySpeed() * DeltaTime,
-		RecoilPitchAccum);
+	// 회복을 시작하는 순간 속도를 정한다: 기본 회복 속도로 최대 시간을 넘길 만큼 쌓였으면 그 시간 안에 끝나게 올린다
+	if (RecoilRecoverRate <= 0.f)
+	{
+		const float MaxTime = CurrentWeapon->GetRecoilMaxRecoveryTime();
+		RecoilRecoverRate = FMath::Max(CurrentWeapon->GetRecoilRecoverySpeed(),
+			MaxTime > 0.f ? RecoilPitchAccum / MaxTime : 0.f);
+	}
+
+	const float RecoveryDelta = FMath::Min(RecoilRecoverRate * DeltaTime, RecoilPitchAccum);
 
 	RecoilPitchAccum -= RecoveryDelta;
 	AddControllerPitchInput(RecoveryDelta); // 양수 = 카메라 아래로 (회복)

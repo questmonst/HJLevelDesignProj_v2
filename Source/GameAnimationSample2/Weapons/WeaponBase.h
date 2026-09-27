@@ -108,8 +108,14 @@ protected:
 
 	// --- Stats ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ToolTip="발사 1회당 피해량"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ToolTip="탄 1발당 피해량. 히트스캔·투사체 모두 이 값을 쓴다"))
 	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ClampMin="0", ToolTip="대미지 편차(±). WeaponData에서 설정"))
+	float DamageVariance = 0.f;
+
+	// 이번 발의 대미지 — Damage ± DamageVariance
+	float RollDamage() const { return FMath::Max(0.f, Damage + FMath::FRandRange(-DamageVariance, DamageVariance)); }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ToolTip="초당 발사 횟수 (rounds per second)"))
 	float FireRate;
@@ -139,6 +145,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Ammo", meta=(ToolTip="예비 탄약 수"))
 	int32 ReserveAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Ammo", meta=(ClampMin="0", ToolTip="예비 탄약 최대치. 0이면 제한 없음. WeaponData에서 설정 (DA에서 0이면 초기 예비 탄약)"))
+	int32 MaxReserveAmmo = 0;
 
 	// --- Projectile ---
 
@@ -178,6 +187,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil", meta=(ToolTip="초당 반동 회복 속도 (도/초)"))
 	float RecoilRecoverySpeed = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Recoil", meta=(ClampMin="0", ToolTip="반동 회복 최대 시간(초). 0이면 제한 없음. WeaponData에서 설정"))
+	float RecoilMaxRecoveryTime = 1.f;
 
 	// 발사(반동) 몽타주는 캐릭터 공통이라 APlayerCharacter::FireMontage(MikaData)로 이동됨.
 	// 블렌드 시간만 무기별로 덮어쓸 수 있다 (반동이 센 무기는 길게 → 덜 튄다)
@@ -350,6 +362,21 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Recoil")
 	float GetRecoilRecoverySpeed() const { return RecoilRecoverySpeed; }
+
+	float GetRecoilMaxRecoveryTime() const { return RecoilMaxRecoveryTime; }
+
+	// --- 탄 줍기 ---
+
+	// 같은 종류의 무기인지 (WeaponData가 같으면 같은 종류. 둘 다 없으면 클래스로 비교)
+	bool IsSameWeaponType(const AWeaponBase* Other) const;
+
+	// 이 무기에서 탄을 최대 Amount발 빼낸다 (예비 탄약 → 탄창 순). 실제로 뺀 수를 반환
+	int32 TakeAmmo(int32 Amount);
+
+	// 예비 탄약을 더 받을 수 있는 수 (최대치 - 현재)
+	int32 GetReserveAmmoSpace() const { return MaxReserveAmmo > 0 ? FMath::Max(MaxReserveAmmo - ReserveAmmo, 0) : MAX_int32; }
+
+	int32 GetTotalAmmo() const { return CurrentAmmo + ReserveAmmo; }
 
 	// --- Events (override in Blueprint for VFX/SFX) ---
 

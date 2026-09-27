@@ -53,8 +53,11 @@ public:
 
 	// --- Stats ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="발사 1회당 피해량"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="탄 1발(샷건은 팰릿 1개)당 피해량. 히트스캔·투사체 모두 이 값이 진짜 (투사체 DA의 Damage는 무기로 쏠 때 덮어써진다)"))
 	float Damage = 20.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ClampMin="0", ToolTip="대미지 편차(±). 매 발 Damage ± 이 값 안에서 무작위. 0이면 고정 (헤드샷 배율은 그 뒤에 곱한다)"))
+	float DamageVariance = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ClampMin="1", ToolTip="헤드샷 대미지 배율. 머리 본에 맞거나(HeadBoneKeyword) 머리에서 HeadHitRadius 안에 맞으면 Damage에 이 값을 곱한다. 1이면 부위 무관 동일 대미지"))
 	float HeadshotDamageMultiplier = 2.f;
@@ -90,6 +93,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ammo", meta=(ToolTip="초기 예비 탄약 (발)"))
 	int32 ReserveAmmo = 90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ammo", meta=(ClampMin="0", ToolTip="예비 탄약 최대치 (발). 같은 종류의 떨어진 무기에서 탄을 가져올 때 이 이상은 못 가져간다. 0이면 초기 예비 탄약(ReserveAmmo)이 최대"))
+	int32 MaxReserveAmmo = 0;
 
 	// --- Projectile ---
 
@@ -129,6 +135,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recoil", meta=(ToolTip="초당 반동 회복 속도 (도/초). 사격 멈추면 이 속도로 원위치"))
 	float RecoilRecoverySpeed = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recoil", meta=(ClampMin="0", ToolTip="반동 회복 최대 시간(초). 누적 반동이 커서 회복 속도로는 이 시간을 넘길 것 같으면 더 빨리 회복한다. 0이면 제한 없음(회복 속도만)"))
+	float RecoilMaxRecoveryTime = 1.f;
 
 	// --- Animation ---
 	// 반동 몽타주 자체는 캐릭터 공통(MikaData). 블렌드 시간만 무기별로 덮어쓴다

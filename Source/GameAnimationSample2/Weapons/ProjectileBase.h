@@ -86,4 +86,7 @@ public:
 	void AddIgnoredActor(AActor* Actor);
 
 	float GetDamage() const { return Damage; }
+
+	// 무기가 쏠 때 무기 대미지로 덮어쓴다 (DA 값은 무기 없이 스폰될 때만 쓰인다)
+	void SetDamage(float NewDamage) { Damage = NewDamage; }
 };

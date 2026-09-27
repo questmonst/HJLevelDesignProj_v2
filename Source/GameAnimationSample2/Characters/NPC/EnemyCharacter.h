@@ -109,7 +109,7 @@ protected:
     // 사격 중인지 (FireAtTarget ~ StopFiring). 연사 무기는 무기 타이머가 쏘므로 폰이 따로 기억한다
     bool bIsFiringBurst = false;
 
-    // 플레이어를 보고 있고 쏘지 않는 동안만 레이저를 켠다
+    // 플레이어를 보고 있고 공격 대기 중일 때만 레이저를 켠다 (사격·재장전 중엔 끔)
     bool ShouldShowLaser() const;
     void UpdateLaser();
 
@@ -236,6 +236,13 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
     UBlendSpace* GetLocomotionMove() const;
+
+    // 앉기 시작 / 일어서기 시작 전환 애니 (ABP 전환 상태가 읽는다)
+    UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
+    UAnimSequenceBase* GetStandToCrouchAnim() const;
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
+    UAnimSequenceBase* GetCrouchToStandAnim() const;
 
     // ABP Look At 노드용 월드 위치. AI 포커스 대상(총알이 향하는 곳) + LookAtHeightOffset,
     // 포커스가 없으면 정면 앞쪽

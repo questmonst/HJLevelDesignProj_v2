@@ -62,10 +62,35 @@ bool APlayerCharacter::PickupWeapon(AWeaponBase* Weapon)
 	return true;
 }
 
+bool APlayerCharacter::AbsorbAmmoFromSameWeapon(AWeaponBase* Dropped)
+{
+	AWeaponBase* Owned = nullptr;
+	for (AWeaponBase* W : WeaponInventory)
+	{
+		if (W && W->IsSameWeaponType(Dropped)) { Owned = W; break; }
+	}
+	if (!Owned) return false;
+
+	// 같은 종류는 무기를 또 들지 않고 탄만 가져온다. 최대치를 넘는 만큼은 땅의 무기에 남긴다
+	const int32 Taken = Dropped->TakeAmmo(FMath::Min(Dropped->GetTotalAmmo(), Owned->GetReserveAmmoSpace()));
+	if (Taken > 0)
+	{
+		Owned->SetReserveAmmo(Owned->GetReserveAmmo() + Taken);
+		if (USoundBase* Sound = Dropped->GetPickupSound())
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation());
+		}
+	}
+	if (Dropped->GetTotalAmmo() <= 0) Dropped->Destroy();   // 빈 총은 치운다
+	return true;
+}
+
 void APlayerCharacter::OnWeaponPickupRangeEnter(AWeaponBase* Weapon)
 {
 	if (!Weapon || !Weapon->IsDropped()) return;
 	if (bIsSwapping) return;
+
+	if (AbsorbAmmoFromSameWeapon(Weapon)) return;
 
 	if (WeaponInventory.Num() < MaxWeaponSlots)
 	{

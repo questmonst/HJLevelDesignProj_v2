@@ -347,6 +347,7 @@ protected:
 
 	float SpreadAdditive   = 0.f;
 	float RecoilPitchAccum = 0.f;
+	float RecoilRecoverRate = 0.f;   // 이번 회복에 쓰는 속도 (도/초). 0이면 아직 회복 전
 
 private:
 	float NormalSocketOffsetY = 0.f;
@@ -620,6 +621,10 @@ public:
 	// 슬롯이 꽉 찼을 때: 현재 든 무기를 같은 슬롯에서 땅의 무기와 교체 (인덱스 유지)
 	void SwapCurrentWeaponWith(AWeaponBase* NewWeapon);
 
+	// 같은 종류 무기가 인벤토리에 있으면 땅의 무기에서 탄만 가져온다 (예비 탄약 최대치까지).
+	// 처리했으면 true — 무기 자체는 줍지 않는다
+	bool AbsorbAmmoFromSameWeapon(AWeaponBase* Dropped);
+
 	void OnWeaponPickupRangeEnter(AWeaponBase* Weapon);
 	void OnWeaponPickupRangeExit(AWeaponBase* Weapon);
 
@@ -632,6 +637,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Character|Weapon")
 	AWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+
+	// HUD 무기 슬롯 표시용
+	const TArray<AWeaponBase*>& GetWeaponInventory() const { return WeaponInventory; }
+	int32 GetMaxWeaponSlots() const { return MaxWeaponSlots; }
 
 	// --- Gravity ---
 

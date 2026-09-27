@@ -151,7 +151,8 @@ void AEnemyCharacter::Tick(float DeltaTime)
 
 bool AEnemyCharacter::ShouldShowLaser() const
 {
-    if (bIsDead || IsIncapacitated() || bIsFiringBurst || !EnemyWeapon) return false;
+    // 공격 대기(조준·사격 사이 휴식) 중에만 — 쏘는 중·재장전 중엔 끈다
+    if (bIsDead || IsIncapacitated() || bIsFiringBurst || !EnemyWeapon || EnemyWeapon->IsReloading()) return false;
 
     const AAIController* AICon = Cast<AAIController>(GetController());
     const UBlackboardComponent* BB = AICon ? AICon->GetBlackboardComponent() : nullptr;
@@ -429,6 +430,28 @@ UBlendSpace* AEnemyCharacter::GetLocomotionMove() const
     for (const FEnemyLocomotionSet* Set : Order)
     {
         if (Set->Move) return Set->Move;
+    }
+    return nullptr;
+}
+
+UAnimSequenceBase* AEnemyCharacter::GetStandToCrouchAnim() const
+{
+    const FEnemyLocomotionSet* Order[3];
+    GetLocomotionPriority(Order);
+    for (const FEnemyLocomotionSet* Set : Order)
+    {
+        if (Set->StandToCrouch) return Set->StandToCrouch;
+    }
+    return nullptr;
+}
+
+UAnimSequenceBase* AEnemyCharacter::GetCrouchToStandAnim() const
+{
+    const FEnemyLocomotionSet* Order[3];
+    GetLocomotionPriority(Order);
+    for (const FEnemyLocomotionSet* Set : Order)
+    {
+        if (Set->CrouchToStand) return Set->CrouchToStand;
     }
     return nullptr;
 }

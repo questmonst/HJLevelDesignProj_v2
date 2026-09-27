@@ -501,3 +501,8 @@
   - 주의: `BTDecorator_Blackboard`의 `OperationType`은 **에디터 PostEditChange에서만** BasicOperation으로 갱신됨. MCP로 `BasicOperation=NotSet`만 넣으면 실제 판정은 Is Set(0) — `OperationType`(Set=0/NotSet=1)도 직접 넣을 것
   - 주의: MCP로 BT 자식을 추가하면 그래프 X 위치 기준으로 순서가 섞임 → `reorder_bt_children` 후 `auto_arrange_bt`
 - [x] (빌드 완료 2026-09-27) 적 상체가 엉뚱한 곳(월드 원점)을 조준 — `ABP_AREnemy`의 `Set Look At Location`이 실행 흐름에서 끊겨 있어 항상 (0,0,0). `AEnemyCharacter::GetLookAtLocation()`(AI 포커스 + `LookAtHeightOffset`, DA `Locomotion`)을 `Set LocoMove` 뒤에 연결. 백업 `ABP_AREnemy_backup_20260927_1720.uasset.bak`
+- [x] (빌드 완료 2026-09-27) 대미지가 DA 값과 다르게(항상 20) 들어가던 문제 — 히트스캔이 코스메틱 투사체 **CDO**의 Damage로 무기 대미지를 덮어썼음. CDO는 BeginPlay 전이라 투사체 DA도 반영 안 됨. 이제 무기 DA `Damage`(± `DamageVariance`)만 진짜, 투사체 모드도 스폰 후 `SetDamage`로 덮어씀
+  - 주의: `BP_Projectile_Small`의 ProjectileData가 아직 `ProjectileData`(Small 아님)
+- [x] (빌드 완료 2026-09-27) 같은 종류 떨어진 무기 → 탄만 흡수(`MaxReserveAmmo`, 0이면 초기 예비탄), 빈 총은 Destroy. 무기 슬롯 HUD `UWeaponSlotsWidget`(코드로 칸 생성). 반동 회복 `RecoilMaxRecoveryTime`(기본 1초). 레이저 재장전 중 끔
+- [x] (2026-09-27) `ABP_AREnemy` 앉기/일어서기 전환 상태 `StandToCrouch`/`CrouchToStand` (시퀀스 ← `GetStandToCrouchAnim`/`GetCrouchToStandAnim`, 자동 전환 규칙). NOT 규칙용 `Standing` 변수(= NOT Crouching). 백업 `ABP_AREnemy_backup_20260927_2000.uasset.bak`
+  - 주의: monolith `set_transition_rule`의 expression은 bool 변수를 못 쓴다 → 반전 bool 변수를 EventGraph에서 만들어 `kind:bool`로

@@ -30,6 +30,12 @@ struct FEnemyLocomotionSet
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="움직일 때 재생할 블렌드스페이스. 축은 기존 BS_Jog와 같게 (X=Direction, Y=Speed)"))
 	UBlendSpace* Move = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="서 있다가 앉기 시작할 때 1회 재생 (예: Stand_to_Crouch_Rifle_Hip)"))
+	UAnimSequenceBase* StandToCrouch = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="앉아 있다가 일어서기 시작할 때 1회 재생 (예: Crouch_to_Stand_Rifle_Hip)"))
+	UAnimSequenceBase* CrouchToStand = nullptr;
 };
 
 // 적 한 종류(AR·샷건·저격…)의 "행동" 수치 묶음.
@@ -151,7 +157,7 @@ public:
 	float LookAtHeightOffset = 0.f;
 
 	// --- Laser ---
-	// 적이 플레이어를 보고 있지만 쏘지 않는 동안(조준 대기·사격 사이 휴식·재장전) 총구 → 조준점에 레이저를 그린다
+	// 적이 플레이어를 보고 공격 대기 중일 때(조준 대기·사격 사이 휴식. 사격·재장전 중엔 끔) 총구 → 조준점에 레이저를 그린다
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser", meta=(ToolTip="레이저 메시. 원점에서 +X로 뻗은 막대 (예: /Engine/VREditor/LaserPointer/LaserPointerMesh). 비우면 레이저 없음"))
 	UStaticMesh* LaserMesh = nullptr;
