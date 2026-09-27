@@ -23,6 +23,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="미카의 최대 체력"))
 	float MaxHealth = 100.f;
 
+	// --- Barrier ---
+	// 방어막이 있는 동안 피해가 체력 대신 방어막으로 가고(배율만큼 줄어서), 헤드샷을 받지 않는다
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0", ToolTip="방어막 최대치. 0이면 방어막 없음. 체력바 오른쪽에 파란 칸으로 표시된다"))
+	float MaxBarrier = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0.05", ClampMax="1", ToolTip="방어막이 받는 피해 배율. 0.5면 반감 (방어막 100 = 체력 200만큼 버팀)"))
+	float BarrierDamageMultiplier = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0", ToolTip="마지막 피격 후 방어막 회복 시작까지 대기 시간(초)"))
+	float BarrierRegenDelay = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0", ToolTip="초당 방어막 회복량. 0이면 회복하지 않음"))
+	float BarrierRegenRate = 25.f;
+
 	// --- Health Regen ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Regen", meta=(ClampMin="0", ToolTip="마지막 피격 후 회복 시작까지 대기 시간 (초)"))
@@ -91,6 +106,23 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Aim", meta=(ClampMin="0", ToolTip="조준 중 스프링암 길이(cm). 기본 길이(300)보다 짧게 두면 위를 볼 때 카메라가 바닥에 부딪히는 게 줄어든다. 0이면 기본 길이 그대로. 권장 150~200"))
 	float AimSpringArmLength = 0.f;
+
+	// --- 수류탄 조준 시점 ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Grenade", meta=(ToolTip="켜면 수류탄을 들고 있는 동안 아래 전용 시점을 쓴다. 끄면 총 조준과 같은 시점 (예전 동작). 궤적을 넓게 보려면 FOV를 키우고 암을 늘리는 게 보통"))
+	bool bUseGrenadePOV = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Grenade", meta=(ClampMin="30", ClampMax="120", EditCondition="bUseGrenadePOV", ToolTip="수류탄 조준 중 시야각(도)"))
+	float GrenadeFOV = 70.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Grenade", meta=(ClampMin="0", EditCondition="bUseGrenadePOV", ToolTip="수류탄 조준 중 스프링암 길이(cm). 0이면 기본 길이(300)"))
+	float GrenadeSpringArmLength = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Grenade", meta=(EditCondition="bUseGrenadePOV", ToolTip="수류탄 조준 중 카메라를 기본 위치에서 더 오른쪽으로(cm, 음수=왼쪽)"))
+	float GrenadeSocketOffsetRight = 20.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Grenade", meta=(EditCondition="bUseGrenadePOV", ToolTip="수류탄 조준 중 카메라를 위로(cm, 음수=아래). 위로 올리면 포물선이 잘 보인다"))
+	float GrenadeSocketOffsetUp = 40.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ToolTip="켜면 고정 각도 대신 '지금 쏘면 맞을 지점'으로 허리를 튼다. 총알은 원래 조준점에 맞으므로 이건 총구가 그쪽을 보게 하는 시각 보정. 카메라가 오른쪽으로 치우쳐 있어 필요한 각도가 거리마다 다르기 때문에 고정 각도로는 한 거리에서만 맞는다"))
 	bool bAimWaistFollowTarget = false;

@@ -7,6 +7,29 @@
 #include "EnemyDataAsset.generated.h"
 
 class UAnimMontage;
+class UAnimSequenceBase;
+class UBlendSpace;
+
+// 전투 중 총을 드는 자세 — 무기 성격에 따라 (샷건류 = Hip, 소총류 = Ironsight)
+UENUM(BlueprintType)
+enum class EEnemyWeaponStance : uint8
+{
+	Hip        UMETA(DisplayName = "허리 사격 (Hip)"),
+	Ironsight  UMETA(DisplayName = "조준 사격 (Ironsight)"),
+};
+
+// 서 있을 때·움직일 때 쓰는 애니 한 벌. ABP가 상황에 맞는 세트를 골라 재생한다
+USTRUCT(BlueprintType)
+struct FEnemyLocomotionSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="멈춰 있을 때 재생할 애니 (루프)"))
+	UAnimSequenceBase* Idle = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="움직일 때 재생할 블렌드스페이스. 축은 기존 BS_Jog와 같게 (X=Direction, Y=Speed)"))
+	UBlendSpace* Move = nullptr;
+};
 
 // 적 한 종류(AR·샷건·저격…)의 "행동" 수치 묶음.
 //
@@ -23,6 +46,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="최대 체력"))
 	float MaxHealth = 100.f;
+
+	// --- Barrier ---
+	// 방어막이 있는 동안 피해가 체력 대신 방어막으로 가고(배율만큼 줄어서), 헤드샷을 받지 않는다
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0", ToolTip="방어막 최대치. 0이면 방어막 없음. 체력바 위에 BarrierBar가 있으면 표시된다"))
+	float MaxBarrier = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0.05", ClampMax="1", ToolTip="방어막이 받는 피해 배율. 0.5면 반감"))
+	float BarrierDamageMultiplier = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0", ToolTip="마지막 피격 후 방어막 회복 시작까지 대기 시간(초)"))
+	float BarrierRegenDelay = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats|Barrier", meta=(ClampMin="0", ToolTip="초당 방어막 회복량. 0이면 회복하지 않음"))
+	float BarrierRegenRate = 25.f;
 
 	// --- Movement ---
 
@@ -91,6 +129,22 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reload", meta=(ToolTip="재장전 시 재생할 몽타주. 비우면 애니 없이 무기 ReloadTime만 기다림"))
 	UAnimMontage* ReloadMontage = nullptr;
+
+	// --- Locomotion ---
+	// 비전투(순찰·배회) 중에는 Relaxed 세트, 전투(경계) 중에는 CombatStance에 맞는 세트를 쓴다.
+	// 전투 여부는 AI의 경계 상태(블랙보드 bIsAlerted)를 따른다. 비어 있는 칸은 다른 세트로 대체된다
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="전투 중 자세. 샷건류는 Hip, 소총류는 Ironsight"))
+	EEnemyWeaponStance CombatStance = EEnemyWeaponStance::Ironsight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="비전투(순찰·배회) 중 애니. 총을 내리고 두리번거리는 느낌 (예: Idle_Rifle_Hip_Break1)"))
+	FEnemyLocomotionSet RelaxedLocomotion;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="전투 중 Hip 자세 애니 (예: Idle_Rifle_Hip + BS_Jog)"))
+	FEnemyLocomotionSet HipLocomotion;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="전투 중 Ironsight 자세 애니 (예: Idle_Rifle_Ironsights + Ironsight 걷기 블렌드스페이스)"))
+	FEnemyLocomotionSet IronsightLocomotion;
 
 	// --- Patrol ---
 

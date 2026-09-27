@@ -342,6 +342,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="조준 중 스프링암 길이(cm). 0이면 기본 길이. MikaData에서 설정"))
 	float AimSpringArmLength = 0.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="수류탄 조준 중 시야각(도). MikaData에서 설정"))
+	float GrenadeFOV = 70.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="수류탄 조준 중 스프링암 길이(cm). 0이면 기본 길이. MikaData에서 설정"))
+	float GrenadeSpringArmLength = 0.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Punch|Camera", meta=(ToolTip="충전 중 스프링암 길이 (cm). 짧을수록 카메라가 캐릭터에 가까워짐"))
 	float ChargeSpringArmLength = 180.0f;
 

@@ -46,6 +46,7 @@ void ACharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentHealth = MaxHealth;
+	CurrentBarrier = MaxBarrier;
 
 	if (bShowFloatingHealthBar && HealthBarWidgetClass)
 	{
@@ -68,6 +69,7 @@ void ACharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	UpdateHealthBar(DeltaTime);
+	UpdateBarrierRegen(DeltaTime);
 }
 
 float ACharacterBase::GetHealthPercent() const
@@ -487,15 +489,60 @@ float ACharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 		HitLoc = static_cast<const FPointDamageEvent&>(DamageEvent).HitInfo.ImpactPoint;
 	}
 
+	// 공격이 날아온 위치 (피격 방향 표시용): 폭발이면 폭심, 아니면 쏜 사람, 그것도 없으면 원인 액터
+	FVector SourceLoc = HitLoc;
+	if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
+	{
+		SourceLoc = static_cast<const FRadialDamageEvent&>(DamageEvent).Origin;
+	}
+	else if (EventInstigator && EventInstigator->GetPawn())
+	{
+		SourceLoc = EventInstigator->GetPawn()->GetActorLocation();
+	}
+	else if (DamageCauser)
+	{
+		SourceLoc = DamageCauser->GetActorLocation();
+	}
+
+	// 방어막이 먼저 받는다. 방어막은 배율만큼 줄어든 피해를 받고,
+	// 다 못 받은 나머지는 원래 단위로 되돌려 체력에 들어간다 (방어막이 깨지는 발)
+	LastDamagedTime = GetWorld()->GetTimeSeconds();
+	float ToHealth    = Actual;
+	float BarrierTaken = 0.f;
+	if (CurrentBarrier > 0.f)
+	{
+		const float BarrierDamage = Actual * BarrierDamageMultiplier;
+		BarrierTaken   = FMath::Min(CurrentBarrier, BarrierDamage);
+		CurrentBarrier -= BarrierTaken;
+		ToHealth      = (BarrierDamage - BarrierTaken) / BarrierDamageMultiplier;
+		OnBarrierChanged.Broadcast(CurrentBarrier, MaxBarrier);
+	}
+
 	// 피드백은 체력 감소(파괴 가능)보다 먼저 — this가 아직 유효할 때 스폰.
 	// 플로터는 독립 액터라 이 캐릭터가 곧 Destroy돼도 그대로 남는다.
-	SpawnDamageNumber(Actual, HitLoc);
+	// 숫자는 실제로 깎인 양 (방어막 반감이 눈에 보이게)
+	const float Dealt = BarrierTaken + ToHealth;
+	SpawnDamageNumber(Dealt, HitLoc);
 	ShowHealthBar();
-	OnDamaged.Broadcast(Actual, HitLoc);
+	OnDamaged.Broadcast(Dealt, HitLoc);
+	OnDamagedFrom.Broadcast(Dealt, SourceLoc);
 	PlayHitReactMontage();   // 사망·렉돌 중이면 내부에서 무시
 
-	TakeDamageCustom(Actual);   // 체력 감소 + OnHealthChanged + (사망 시) Die
-	return Actual;
+	if (ToHealth > 0.f)
+	{
+		TakeDamageCustom(ToHealth);   // 체력 감소 + OnHealthChanged + (사망 시) Die
+	}
+	return Dealt;
+}
+
+void ACharacterBase::UpdateBarrierRegen(float DeltaTime)
+{
+	if (bIsDead || MaxBarrier <= 0.f || BarrierRegenRate <= 0.f) return;
+	if (CurrentBarrier >= MaxBarrier) return;
+	if (GetWorld()->TimeSince(LastDamagedTime) < BarrierRegenDelay) return;
+
+	CurrentBarrier = FMath::Min(CurrentBarrier + BarrierRegenRate * DeltaTime, MaxBarrier);
+	OnBarrierChanged.Broadcast(CurrentBarrier, MaxBarrier);
 }
 
 void ACharacterBase::Die()

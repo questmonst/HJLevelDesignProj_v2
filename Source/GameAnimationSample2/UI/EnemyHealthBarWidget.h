@@ -69,6 +69,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "HealthBar", meta=(ToolTip="현재 체력 비율 0~1. ProgressBar Percent에 바인딩"))
 	float HealthPercent = 1.f;
 
+	UPROPERTY(BlueprintReadOnly, Category = "HealthBar", meta=(ToolTip="현재 방어막 비율 0~1. 방어막 없는 적은 0"))
+	float BarrierPercent = 0.f;
+
+	// 체력바 위(또는 겹쳐서)에 방어막 바를 두려면 WBP에 이 이름으로 ProgressBar를 만든다.
+	// C++이 매 프레임 채우고, 방어막이 없는 적이면 숨긴다. 없어도 에러 없음
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HealthBar", meta=(BindWidgetOptional))
+	class UProgressBar* BarrierBar = nullptr;
+
 	// 값 갱신 직후 호출 — BP에서 지연바(흰 바) 애니, 피격 플래시 등 비주얼 처리
 	UFUNCTION(BlueprintImplementableEvent, Category = "HealthBar")
 	void OnHealthUpdated(float NewPercent, float OldPercent);

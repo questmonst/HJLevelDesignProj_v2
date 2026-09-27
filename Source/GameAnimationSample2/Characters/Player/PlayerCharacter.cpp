@@ -293,11 +293,13 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 	float TargetY = NormalSocketOffsetY;
 	float TargetZ = NormalSocketOffsetZ;
 
-	if (bIsAiming)
+	const bool bGrenadePOV = IsGrenadePOVActive();
+	if (bIsAiming || bGrenadePOV)
 	{
-		// 조준 중 카메라 추가 이동 (오른쪽·위) — 아래 엄폐 좌우 이동은 이 위치 기준으로 더해진다
-		TargetY += AimSocketOffsetRight;
-		TargetZ += AimSocketOffsetUp;
+		// 조준 중 카메라 추가 이동 (오른쪽·위) — 아래 엄폐 좌우 이동은 이 위치 기준으로 더해진다.
+		// 수류탄 전용 시점이 켜져 있으면 그 값을 쓴다
+		TargetY += bGrenadePOV ? GrenadeSocketOffsetRight : AimSocketOffsetRight;
+		TargetZ += bGrenadePOV ? GrenadeSocketOffsetUp    : AimSocketOffsetUp;
 
 		FVector Origin = GetActorLocation();
 		FVector Right  = FRotationMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f)).GetUnitAxis(EAxis::Y);
@@ -729,15 +731,24 @@ void APlayerCharacter::Landed(const FHitResult& Hit)
 	Super::Landed(Hit);
 }
 
-void APlayerCharacter::NotifyHitConfirmed(bool bHeadshot)
+void APlayerCharacter::NotifyHitConfirmed(bool bHeadshot, bool bBarriered)
 {
 	OnHitConfirmed.Broadcast(bHeadshot);
 
 	if (HUDData)
 	{
 		USoundBase* Sound = bHeadshot ? HUDData->HeadshotSound : HUDData->HitSound;
+		if (bBarriered && HUDData->BarrierHitSound) Sound = HUDData->BarrierHitSound;
 		// 2D로 재생 — 거리와 무관하게 항상 같은 크기로 들린다
 		if (Sound) UGameplayStatics::PlaySound2D(this, Sound, HUDData->HitSoundVolume);
+	}
+}
+
+void APlayerCharacter::NotifyCoverHit()
+{
+	if (HUDData && HUDData->CoverHitSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HUDData->CoverHitSound, HUDData->HitSoundVolume);
 	}
 }
 

@@ -62,6 +62,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HealthBar|Color", meta=(ClampMin="0", ToolTip="칸 테두리 두께(px)"))
 	float OutlineWidth = 1.f;
 
+	// --- 방어막 (오버워치처럼 체력 칸 오른쪽에 이어 붙는 파란 칸) ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HealthBar|Barrier", meta=(ClampMin="0", ClampMax="30", ToolTip="방어막 칸 개수. 캐릭터의 MaxBarrier가 0이면 통째로 숨겨진다"))
+	int32 BarrierSegmentCount = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HealthBar|Barrier", meta=(ToolTip="남아 있는 방어막 색"))
+	FLinearColor BarrierColor = FLinearColor(0.25f, 0.65f, 1.f, 1.f);
+
 	// --- 연결 ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HealthBar", meta=(ToolTip="true면 플레이어 캐릭터의 체력에 자동으로 연결된다"))
@@ -72,11 +80,20 @@ protected:
 	TArray<UProgressBar*> Segments;
 
 	UPROPERTY(Transient)
+	TArray<UProgressBar*> BarrierSegments;
+
+	UPROPERTY(Transient)
 	UHorizontalBox* SegmentRow = nullptr;
 
 	// 캐릭터의 OnHealthChanged에 연결되는 핸들러
 	UFUNCTION()
 	void HandleHealthChanged(float Current, float Max);
+
+	UFUNCTION()
+	void HandleBarrierChanged(float Current, float Max);
+
+	// 칸 하나 (고정 크기 상자 + 작은 프로그레스바)를 만들어 줄에 붙인다
+	UProgressBar* AddSegment(const FLinearColor& Color, bool bGapAfter);
 
 	void BuildSegments();
 	void RefreshSegments();
@@ -85,4 +102,6 @@ protected:
 	TWeakObjectPtr<ACharacterBase> BoundCharacter;
 	float CachedCurrent = 0.f;
 	float CachedMax = 0.f;
+	float CachedBarrier = 0.f;
+	float CachedMaxBarrier = 0.f;
 };

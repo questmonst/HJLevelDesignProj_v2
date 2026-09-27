@@ -83,10 +83,10 @@ protected:
 
 	// --- 히트마커 ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ToolTip="이 문자열이 들어간 본에 맞으면 헤드샷 (대소문자 무시). 트레이스가 캡슐에 맞으면 본 이름이 비므로 아래 거리 판정으로 보완한다"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ToolTip="헤드샷 판정 본 키워드. DataAsset에서 설정"))
 	FString HeadBoneKeyword = TEXT("head");
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|HUD", meta=(ClampMin="0", ToolTip="본 이름을 못 얻었을 때, 머리 본에서 이 거리(cm) 안에 맞으면 헤드샷으로 친다. 0이면 거리 판정 끔"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ClampMin="0", ToolTip="헤드샷 판정 반경(cm). DataAsset에서 설정"))
 	float HeadHitRadius = 22.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ClampMin="1", ToolTip="헤드샷 대미지 배율. DataAsset에서 설정"))
@@ -95,8 +95,9 @@ protected:
 	// 머리에 맞았는지. 대미지 배율과 히트마커가 같은 판정을 쓰도록 한 곳에 모았다
 	bool IsHeadshot(const FHitResult& Hit, const class ACharacterBase* Victim) const;
 
-	// 맞은 대상이 적 캐릭터면 플레이어 HUD에 히트마커를 알린다
-	void ReportHitToPlayer(const FHitResult& Hit);
+	// 맞힌 결과를 플레이어에게 알린다 (히트마커·사운드). 헤드샷·방어막 여부는 피해를 넣기 *전*에
+	// 판단해서 넘긴다 — 이번 발에 방어막이 깨지거나 적이 죽으면 사후에는 알 수 없다
+	void ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool bBarriered);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="발사 트레이스 디버그 라인 표시 여부"))
 	bool bDebugTrace = false;

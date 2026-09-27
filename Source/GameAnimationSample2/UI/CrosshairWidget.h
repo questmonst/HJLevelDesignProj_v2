@@ -52,8 +52,8 @@ protected:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Crosshair|Weapon", meta=(BindWidgetOptional, ToolTip="현재 무기 이름을 표시할 텍스트. 같은 이름으로 위젯을 만들면 자동 연결"))
 	UTextBlock* WeaponName = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crosshair|Weapon", meta=(ToolTip="잔탄 표시 형식. {0}=현재 탄약, {1}=탄창 크기, {2}=예비 탄약"))
-	FText AmmoFormat = FText::FromString(TEXT("{0} / {1}"));
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crosshair|Weapon", meta=(ToolTip="잔탄 표시 형식. {0}=탄창 안 잔탄, {1}=탄창 크기, {2}=예비 탄약. 기본은 슈팅 게임 표준인 '탄창 잔탄 / 예비 탄약'"))
+	FText AmmoFormat = FText::FromString(TEXT("{0} / {2}"));
 
 	void UpdateWeaponTexts();
 

@@ -59,6 +59,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ClampMin="1", ToolTip="헤드샷 대미지 배율. 머리 본에 맞거나(HeadBoneKeyword) 머리에서 HeadHitRadius 안에 맞으면 Damage에 이 값을 곱한다. 1이면 부위 무관 동일 대미지"))
 	float HeadshotDamageMultiplier = 2.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="이 문자열이 들어간 본에 맞으면 헤드샷 (대소문자 무시). UE 마네킹·미카 스켈레톤 모두 'head'"))
+	FString HeadBoneKeyword = TEXT("head");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ClampMin="0", ToolTip="헤드샷 판정 반경(cm). 트레이스가 캡슐에 막혀 본 이름을 못 얻었을 때, 머리 본에서 이 거리 안에 맞으면 헤드샷. 0이면 거리 판정 끔 (본에 직접 맞은 것만)"))
+	float HeadHitRadius = 22.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta=(ToolTip="초당 발사 횟수 (rounds per second)"))
 	float FireRate = 10.f;
 

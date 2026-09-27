@@ -42,6 +42,26 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|Stats", meta=(ToolTip="사망 여부. true면 OnDeath 이후 상태"))
 	bool bIsDead = false;
 
+	// --- Barrier ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Barrier", meta=(ClampMin="0", ToolTip="방어막 최대치. 0이면 방어막 없음. DataAsset에서 설정"))
+	float MaxBarrier = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Barrier", meta=(ToolTip="현재 방어막. BeginPlay에서 MaxBarrier로 초기화"))
+	float CurrentBarrier = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Barrier", meta=(ClampMin="0.05", ClampMax="1", ToolTip="방어막이 받는 피해 배율 (0.5 = 반감). DataAsset에서 설정"))
+	float BarrierDamageMultiplier = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Barrier", meta=(ClampMin="0", ToolTip="마지막 피격 후 방어막 회복 시작까지(초). DataAsset에서 설정"))
+	float BarrierRegenDelay = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Barrier", meta=(ClampMin="0", ToolTip="초당 방어막 회복량. 0이면 회복 안 함. DataAsset에서 설정"))
+	float BarrierRegenRate = 25.f;
+
+	float LastDamagedTime = -100.f;
+	void UpdateBarrierRegen(float DeltaTime);
+
 	// --- Floating Health Bar / Damage Number ---
 	// 로직·데이터는 여기(C++), 비주얼(WBP)은 BP에서. 기본은 꺼짐(false)이고 적 클래스에서 켠다.
 
@@ -207,6 +227,30 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
 	FOnDamagedSignature OnDamaged;
+
+	// 피격 방향 표시용 — 공격이 날아온 월드 위치 (쏜 사람 위치, 폭발이면 폭심)
+	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
+	FOnDamagedSignature OnDamagedFrom;
+
+	// --- Barrier (방어막) ---
+	// 방어막이 있는 동안: 피해가 체력 대신 방어막으로 가고(배율만큼 줄어서), 헤드샷을 받지 않는다.
+	// 한동안 안 맞으면 차오른다. MaxBarrier = 0이면 방어막 없음 (플레이어·적 공통)
+	// ※ AShieldEnemy의 "Shield"와는 다른 기작이다 — 그쪽은 정면만 막고 깨지면 끝인 물리 방패(라이엇 실드)
+
+	UPROPERTY(BlueprintAssignable, Category = "Character|Barrier")
+	FOnHealthChangedSignature OnBarrierChanged;
+
+	UFUNCTION(BlueprintPure, Category = "Character|Barrier")
+	bool HasBarrier() const { return CurrentBarrier > 0.f; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Barrier")
+	float GetCurrentBarrier() const { return CurrentBarrier; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Barrier")
+	float GetMaxBarrier() const { return MaxBarrier; }
+
+	UFUNCTION(BlueprintPure, Category = "Character|Barrier")
+	float GetBarrierPercent() const { return MaxBarrier > 0.f ? CurrentBarrier / MaxBarrier : 0.f; }
 
 	// 사망 순간 호출 — BP에서 체력바 위젯의 사망 연출(확대·소멸) 애니를 재생.
 	// 액터는 DeathEffectDuration 후 실제 제거되므로 연출 재생 시간이 확보된다.

@@ -127,6 +127,11 @@ void AMikaCharacter::BeginPlay()
 			GrenadeCount               = MikaData->MaxGrenadeCount;
 		WeaponSwapDelay            = MikaData->WeaponSwapDelay;
 		CurrentHealth              = MaxHealth;
+		MaxBarrier                  = MikaData->MaxBarrier;
+		BarrierDamageMultiplier     = MikaData->BarrierDamageMultiplier;
+		BarrierRegenDelay           = MikaData->BarrierRegenDelay;
+		BarrierRegenRate            = MikaData->BarrierRegenRate;
+		CurrentBarrier              = MaxBarrier;
 		HealthRegen->Configure(MikaData->RegenDelay, MikaData->RegenInterval, MikaData->RegenAmount, MikaData->RegenCapRatio);
 		// Punch
 		PunchCooldown              = MikaData->PunchCooldown;
@@ -233,6 +238,11 @@ void AMikaCharacter::BeginPlay()
 		DodgeAimMontageRight       = MikaData->DodgeAimMontageRight;
 
 		AimSpringArmLength         = MikaData->AimSpringArmLength;
+		bUseGrenadePOV             = MikaData->bUseGrenadePOV;
+		GrenadeFOV                 = MikaData->GrenadeFOV;
+		GrenadeSpringArmLength     = MikaData->GrenadeSpringArmLength;
+		GrenadeSocketOffsetRight   = MikaData->GrenadeSocketOffsetRight;
+		GrenadeSocketOffsetUp      = MikaData->GrenadeSocketOffsetUp;
 
 		bPunchReboundUpward        = MikaData->bPunchReboundUpward;
 		bPunchSlamRebound          = MikaData->bPunchSlamRebound;
@@ -297,7 +307,13 @@ void AMikaCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	float TargetArm, TargetFov;
-	if (bIsAiming)
+	if (IsGrenadePOVActive())
+	{
+		// 수류탄 전용 시점 — 궤적을 넓게 보도록 조준과 따로 둔다
+		TargetArm = (GrenadeSpringArmLength > 0.f) ? GrenadeSpringArmLength : NormalSpringArmLength;
+		TargetFov = GrenadeFOV;
+	}
+	else if (bIsAiming)
 	{
 		// 조준 중에는 카메라를 당겨 둔다. 위를 볼 때 스프링암이 뒤·아래로 향하면서
 		// 바닥에 부딪혀 카메라가 튀는 걸 줄이려는 것 (0이면 기본 길이 유지)

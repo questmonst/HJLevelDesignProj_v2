@@ -58,6 +58,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ToolTip="적 처치 시 소리"))
 	USoundBase* KillSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ToolTip="방어막이 있는 적을 맞혔을 때 소리. 일반·헤드샷 소리 대신 재생된다 (방어막 중엔 헤드샷이 없다). 비우면 일반 적중 소리"))
+	USoundBase* BarrierHitSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ToolTip="파괴 가능한 엄폐물을 맞혔을 때 소리. 히트마커는 뜨지 않는다"))
+	USoundBase* CoverHitSound = nullptr;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ClampMin="0", ToolTip="히트마커 소리 볼륨 배율"))
 	float HitSoundVolume = 1.f;
 };

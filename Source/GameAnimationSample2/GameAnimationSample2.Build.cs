@@ -34,7 +34,10 @@ public class GameAnimationSample2 : ModuleRules
 			"Niagara",
 			"UMG",
 			"Slate",          // FSlateBrush 등 UI 스타일 구조체
-			"SlateCore"
+			"SlateCore",
+			"GeometryCollectionEngine",   // 파괴 가능한 엄폐물 파편 (Chaos Geometry Collection)
+			"Chaos",
+			"PhysicsCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

@@ -279,6 +279,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera", meta=(ToolTip="조준 중 카메라를 위로 올리는 거리(cm, 음수=아래). 스프링암 SocketOffset.Z"))
 	float AimSocketOffsetUp = 0.f;
 
+	// --- 수류탄 조준 시점 ---
+	// 끄면 수류탄도 총 조준과 같은 시점을 쓴다 (예전 동작)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera|Grenade", meta=(ToolTip="true면 수류탄을 들고 있는 동안 전용 시점을 쓴다. MikaData에서 설정"))
+	bool bUseGrenadePOV = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera|Grenade", meta=(ToolTip="수류탄 조준 중 카메라 오른쪽 이동(cm). MikaData에서 설정"))
+	float GrenadeSocketOffsetRight = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Camera|Grenade", meta=(ToolTip="수류탄 조준 중 카메라 위쪽 이동(cm). MikaData에서 설정"))
+	float GrenadeSocketOffsetUp = 0.f;
+
+	// 수류탄 전용 시점을 쓰는 중인지 — 누르고 있는 동안 + (조준을 수류탄이 켰다면) 던지기가 끝날 때까지
+	bool IsGrenadePOVActive() const { return bUseGrenadePOV && (bIsPreparingThrow || bAimStartedByGrenade); }
+
 	// DefaultSocketOffsetY를 스프링암·엄폐 기준값에 적용. 자식이 DataAsset 값을 복사한 뒤 다시 호출해야 DA 값이 먹는다
 	void ApplyDefaultSocketOffset();
 
@@ -391,9 +406,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Character|HUD", meta=(ToolTip="적 처치 시 방송"))
 	FOnEnemyKilledSignature OnEnemyKilled;
 
-	// 무기가 호출 — 적을 맞혔음을 HUD에 알린다
+	// 무기가 호출 — 적을 맞혔음을 HUD에 알린다. 방어막 적은 방어막 소리 (헤드샷 없음)
 	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
-	void NotifyHitConfirmed(bool bHeadshot);
+	void NotifyHitConfirmed(bool bHeadshot, bool bBarriered = false);
+
+	// 무기가 호출 — 파괴 가능한 엄폐물을 맞혔을 때 (소리만)
+	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
+	void NotifyCoverHit();
 
 	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
 	void NotifyEnemyKilled();

@@ -325,6 +325,41 @@
     BP 이벤트(조준·줍기·시작)에서만 갱신하면 그 사이 값이 낡고, 갱신 전엔 디자이너 자리표시 문구가 그대로 보인다.
     `Ammos`(기존)·`WeaponName`(신규)를 `BindWidgetOptional`로 연결, 무기가 없으면 둘 다 숨김
 
+- [x] (빌드 완료 2026-09-27) 다음 세션 할 일 7건 C++
+  - **1. 잔탄**: `AmmoFormat` 기본값 `"{0} / {2}"` = 탄창 잔탄 / 예비 탄약 (슈팅 게임 표준)
+  - **2. 적 자세·비전투 애니**: `EnemyDataAsset`에 `EEnemyWeaponStance`(Hip/Ironsight) + `FEnemyLocomotionSet`(Idle+Move) 3벌
+    (Relaxed/Hip/Ironsight). `AEnemyCharacter::GetLocomotionIdle()/GetLocomotionMove()`가 상황에 맞는 걸 돌려준다.
+    **전투 여부는 블랙보드 `bIsAlerted`** — 캐릭터 쪽 `bIsAlerted`는 경계 해제 시점에 안 꺼질 수 있어 BB를 믿는다.
+    비어 있는 칸은 다른 세트로 대체(우선순위: 현재 상황 세트 → 나머지)
+    - **ABP 작업 완료** (백업: `ABP_AREnemy_backup_20260927_1122.uasset.bak`):
+      ABP 변수 `LocoIdle`/`LocoMove` 추가 → EventGraph `Set Crouching` 뒤에 `Cast To EnemyCharacter` →
+      `GetLocomotionIdle/Move` → Set. `Idle` 상태는 **Sequence 핀 노출** SequencePlayer로, `Jog` 상태는
+      **BlendSpace 핀 노출** BlendSpacePlayer로 교체 (에셋 핀은 노출 안 하면 바인딩이 무시된다 — 미카 점프 때 교훈).
+      상태 그래프끼리 노드 이름이 겹치므로(`K2Node_VariableGet_50`이 Jog·Crouch Walk 양쪽에 있음) **삭제 시 graph_name 필수**
+    - `BS_Walk_Ironsights` 신규 (BS_Jog와 같은 축: Direction ±180 / Speed 0~270)
+    - `EnemyData_AR` 채움: Relaxed = `Idle_Rifle_Hip_Break1` + `BS_Jog`, Hip = `Idle_Rifle_Hip` + `BS_Jog`,
+      Ironsight = `Idle_Rifle_Ironsights` + `BS_Walk_Ironsights`, 자세 = Ironsight
+    - 참고: 원래 Idle/Jog 애니에 있던 `AnimNotify_IdleStart/JogStart`는 스타터팩 템플릿의 점프 허용 로직용 — 적은 점프 안 해서 무관
+  - **3. 헤드샷 판정**: `HeadBoneKeyword`·`HeadHitRadius`를 `WeaponDataAsset`으로 이동 (DA + BeginPlay 복사 규칙)
+  - **4. 파괴 엄폐물**: `ADestructibleCover`에 `FractureCollection`(Geometry Collection). 파괴 시 파편 액터를
+    지연 스폰 → **한 틱 뒤** `CrumbleActiveClusters()` + `AddRadialImpulse()`. 같은 프레임에 부르면 물리 프록시가
+    아직 없어 한 덩어리로 떨어진다. Build.cs에 `GeometryCollectionEngine`/`Chaos`/`PhysicsCore` 추가
+  - **5. 방어막 = `Barrier`** (`ACharacterBase`, 플레이어·적 공용, `MaxBarrier=0`이면 없음).
+    반감(`BarrierDamageMultiplier`) + 헤드샷 무효 + 재생(`BarrierRegenDelay/Rate`).
+    넘친 피해는 원래 단위로 되돌려 체력에 (`(BarrierDamage - Absorbed) / Mult`). 대미지 숫자는 실제로 깎인 양.
+    **이름을 Barrier로 한 이유: 기존 `AShieldEnemy`의 "Shield"(정면만 막는 라이엇 실드, 재생 없음)와 기작이 다르다.**
+    처음 Shield로 짰다가 `GetShieldPercent` UFUNCTION 충돌로 UHT 에러 → 전부 Barrier로 변경
+    - 헤드샷·방어막 판정은 **피해 적용 전**에 해서 `ReportHitToPlayer(Hit, bHeadshot, bBarrier)`로 넘긴다
+      (이번 발에 방어막이 깨지면 사후엔 알 수 없다)
+    - `HUDDataAsset`: `BarrierHitSound`, `CoverHitSound`. 엄폐물 피격은 히트마커 없이 소리만
+    - 플레이어 체력바: 체력 칸 오른쪽에 파란 방어막 칸(`BarrierSegmentCount`) — 오버워치 방식. 방어막 없으면 숨김
+    - 적 체력바: WBP에 `BarrierBar`(ProgressBar)를 두면 C++이 채움
+  - **6. 피격 방향**: `ACharacterBase::OnDamagedFrom(Amount, SourceLocation)` 추가 (폭발=폭심, 아니면 쏜 사람).
+    `UDamageIndicatorWidget` — 월드 위치를 기억해 몸을 돌려도 그 방향을 가리킴. 같은 방향 연타는 갱신(`MergeAngle`)
+  - **7. 수류탄 시점**: `bUseGrenadePOV` + `GrenadeFOV/SpringArmLength/SocketOffsetRight/Up`.
+    활성 조건 = 누르고 있는 동안 + (조준을 수류탄이 켰다면) 던지기가 끝날 때까지
+  - (빌드 전에 잡음) `DamageIndicatorWidget`의 지역변수 `Slot`이 `UWidget::Slot`을 가림 (C4458) — 예전에 한 번 밟았던 것이라 미리 `Target`으로 변경
+
 ## 다음 세션 할 일 (2026-09-26 접수, 우선순위 순 아님)
 
 - [ ] **1. 잔탄 표시를 "현재 탄창 / 전체 보유 탄수"로**

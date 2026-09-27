@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "NPCCharacter.h"
+#include "EnemyDataAsset.h"
 #include "EnemyCharacter.generated.h"
 
 class AWeaponBase;
@@ -75,6 +76,23 @@ protected:
 
     UPROPERTY(BlueprintReadOnly, Category = "Enemy|AI", meta=(ToolTip="경계 상태 여부. 피격·감지 시 true로 전환"))
     bool bIsAlerted = false;
+
+    // --- Locomotion 세트 (EnemyData에서 복사) ---
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Animation", meta=(ToolTip="전투 중 자세. EnemyData에서 설정"))
+    EEnemyWeaponStance CombatStance = EEnemyWeaponStance::Ironsight;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Animation", meta=(ToolTip="비전투 애니. EnemyData에서 설정"))
+    FEnemyLocomotionSet RelaxedLocomotion;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Animation", meta=(ToolTip="전투 Hip 애니. EnemyData에서 설정"))
+    FEnemyLocomotionSet HipLocomotion;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Animation", meta=(ToolTip="전투 Ironsight 애니. EnemyData에서 설정"))
+    FEnemyLocomotionSet IronsightLocomotion;
+
+    // 지금 상황에 맞는 세트 순서 (앞에서부터 비어 있지 않은 칸을 쓴다)
+    void GetLocomotionPriority(const FEnemyLocomotionSet* OutOrder[3]) const;
 
     UPROPERTY(BlueprintReadOnly, Category = "Enemy|AI", meta=(ToolTip="현재 타겟을 시야 내에서 확인 중인지"))
     bool bCanSeeTarget = false;
@@ -180,6 +198,20 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Enemy|AI")
     bool GetIsAlerted() const { return bIsAlerted; }
+
+    // --- Locomotion (ABP용) ---
+    // ABP는 이 두 값만 읽어 Idle/Move 노드에 꽂는다. 어떤 세트를 쓸지는 여기서 정한다:
+    // 비전투 = Relaxed, 전투 = CombatStance(Hip/Ironsight). 빈 칸은 다른 세트로 대체
+
+    // AI가 경계 상태인지 (블랙보드 bIsAlerted 기준 — 캐릭터 쪽 플래그는 해제 시점이 어긋날 수 있다)
+    UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
+    bool IsInCombat() const;
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
+    UAnimSequenceBase* GetLocomotionIdle() const;
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
+    UBlendSpace* GetLocomotionMove() const;
 
     UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
     float GetPreferredCombatRange() const { return PreferredCombatRange; }

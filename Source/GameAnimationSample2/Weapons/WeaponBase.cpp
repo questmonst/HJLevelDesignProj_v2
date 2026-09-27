@@ -2,6 +2,7 @@
 
 #include "WeaponBase.h"
 #include "CharacterBase.h"
+#include "IDestructible.h"
 #include "Perception/AISense_Hearing.h"
 #include "GrenadeBase.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,6 +72,8 @@ void AWeaponBase::BeginPlay()
 		// --- Stats ---
 		Damage                  = WeaponData->Damage;
 		HeadshotDamageMultiplier = WeaponData->HeadshotDamageMultiplier;
+		HeadBoneKeyword         = WeaponData->HeadBoneKeyword;
+		HeadHitRadius           = WeaponData->HeadHitRadius;
 		FireRate                = WeaponData->FireRate;
 		Range                   = WeaponData->Range;
 		ReloadTime              = WeaponData->ReloadTime;
@@ -298,13 +301,22 @@ bool AWeaponBase::IsHeadshot(const FHitResult& Hit, const ACharacterBase* Victim
 	return FVector::Dist(Hit.ImpactPoint, VictimMesh->GetBoneLocation(HeadBone)) <= HeadHitRadius;
 }
 
-void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit)
+void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool bBarriered)
 {
 	APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
 	if (!Player) return;
 
+	AActor* HitActor = Hit.GetActor();
+
+	// 파괴 가능한 엄폐물 — 히트마커는 없고 소리만 (적을 맞힌 것처럼 보이면 안 된다)
+	if (HitActor && HitActor->Implements<UDestructibleObject>())
+	{
+		Player->NotifyCoverHit();
+		return;
+	}
+
 	// 적 캐릭터를 맞혔을 때만 — 벽·소품은 마커를 띄우지 않는다
-	ACharacterBase* Victim = Cast<ACharacterBase>(Hit.GetActor());
+	ACharacterBase* Victim = Cast<ACharacterBase>(HitActor);
 	if (!Victim || Victim == Player) return;
 
 	if (Victim->IsDead())
@@ -313,7 +325,7 @@ void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit)
 		return;
 	}
 
-	Player->NotifyHitConfirmed(IsHeadshot(Hit, Victim));
+	Player->NotifyHitConfirmed(bHeadshot, bBarriered);
 }
 
 void AWeaponBase::HitscanFire()
@@ -386,15 +398,16 @@ void AWeaponBase::HitscanFire()
 
 			if (Hit.GetActor())
 			{
-				// 머리에 맞으면 배율. 판정은 히트마커와 같은 함수를 쓴다 (둘이 어긋나면 안 된다)
-				float HitDamage = ActualDamage;
-				if (const ACharacterBase* Victim = Cast<ACharacterBase>(Hit.GetActor()))
-				{
-					if (IsHeadshot(Hit, Victim)) HitDamage *= HeadshotDamageMultiplier;
-				}
+				// 피해를 넣기 *전*에 판정한다 — 이번 발에 방어막이 깨지면 사후엔 알 수 없다.
+				// 방어막이 있는 동안은 헤드샷이 없다 (배율도, 빨간 마커도)
+				const ACharacterBase* Victim = Cast<ACharacterBase>(Hit.GetActor());
+				const bool bBarriered = Victim && Victim->HasBarrier();
+				const bool bHeadshot = Victim && !bBarriered && IsHeadshot(Hit, Victim);
+
+				const float HitDamage = ActualDamage * (bHeadshot ? HeadshotDamageMultiplier : 1.f);
 				UGameplayStatics::ApplyPointDamage(Hit.GetActor(), HitDamage,
 					PelletDir, Hit, OwnerCtrl, this, nullptr);
-				ReportHitToPlayer(Hit);   // 대미지 적용 뒤 — 죽었는지까지 보고 판단
+				ReportHitToPlayer(Hit, bHeadshot, bBarriered);   // 대미지 적용 뒤 — 죽었는지까지 보고 판단
 			}
 
 			if (!RepresentativeHit.bBlockingHit)

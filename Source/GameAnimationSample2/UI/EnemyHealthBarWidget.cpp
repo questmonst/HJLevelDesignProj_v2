@@ -3,6 +3,7 @@
 #include "EnemyHealthBarWidget.h"
 #include "CharacterBase.h"
 #include "Animation/WidgetAnimation.h"
+#include "Components/ProgressBar.h"
 
 void UEnemyHealthBarWidget::BindToCharacter(ACharacterBase* InOwner)
 {
@@ -73,6 +74,15 @@ void UEnemyHealthBarWidget::NativeTick(const FGeometry& MyGeometry, float InDelt
 		if (!FMath::IsNearlyEqual(Actual, HealthPercent))
 		{
 			ApplyHealthPercent(Actual);
+		}
+
+		// 방어막은 회복도 매 프레임 일어나므로 델리게이트 대신 폴링한다
+		BarrierPercent = OwnerCharacter->GetBarrierPercent();
+		if (BarrierBar)
+		{
+			const bool bHasBarrier = OwnerCharacter->GetMaxBarrier() > 0.f;
+			BarrierBar->SetVisibility(bHasBarrier ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+			BarrierBar->SetPercent(BarrierPercent);
 		}
 	}
 

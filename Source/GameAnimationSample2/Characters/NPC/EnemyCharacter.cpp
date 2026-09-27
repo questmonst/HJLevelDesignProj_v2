@@ -10,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "AIController.h"
 #include "BrainComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 // Blackboard 키 이름 정의 (AEnemyAIController와 반드시 일치)
 const FName AEnemyCharacter::BBKey_TargetActor    = TEXT("TargetActor");
@@ -38,6 +39,10 @@ void AEnemyCharacter::ApplyEnemyData()
     if (!EnemyData) return;
 
     MaxHealth            = EnemyData->MaxHealth;
+    MaxBarrier            = EnemyData->MaxBarrier;
+    BarrierDamageMultiplier = EnemyData->BarrierDamageMultiplier;
+    BarrierRegenDelay     = EnemyData->BarrierRegenDelay;
+    BarrierRegenRate      = EnemyData->BarrierRegenRate;
     WalkSpeed            = EnemyData->WalkSpeed;
     RunSpeed             = EnemyData->RunSpeed;
     CrouchWalkSpeed      = EnemyData->CrouchWalkSpeed;
@@ -72,6 +77,11 @@ void AEnemyCharacter::ApplyEnemyData()
     HitMontageMinInterval   = EnemyData->HitMontageMinInterval;
     GetUpMontage         = EnemyData->GetUpMontage;
     RagdollPelvisBone    = EnemyData->RagdollPelvisBone;
+
+    CombatStance         = EnemyData->CombatStance;
+    RelaxedLocomotion    = EnemyData->RelaxedLocomotion;
+    HipLocomotion        = EnemyData->HipLocomotion;
+    IronsightLocomotion  = EnemyData->IronsightLocomotion;
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -312,4 +322,56 @@ void AEnemyCharacter::OnLoseSight_Implementation()
 {
     bCanSeeTarget = false;
     StopFiring();
+}
+
+// ---------------------------------------------------------------------------
+// Locomotion
+
+bool AEnemyCharacter::IsInCombat() const
+{
+    if (const AAIController* AICon = Cast<AAIController>(GetController()))
+    {
+        if (const UBlackboardComponent* BB = AICon->GetBlackboardComponent())
+        {
+            return BB->GetValueAsBool(BBKey_bIsAlerted);
+        }
+    }
+    return bIsAlerted;
+}
+
+void AEnemyCharacter::GetLocomotionPriority(const FEnemyLocomotionSet* OutOrder[3]) const
+{
+    const FEnemyLocomotionSet* Combat = (CombatStance == EEnemyWeaponStance::Hip) ? &HipLocomotion : &IronsightLocomotion;
+    const FEnemyLocomotionSet* Other  = (CombatStance == EEnemyWeaponStance::Hip) ? &IronsightLocomotion : &HipLocomotion;
+
+    if (IsInCombat())
+    {
+        OutOrder[0] = Combat;  OutOrder[1] = Other;  OutOrder[2] = &RelaxedLocomotion;
+    }
+    else
+    {
+        OutOrder[0] = &RelaxedLocomotion;  OutOrder[1] = Combat;  OutOrder[2] = Other;
+    }
+}
+
+UAnimSequenceBase* AEnemyCharacter::GetLocomotionIdle() const
+{
+    const FEnemyLocomotionSet* Order[3];
+    GetLocomotionPriority(Order);
+    for (const FEnemyLocomotionSet* Set : Order)
+    {
+        if (Set->Idle) return Set->Idle;
+    }
+    return nullptr;
+}
+
+UBlendSpace* AEnemyCharacter::GetLocomotionMove() const
+{
+    const FEnemyLocomotionSet* Order[3];
+    GetLocomotionPriority(Order);
+    for (const FEnemyLocomotionSet* Set : Order)
+    {
+        if (Set->Move) return Set->Move;
+    }
+    return nullptr;
 }
