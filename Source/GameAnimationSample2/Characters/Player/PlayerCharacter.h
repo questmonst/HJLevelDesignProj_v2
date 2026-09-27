@@ -42,6 +42,12 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void TakeDamageCustom_Implementation(float Amount) override;
+
+	// --- 테스트 치트 (O, Shipping 빌드에서는 키 바인딩이 빠진다) ---
+	// 무적: 켜져 있으면 체력이 10% 이하로 떨어지는 순간 100%로 회복하고 죽지 않는다
+	bool bGodModeCheat = false;
+	void ToggleGodModeCheat(FKey Key, FInputActionValue Value);
 
 	// --- Components ---
 
@@ -416,6 +422,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
 	void NotifyEnemyKilled();
+
+	// 적 AI가 호출 — 적의 시야에 새로 들어왔을 때. 발견 소리 (HUDData 쿨타임 적용)
+	UFUNCTION(BlueprintCallable, Category = "Character|HUD")
+	void NotifySpottedByEnemy();
+
+	float LastSpottedSoundTime = -1000.f;
 
 	UFUNCTION(BlueprintPure, Category = "Character|Grenade")
 	int32 GetGrenadeCount() const { return GrenadeCount; }

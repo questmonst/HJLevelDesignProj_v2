@@ -497,3 +497,7 @@
 - [ ] (빌드 대기) 착지 포즈 중단 — `IsLandPoseInterrupted()`(이동 입력·조준, 미카는 충전·대시·펀치 전신·수류탄 추가) 참이면 착지 유지 즉시 종료. 착지 모션 끝에서 멈춰 다른 행동이 안 되던 문제
 - [ ] 점프 중 펀치 카메라 = A안 확정(메시 쪽 수정). `Jmp_Base_B_mika`의 골반 Z 트랙에 점프 높이가 구워져 있음 → 본 트랙 키 수정(복제본 백업 후)으로 캡슐과의 높이 차 줄이기. `bCameraFollowMesh`(B안)는 코드에 남아 있고 기본 끔으로 두면 됨
 - [x] (빌드 완료) 충전 중 카메라 아래 각도 확장 — `MikaData` › Camera › **`ChargeCameraPitchMin`**(-89.9). 충전 시작 시 적용, 끝나면 `CameraPitchMin`으로 복귀
+- [x] (빌드 완료 2026-09-27) 적이 발견 후 안 쏘던 문제 — `BT_AREnemy` 전투 분기가 실패하면(사거리·LOS·빈 탄창) 조건 없는 순찰로 빠져 `Wait 10±4초` 동안 복귀 못 함(bCanSeeTarget 값이 안 바뀌어 재평가 없음). 순찰에 `bIsAlerted Is Not Set`(Abort Self), 전투·순찰 사이 수색 분기(`[bIsAlerted]` Wait 0.5 → Walk → Move To TargetLocation), 재장전 셀렉터 끝에 제자리 `Reload Weapon`. 백업 `BT_AREnemy_backup_20260927_1720.uasset.bak`
+  - 주의: `BTDecorator_Blackboard`의 `OperationType`은 **에디터 PostEditChange에서만** BasicOperation으로 갱신됨. MCP로 `BasicOperation=NotSet`만 넣으면 실제 판정은 Is Set(0) — `OperationType`(Set=0/NotSet=1)도 직접 넣을 것
+  - 주의: MCP로 BT 자식을 추가하면 그래프 X 위치 기준으로 순서가 섞임 → `reorder_bt_children` 후 `auto_arrange_bt`
+- [x] (빌드 완료 2026-09-27) 적 상체가 엉뚱한 곳(월드 원점)을 조준 — `ABP_AREnemy`의 `Set Look At Location`이 실행 흐름에서 끊겨 있어 항상 (0,0,0). `AEnemyCharacter::GetLookAtLocation()`(AI 포커스 + `LookAtHeightOffset`, DA `Locomotion`)을 `Set LocoMove` 뒤에 연결. 백업 `ABP_AREnemy_backup_20260927_1720.uasset.bak`

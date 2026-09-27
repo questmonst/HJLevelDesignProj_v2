@@ -3,6 +3,7 @@
 #include "EnemyAIController.h"
 #include "BGMSubsystem.h"
 #include "EnemyCharacter.h"
+#include "PlayerCharacter.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
@@ -101,6 +102,8 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 
     if (Stimulus.WasSuccessfullySensed())
     {
+        const bool bWasSeeing = BB->GetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget);
+
         BB->SetValueAsObject(AEnemyCharacter::BBKey_TargetActor,   Actor);
         BB->SetValueAsVector(AEnemyCharacter::BBKey_TargetLocation, Actor->GetActorLocation());
         BB->SetValueAsBool  (AEnemyCharacter::BBKey_bIsAlerted,     true);
@@ -118,6 +121,15 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
             BB->SetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget, true);
             bDamageEngaged   = true;
             DamageEngageTime = GetWorld()->GetTimeSeconds();
+        }
+
+        // 시야에 새로 잡힌 순간 — 발견 소리 (연달아 나지 않게 쿨타임은 플레이어 쪽에서)
+        if (!bWasSeeing && BB->GetValueAsBool(AEnemyCharacter::BBKey_bCanSeeTarget))
+        {
+            if (APlayerCharacter* Player = Cast<APlayerCharacter>(Actor))
+            {
+                Player->NotifySpottedByEnemy();
+            }
         }
 
         // 감지하면 그 쪽을 쳐다본다 — 총성(청각)만 들었을 때도 돌아보게 한다

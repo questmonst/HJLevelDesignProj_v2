@@ -95,6 +95,9 @@ void AWeaponBase::BeginPlay()
 		RecoilYawRange          = WeaponData->RecoilYawRange;
 		MaxRecoilPitch          = WeaponData->MaxRecoilPitch;
 		RecoilRecoverySpeed     = WeaponData->RecoilRecoverySpeed;
+		// --- Animation ---
+		bOverrideFireMontageBlendTime = WeaponData->bOverrideFireMontageBlendTime;
+		FireMontageBlendTime    = WeaponData->FireMontageBlendTime;
 		// --- Audio / VFX ---
 		FireSound               = WeaponData->FireSound;
 		DryFireSound            = WeaponData->DryFireSound;
@@ -301,7 +304,7 @@ bool AWeaponBase::IsHeadshot(const FHitResult& Hit, const ACharacterBase* Victim
 	return FVector::Dist(Hit.ImpactPoint, VictimMesh->GetBoneLocation(HeadBone)) <= HeadHitRadius;
 }
 
-void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool bBarriered)
+void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool bBarriered, bool bWasAlive)
 {
 	APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner());
 	if (!Player) return;
@@ -319,7 +322,8 @@ void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool 
 	ACharacterBase* Victim = Cast<ACharacterBase>(HitActor);
 	if (!Victim || Victim == Player) return;
 
-	if (Victim->IsDead())
+	// 처치는 이번 발로 살아 있다가 죽었을 때 한 번만. 시체를 맞히면 일반 히트 (타격감은 유지)
+	if (bWasAlive && Victim->IsDead())
 	{
 		Player->NotifyEnemyKilled();
 		return;
@@ -403,11 +407,12 @@ void AWeaponBase::HitscanFire()
 				const ACharacterBase* Victim = Cast<ACharacterBase>(Hit.GetActor());
 				const bool bBarriered = Victim && Victim->HasBarrier();
 				const bool bHeadshot = Victim && !bBarriered && IsHeadshot(Hit, Victim);
+				const bool bWasAlive = Victim && !Victim->IsDead();
 
 				const float HitDamage = ActualDamage * (bHeadshot ? HeadshotDamageMultiplier : 1.f);
 				UGameplayStatics::ApplyPointDamage(Hit.GetActor(), HitDamage,
 					PelletDir, Hit, OwnerCtrl, this, nullptr);
-				ReportHitToPlayer(Hit, bHeadshot, bBarriered);   // 대미지 적용 뒤 — 죽었는지까지 보고 판단
+				ReportHitToPlayer(Hit, bHeadshot, bBarriered, bWasAlive);   // 대미지 적용 뒤 — 이번 발에 죽었는지까지 보고 판단
 			}
 
 			if (!RepresentativeHit.bBlockingHit)

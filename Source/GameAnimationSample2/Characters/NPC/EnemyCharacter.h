@@ -11,6 +11,7 @@ class AWeaponBase;
 class UBehaviorTree;
 class UEnemyDataAsset;
 class UAnimMontage;
+class UStaticMeshComponent;
 
 // BT의 Set Move Mode 태스크가 고르는 이동 자세. 속도 수치는 캐릭터(EnemyData)가 들고 있다.
 UENUM(BlueprintType)
@@ -90,6 +91,29 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Animation", meta=(ToolTip="전투 Ironsight 애니. EnemyData에서 설정"))
     FEnemyLocomotionSet IronsightLocomotion;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Animation", meta=(ToolTip="상체 조준 높이 보정(cm). EnemyData에서 설정"))
+    float LookAtHeightOffset = 0.f;
+
+    // --- Laser (EnemyData에서 복사) ---
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Laser", meta=(ToolTip="총구 → 조준점 레이저. 매 틱 월드 기준으로 배치한다"))
+    UStaticMeshComponent* LaserComp;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Laser", meta=(ToolTip="레이저 길이 배율. EnemyData에서 설정"))
+    float LaserLengthScale = 1.f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Laser", meta=(ToolTip="레이저 굵기 배율. EnemyData에서 설정"))
+    float LaserThickness = 1.f;
+
+    // 사격 중인지 (FireAtTarget ~ StopFiring). 연사 무기는 무기 타이머가 쏘므로 폰이 따로 기억한다
+    bool bIsFiringBurst = false;
+
+    // 플레이어를 보고 있고 쏘지 않는 동안만 레이저를 켠다
+    bool ShouldShowLaser() const;
+    void UpdateLaser();
+
+    virtual void Tick(float DeltaTime) override;
 
     // 지금 상황에 맞는 세트 순서 (앞에서부터 비어 있지 않은 칸을 쓴다)
     void GetLocomotionPriority(const FEnemyLocomotionSet* OutOrder[3]) const;
@@ -212,6 +236,11 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
     UBlendSpace* GetLocomotionMove() const;
+
+    // ABP Look At 노드용 월드 위치. AI 포커스 대상(총알이 향하는 곳) + LookAtHeightOffset,
+    // 포커스가 없으면 정면 앞쪽
+    UFUNCTION(BlueprintPure, Category = "Enemy|Animation")
+    FVector GetLookAtLocation() const;
 
     UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
     float GetPreferredCombatRange() const { return PreferredCombatRange; }

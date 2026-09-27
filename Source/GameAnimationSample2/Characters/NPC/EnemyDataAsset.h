@@ -9,6 +9,7 @@
 class UAnimMontage;
 class UAnimSequenceBase;
 class UBlendSpace;
+class UStaticMesh;
 
 // 전투 중 총을 드는 자세 — 무기 성격에 따라 (샷건류 = Hip, 소총류 = Ironsight)
 UENUM(BlueprintType)
@@ -145,6 +146,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="전투 중 Ironsight 자세 애니 (예: Idle_Rifle_Ironsights + Ironsight 걷기 블렌드스페이스)"))
 	FEnemyLocomotionSet IronsightLocomotion;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="상체(ABP Look At)가 조준하는 높이 보정(cm). 0 = 타겟 캡슐 중심(총알이 향하는 곳). +면 위, -면 아래"))
+	float LookAtHeightOffset = 0.f;
+
+	// --- Laser ---
+	// 적이 플레이어를 보고 있지만 쏘지 않는 동안(조준 대기·사격 사이 휴식·재장전) 총구 → 조준점에 레이저를 그린다
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser", meta=(ToolTip="레이저 메시. 원점에서 +X로 뻗은 막대 (예: /Engine/VREditor/LaserPointer/LaserPointerMesh). 비우면 레이저 없음"))
+	UStaticMesh* LaserMesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser", meta=(ClampMin="0", ToolTip="레이저 길이 배율. 1 = 총구에서 조준점까지 딱 맞게, 2 = 두 배로 뻗음"))
+	float LaserLengthScale = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser", meta=(ClampMin="0", ToolTip="레이저 굵기 배율 (메시 단면 크기 기준)"))
+	float LaserThickness = 1.f;
 
 	// --- Patrol ---
 

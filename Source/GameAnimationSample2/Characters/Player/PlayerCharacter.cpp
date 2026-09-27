@@ -114,12 +114,40 @@ void APlayerCharacter::Jump()
 	Super::Jump();
 }
 
+void APlayerCharacter::ToggleGodModeCheat(FKey Key, FInputActionValue Value)
+{
+	bGodModeCheat = !bGodModeCheat;
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			bGodModeCheat ? TEXT("[치트] 무적 ON") : TEXT("[치트] 무적 OFF"));
+	}
+}
+
+void APlayerCharacter::TakeDamageCustom_Implementation(float Amount)
+{
+	if (!bGodModeCheat)
+	{
+		Super::TakeDamageCustom_Implementation(Amount);
+		return;
+	}
+
+	// 한 방에 죽을 피해라도 1은 남겨 사망 처리를 막고, 10% 이하가 되면 가득 채운다
+	Super::TakeDamageCustom_Implementation(FMath::Min(Amount, CurrentHealth - 1.f));
+	if (CurrentHealth <= MaxHealth * 0.1f)
+	{
+		Heal(MaxHealth);
+	}
+}
+
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EIC) return;
+
+	EIC->BindDebugKey(FInputChord(EKeys::O), IE_Pressed, this, &APlayerCharacter::ToggleGodModeCheat);
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -760,6 +788,17 @@ void APlayerCharacter::NotifyEnemyKilled()
 	{
 		UGameplayStatics::PlaySound2D(this, HUDData->KillSound, HUDData->HitSoundVolume);
 	}
+}
+
+void APlayerCharacter::NotifySpottedByEnemy()
+{
+	if (!HUDData || !HUDData->EnemySpottedSound) return;
+
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastSpottedSoundTime < HUDData->EnemySpottedSoundCooldown) return;
+
+	LastSpottedSoundTime = Now;
+	UGameplayStatics::PlaySound2D(this, HUDData->EnemySpottedSound);
 }
 
 void APlayerCharacter::OnLanding_Implementation(bool bHardLanding)

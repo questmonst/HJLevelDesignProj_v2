@@ -96,8 +96,9 @@ protected:
 	bool IsHeadshot(const FHitResult& Hit, const class ACharacterBase* Victim) const;
 
 	// 맞힌 결과를 플레이어에게 알린다 (히트마커·사운드). 헤드샷·방어막 여부는 피해를 넣기 *전*에
-	// 판단해서 넘긴다 — 이번 발에 방어막이 깨지거나 적이 죽으면 사후에는 알 수 없다
-	void ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool bBarriered);
+	// 판단해서 넘긴다 — 이번 발에 방어막이 깨지거나 적이 죽으면 사후에는 알 수 없다.
+	// bWasAlive: 피해 전에 살아 있었는지. 이번 발로 죽었을 때만 처치 알림을 보낸다
+	void ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool bBarriered, bool bWasAlive);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config", meta=(ToolTip="발사 트레이스 디버그 라인 표시 여부"))
 	bool bDebugTrace = false;
@@ -179,6 +180,13 @@ protected:
 	float RecoilRecoverySpeed = 10.f;
 
 	// 발사(반동) 몽타주는 캐릭터 공통이라 APlayerCharacter::FireMontage(MikaData)로 이동됨.
+	// 블렌드 시간만 무기별로 덮어쓸 수 있다 (반동이 센 무기는 길게 → 덜 튄다)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Animation", meta=(ToolTip="true면 캐릭터(MikaData)의 반동 몽타주 블렌드 시간 대신 이 무기 값을 쓴다. WeaponData에서 설정"))
+	bool bOverrideFireMontageBlendTime = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Animation", meta=(ClampMin="0", EditCondition="bOverrideFireMontageBlendTime", ToolTip="이 무기의 반동 몽타주 블렌드 시간(초). WeaponData에서 설정"))
+	float FireMontageBlendTime = 0.08f;
 
 	// --- Audio ---
 
@@ -336,6 +344,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Recoil")
 	float GetMaxRecoilPitch() const { return MaxRecoilPitch; }
+
+	// 반동 몽타주 블렌드 시간 — 무기가 덮어쓰면 무기 값, 아니면 캐릭터 기본값
+	float GetFireMontageBlendTime(float CharacterDefault) const { return bOverrideFireMontageBlendTime ? FireMontageBlendTime : CharacterDefault; }
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Recoil")
 	float GetRecoilRecoverySpeed() const { return RecoilRecoverySpeed; }

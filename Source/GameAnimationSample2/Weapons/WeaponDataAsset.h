@@ -130,6 +130,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recoil", meta=(ToolTip="초당 반동 회복 속도 (도/초). 사격 멈추면 이 속도로 원위치"))
 	float RecoilRecoverySpeed = 10.f;
 
+	// --- Animation ---
+	// 반동 몽타주 자체는 캐릭터 공통(MikaData). 블렌드 시간만 무기별로 덮어쓴다
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(InlineEditConditionToggle, ToolTip="켜면 MikaData의 FireMontageBlendTime 대신 아래 값을 쓴다"))
+	bool bOverrideFireMontageBlendTime = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta=(ClampMin="0", EditCondition="bOverrideFireMontageBlendTime", ToolTip="이 무기의 반동 몽타주 블렌드 시간(초). 매 발 처음부터 다시 재생할 때 현재 포즈에서 섞여 들어가는 시간. 길수록 반동 모션이 부드럽고 약해 보인다 (연사 간격보다 짧게)"))
+	float FireMontageBlendTime = 0.08f;
+
 	// --- Config ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config", meta=(ToolTip="플레이어 발사 시 카메라 트레이스 시작점 전방 오프셋 (cm). 엄폐물 클리핑 방지용"))

@@ -263,7 +263,8 @@ void APlayerCharacter::OnWeaponFired()
 
 	// 매 발 처음부터 다시 재생하되, 지금 포즈에서 짧게 블렌드해 들어간다.
 	// 위치만 0으로 되감으면 포즈가 순간이동해서 촐싹거린다
-	Anim->Montage_PlayWithBlendIn(ActiveFireMontage, FAlphaBlendArgs(FireMontageBlendTime));
+	const float BlendTime = CurrentWeapon ? CurrentWeapon->GetFireMontageBlendTime(FireMontageBlendTime) : FireMontageBlendTime;
+	Anim->Montage_PlayWithBlendIn(ActiveFireMontage, FAlphaBlendArgs(BlendTime));
 }
 
 UAnimMontage* APlayerCharacter::SelectFireMontage() const

@@ -8,6 +8,8 @@
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -32,6 +34,18 @@ AEnemyCharacter::AEnemyCharacter()
     // 엄폐 시 앉기 — 내비 에이전트가 앉기를 허용해야 Crouch()가 동작한다
     GetCharacterMovement()->NavAgentProps.bCanCrouch     = true;
     GetCharacterMovement()->bCrouchMaintainsBaseLocation = true;
+
+    // 레이저는 총구·조준점 기준으로 매 틱 월드 트랜스폼을 직접 넣는다 (부모 회전·스케일 무시)
+    LaserComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LaserComp"));
+    LaserComp->SetupAttachment(RootComponent);
+    LaserComp->SetUsingAbsoluteLocation(true);
+    LaserComp->SetUsingAbsoluteRotation(true);
+    LaserComp->SetUsingAbsoluteScale(true);
+    LaserComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    LaserComp->SetGenerateOverlapEvents(false);
+    LaserComp->SetCanEverAffectNavigation(false);
+    LaserComp->SetCastShadow(false);
+    LaserComp->SetVisibility(false);
 }
 
 void AEnemyCharacter::ApplyEnemyData()
@@ -82,6 +96,11 @@ void AEnemyCharacter::ApplyEnemyData()
     RelaxedLocomotion    = EnemyData->RelaxedLocomotion;
     HipLocomotion        = EnemyData->HipLocomotion;
     IronsightLocomotion  = EnemyData->IronsightLocomotion;
+    LookAtHeightOffset   = EnemyData->LookAtHeightOffset;
+
+    LaserComp->SetStaticMesh(EnemyData->LaserMesh);
+    LaserLengthScale     = EnemyData->LaserLengthScale;
+    LaserThickness       = EnemyData->LaserThickness;
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -114,12 +133,50 @@ void AEnemyCharacter::BeginPlay()
 void AEnemyCharacter::FireAtTarget()
 {
     LastFireTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+    bIsFiringBurst = true;
     if (EnemyWeapon) EnemyWeapon->StartFire();
 }
 
 void AEnemyCharacter::StopFiring()
 {
+    bIsFiringBurst = false;
     if (EnemyWeapon) EnemyWeapon->StopFire();
+}
+
+void AEnemyCharacter::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+    UpdateLaser();
+}
+
+bool AEnemyCharacter::ShouldShowLaser() const
+{
+    if (bIsDead || IsIncapacitated() || bIsFiringBurst || !EnemyWeapon) return false;
+
+    const AAIController* AICon = Cast<AAIController>(GetController());
+    const UBlackboardComponent* BB = AICon ? AICon->GetBlackboardComponent() : nullptr;
+    return BB
+        && BB->GetValueAsObject(BBKey_TargetActor) != nullptr
+        && BB->GetValueAsBool(BBKey_bCanSeeTarget);
+}
+
+void AEnemyCharacter::UpdateLaser()
+{
+    const UStaticMesh* LaserMesh = LaserComp ? LaserComp->GetStaticMesh() : nullptr;
+    const bool bShow = LaserMesh && ShouldShowLaser();
+    if (LaserComp && LaserComp->IsVisible() != bShow) LaserComp->SetVisibility(bShow);
+    if (!bShow) return;
+
+    // 총구에서 상체가 겨누는 점(= 총알이 향하는 점)까지
+    const FVector Start = EnemyWeapon->GetMuzzleLocation();
+    const FVector Delta = GetLookAtLocation() - Start;
+    const float Dist = Delta.Size();
+    if (Dist < KINDA_SMALL_NUMBER) return;
+
+    // 메시 X 길이로 나눠 거리만큼 늘린다 (LaserPointerMesh는 1cm)
+    const float MeshLength = FMath::Max(LaserMesh->GetBoundingBox().Max.X, KINDA_SMALL_NUMBER);
+    LaserComp->SetWorldLocationAndRotation(Start, Delta.Rotation());
+    LaserComp->SetWorldScale3D(FVector(Dist * LaserLengthScale / MeshLength, LaserThickness, LaserThickness));
 }
 
 float AEnemyCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
@@ -374,4 +431,22 @@ UBlendSpace* AEnemyCharacter::GetLocomotionMove() const
         if (Set->Move) return Set->Move;
     }
     return nullptr;
+}
+
+FVector AEnemyCharacter::GetLookAtLocation() const
+{
+    // 사격은 컨트롤러 포커스(액터면 그 위치)를 향하므로 상체도 같은 점을 본다
+    if (const AAIController* AICon = Cast<AAIController>(GetController()))
+    {
+        if (const AActor* Focus = AICon->GetFocusActor())
+        {
+            return Focus->GetActorLocation() + FVector(0.f, 0.f, LookAtHeightOffset);
+        }
+        const FVector FocalPoint = AICon->GetFocalPoint();
+        if (FAISystem::IsValidLocation(FocalPoint))
+        {
+            return FocalPoint + FVector(0.f, 0.f, LookAtHeightOffset);
+        }
+    }
+    return GetPawnViewLocation() + GetActorForwardVector() * 1000.f;
 }

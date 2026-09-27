@@ -66,4 +66,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ClampMin="0", ToolTip="히트마커 소리 볼륨 배율"))
 	float HitSoundVolume = 1.f;
+
+	// --- 적 발견 ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Alert|Sound", meta=(ToolTip="적이 플레이어를 발견했을 때 소리 (시야에 새로 들어온 순간). 비우면 없음"))
+	USoundBase* EnemySpottedSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Alert|Sound", meta=(ClampMin="0", ToolTip="발견 소리 쿨타임(초). 여러 적이 동시에·연달아 발견해도 이 시간 안에는 한 번만 난다"))
+	float EnemySpottedSoundCooldown = 5.f;
 };
