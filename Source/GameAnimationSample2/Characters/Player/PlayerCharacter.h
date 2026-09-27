@@ -311,6 +311,12 @@ protected:
 	bool bCanLeanLeft = false;
 	void LeanLeft();
 
+public:
+	// 지금 왼쪽으로 기울이고 있는지 (미카 허리 기울이기가 읽는다)
+	bool IsLeaningLeft() const { return bLeanLeft; }
+
+protected:
+
 	// --- 상호작용 (E) ---
 	// 스위치·수동문이 자기 영역에 플레이어가 들어오면 후보로 등록한다. 가장 가까운 사용 가능한 것에 E가 적용된다
 	TArray<TWeakObjectPtr<AActor>> InteractCandidates;

@@ -57,6 +57,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Fire", meta=(ToolTip="사거리(AttackRange) 밖이면 실패시킨다. false면 쏘지 않고 성공 처리"))
 	bool bFailWhenOutOfRange = true;
 
+	UPROPERTY(EditAnywhere, Category = "Fire", meta=(ToolTip="true면 사거리(AttackRange)를 보지 않고 보이기만 하면 쏜다. 이동하지 않는 적(홀드)용 — 다가가서 사거리를 맞출 수 없으니까"))
+	bool bIgnoreAttackRange = false;
+
 	UPROPERTY(EditAnywhere, Category = "Fire", meta=(ToolTip="true면 타겟 액터가 시야에 있을 때만 쏜다. Vector 키(제압 사격)에는 적용 안 됨"))
 	bool bRequireLineOfSight = true;
 

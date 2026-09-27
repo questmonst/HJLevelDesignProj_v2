@@ -87,6 +87,11 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
     if (!BB || !Actor) return;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
+
+    // 죽은 뒤에도 컨트롤러의 퍼셉션은 살아 있어서 시체가 플레이어를 "발견"한다 (발견 소리·경계 전파).
+    // BT는 사망 때 멈추지만 감각 콜백은 따로 오므로 여기서 막는다
+    if (Enemy && Enemy->IsDead()) return;
+
     const TSubclassOf<UAISense> Sense = UAIPerceptionSystem::GetSenseClassForStimulus(this, Stimulus);
     const bool bSight  = Sense == UAISense_Sight::StaticClass();
     const bool bDamage = Sense == UAISense_Damage::StaticClass();

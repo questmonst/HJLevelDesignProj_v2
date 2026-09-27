@@ -402,15 +402,19 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 		bool bLeftCover  = GetWorld()->LineTraceSingleByChannel(LeftHit,  Origin, Origin - Right * CoverTraceDistance, ECC_WorldStatic, Params);
 		bool bRightCover = GetWorld()->LineTraceSingleByChannel(RightHit, Origin, Origin + Right * CoverTraceDistance, ECC_WorldStatic, Params);
 
-		if (bLeftCover && !bRightCover)
+		if (bLeanLeft)
+		{
+			// 한 번 기울이면 조준을 풀 때까지 유지 — 엄폐물에서 물러나도 되돌아가지 않는다
+			TargetY -= CoverPeekOffset;
+		}
+		else if (bLeftCover && !bRightCover)
 		{
 			TargetY += CoverPeekOffset;
 		}
 		else if (bRightCover && !bLeftCover)
 		{
 			// 엄폐물 왼쪽으로 내다보기는 자동으로 하지 않는다 — Q를 눌렀을 때만 (그 전엔 안내만 띄운다)
-			if (bLeanLeft) TargetY -= CoverPeekOffset;
-			else           bCanLeanLeft = true;
+			bCanLeanLeft = true;
 		}
 	}
 

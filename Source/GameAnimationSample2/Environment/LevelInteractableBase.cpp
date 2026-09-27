@@ -6,6 +6,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "PlayerCharacter.h"
+#include "LevelInteractionData.h"
 
 ALevelInteractableBase::ALevelInteractableBase()
 {
@@ -32,9 +33,17 @@ ALevelInteractableBase::ALevelInteractableBase()
 	StatusLight->SetCastShadows(false);
 }
 
+void ALevelInteractableBase::ApplyColorData()
+{
+	if (!ColorData) return;
+	InteractableColor = ColorData->EnabledColor;
+	LockedColor       = ColorData->DisabledColor;
+}
+
 void ALevelInteractableBase::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+	ApplyColorData();
 	// 에디터에서 배치할 때도 청/적이 보이게 (머티리얼 색은 게임 시작 후 적용)
 	StatusLight->SetVisibility(bUseStatusLight);
 	StatusLampMesh->SetVisibility(bUseStatusLight);
@@ -44,6 +53,7 @@ void ALevelInteractableBase::OnConstruction(const FTransform& Transform)
 void ALevelInteractableBase::BeginPlay()
 {
 	Super::BeginPlay();
+	ApplyColorData();
 
 	LampMaterials.Reset();
 	if (bUseStatusLight && !StatusColorParam.IsNone())

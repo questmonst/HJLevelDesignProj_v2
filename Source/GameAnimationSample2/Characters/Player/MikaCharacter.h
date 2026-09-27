@@ -78,6 +78,16 @@ protected:
 	// ABP용: 조준 중이면 AimWaistYawOffset 쪽으로, 아니면 0으로 보간되는 현재 허리 추가 회전(도)
 	UPROPERTY(BlueprintReadOnly, Category = "Mika|Camera", meta=(ToolTip="조준 허리 틀기 현재값(도). ABP에서 Spine1 ModifyBone에 사용"))
 	float AimWaistYaw = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="Q 왼쪽 기울이기 허리 각도(도). MikaData에서 설정"))
+	float AimLeanRollAngle = -15.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mika|Camera", meta=(ToolTip="허리 기울이기 보간 속도. MikaData에서 설정"))
+	float AimLeanBlendSpeed = 8.f;
+
+	// ABP용: 왼쪽 기울이기 중이면 AimLeanRollAngle 쪽으로, 아니면 0으로 보간되는 허리 옆 기울기(도)
+	UPROPERTY(BlueprintReadOnly, Category = "Mika|Camera", meta=(ToolTip="허리 옆 기울기 현재값(도). ABP에서 허리 ModifyBone의 Roll에 사용"))
+	float AimLeanRoll = 0.f;
 	virtual void Tick(float DeltaTime) override;
 
 	// --- Data ---

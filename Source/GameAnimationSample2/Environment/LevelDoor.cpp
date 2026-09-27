@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "PlayerCharacter.h"
+#include "LevelInteractionData.h"
 
 ALevelDoor::ALevelDoor()
 {
@@ -20,6 +21,12 @@ ALevelDoor::ALevelDoor()
 
 void ALevelDoor::BeginPlay()
 {
+	if (SoundData)
+	{
+		InteractSound = SoundData->InteractSound;
+		OpenSound     = SoundData->OpenSound;
+		CloseSound    = SoundData->CloseSound;
+	}
 	LeftClosed  = DoorLeft->GetRelativeLocation();
 	RightClosed = DoorRight->GetRelativeLocation();
 	Super::BeginPlay();
@@ -67,7 +74,9 @@ bool ALevelDoor::CanInteract(const APlayerCharacter* Player) const
 
 void ALevelDoor::Interact(APlayerCharacter* Player)
 {
-	if (CanInteract(Player)) OpenDoor();
+	if (!CanInteract(Player)) return;
+	if (InteractSound) UGameplayStatics::PlaySoundAtLocation(this, InteractSound, GetActorLocation());
+	OpenDoor();
 }
 
 void ALevelDoor::ReceiveLevelSignal(bool bOn, AActor* Source)

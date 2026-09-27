@@ -11,6 +11,7 @@ class UBoxComponent;
 class UPointLightComponent;
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
+class UInteractColorData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInteractableChangedSignature, AActor*, Actor, bool, bInteractable);
 
@@ -62,11 +63,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="상태 조명·표시등을 쓸지. 끄면 상태는 그대로 동작하고 조명만 숨긴다"))
 	bool bUseStatusLight = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="사용 가능(청색) 색"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="상태 색 DA (DA_InteractColor). 지정하면 아래 두 색을 덮어쓴다"))
+	UInteractColorData* ColorData = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="사용 가능(청색) 색. ColorData에서 설정"))
 	FLinearColor InteractableColor = FLinearColor(0.1f, 0.45f, 1.f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="사용 불가(적색) 색"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="사용 불가(적색) 색. ColorData에서 설정"))
 	FLinearColor LockedColor = FLinearColor(1.f, 0.08f, 0.05f);
+
+	void ApplyColorData();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Light", meta=(ToolTip="표시등 머티리얼의 색 벡터 파라미터 이름. 없으면 포인트 라이트만 바뀐다"))
 	FName StatusColorParam = TEXT("Color");

@@ -8,6 +8,7 @@
 
 class USoundBase;
 class ALevelSwitch;
+class UInteractSoundData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwitchUsedSignature, ALevelSwitch*, Switch);
 
@@ -52,8 +53,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Switch", meta=(ClampMin="0", EditCondition="bLockAfterUse", ToolTip="잠긴 뒤 다시 청색이 되기까지 시간(초). 0이면 신호를 받기 전까지 계속 잠김"))
 	float ReuseCooldown = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Switch", meta=(ToolTip="눌렀을 때 소리"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Switch", meta=(ToolTip="소리 DA (DA_InteractSound). 지정하면 UseSound를 덮어쓴다"))
+	UInteractSoundData* SoundData = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Switch", meta=(ToolTip="눌렀을 때 소리. SoundData에서 설정"))
 	USoundBase* UseSound = nullptr;
+
+	virtual void BeginPlay() override;
 
 	FTimerHandle ReuseTimerHandle;
 	void Unlock() { SetInteractable(true); }

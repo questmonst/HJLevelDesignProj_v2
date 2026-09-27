@@ -113,6 +113,8 @@ void AMikaCharacter::BeginPlay()
 		AimWaistMinTargetDistance  = MikaData->AimWaistMinTargetDistance;
 		bAimWaistFollowInvert      = MikaData->bAimWaistFollowInvert;
 		AimWaistBlendSpeed         = MikaData->AimWaistBlendSpeed;
+		AimLeanRollAngle           = MikaData->AimLeanRollAngle;
+		AimLeanBlendSpeed          = MikaData->AimLeanBlendSpeed;
 			AimSpineInterpSpeed        = MikaData->AimSpineInterpSpeed;
 			// TurnInPlace
 		TurnRightThreshold         = MikaData->TurnRightThreshold;
@@ -768,6 +770,9 @@ bool AMikaCharacter::IsFrontHit(const AActor* Target) const
 
 void AMikaCharacter::UpdateAimWaistYaw(float DeltaTime)
 {
+	// 왼쪽 기울이기(Q)는 조준 해제 시 PlayerCharacter가 풀어준다
+	AimLeanRoll = FMath::FInterpTo(AimLeanRoll, IsLeaningLeft() ? AimLeanRollAngle : 0.f, DeltaTime, AimLeanBlendSpeed);
+
 	if (!bIsAiming)
 	{
 		AimWaistYaw = FMath::FInterpTo(AimWaistYaw, 0.f, DeltaTime, AimWaistBlendSpeed);

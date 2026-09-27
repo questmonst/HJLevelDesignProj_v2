@@ -512,3 +512,7 @@
 - [x] (2026-09-27) 스트레이핑 사격 — `BTTask_FindStrafeLocation` + `BT_AREnemy` Combat › `Selector_Fire` [Random Chance(Strafe) Simple Parallel(Fire At Target | Wait→Find Strafe→Move To)] / 일반 Fire At Target. BB `StrafeLocation`. 백업 `BT_AREnemy_backup_20260927_2130.uasset.bak`
 - [x] (2026-09-27) 적 탄약: `EnemyData_AR.bInfiniteReserveAmmo`가 꺼져 있어 탄이 떨어지면 영영 못 쏘던 것 → 켬. 재장전 때 모자란 만큼만 채워 예비탄은 0까지 감소
 - 주의: 5.7 IMC는 `mappings`가 비어 보이고 실제 데이터는 `default_key_mappings.mappings` (Python `map_key`로 추가 가능)
+- [x] (빌드 완료 2026-09-27) Q 기울이기 유지(조준 중 엄폐물에서 물러나도 유지) + 미카 허리 옆 기울기 `AimLeanRoll`(MikaData › AimLeanRollAngle/BlendSpeed). ABP: Spine1 ModifyBone의 MakeRotator **Pitch**에 연결 (본 X=척추(Roll=틀기), Y=앞뒤축 → Pitch=옆 기울기). 백업 `ABP_Riflegirl2_mika_backup_20260927_2200.uasset.bak`
+- [x] (빌드 완료 2026-09-27) 죽은 적 퍼셉션이 발견 소리를 내던 문제 — `OnTargetPerceptionUpdated`에서 사망 시 무시
+- [x] (2026-09-27) 홀드 적이 안 쏘던 원인: `BP_AREnemy_Hold`의 BT가 옛 `HJ_Resources/.../BT_Enemy_Holder` → `BT_AR_Hold`로 교체. `Fire At Target.bIgnoreAttackRange`(홀드용) 추가·켬
+- [x] (빌드 완료 2026-09-27) `AHealPickup` + `UHealPickupData`(DA_HealPickup), BP_V2_HealPickup(초록 십자, NS_Heal_Loop). 상호작용 DA: `UInteractColorData`/`UInteractSoundData`/`UInteractDoorSoundData` (Data/Interact). 수동문 기본은 열어 둔 채(`bCloseWhenPlayerLeaves` false)

@@ -8,6 +8,7 @@
 
 class USoundBase;
 class ALevelDoor;
+class UInteractDoorSoundData;
 
 UENUM(BlueprintType)
 enum class EDoorOpenMode : uint8
@@ -83,8 +84,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ClampMin="0.05", ToolTip="완전히 열리거나 닫히는 데 걸리는 시간 (초)"))
 	float OpenTime = 0.6f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="플레이어가 영역을 나가면 닫는다 (수동문 옵션. 자동문은 항상 닫힌다)"))
-	bool bCloseWhenPlayerLeaves = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="플레이어가 영역을 나가면 닫는다 (수동문 옵션. 자동문은 항상 닫힌다). 기본은 열어 둔 채 — 되돌아갈 길이 막히지 않게"))
+	bool bCloseWhenPlayerLeaves = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ClampMin="0", ToolTip="영역을 나간 뒤 닫힐 때까지 대기 (초)"))
 	float CloseDelay = 0.5f;
@@ -95,10 +96,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="레벨 신호를 받았을 때: 청/적 전환 또는 바로 열기/닫기"))
 	EDoorSignalAction SignalAction = EDoorSignalAction::SetInteractable;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="소리 DA (DA_InteractSoundDoor). 지정하면 아래 세 소리를 덮어쓴다"))
+	UInteractDoorSoundData* SoundData = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="E로 상호작용했을 때 소리 (수동문). SoundData에서 설정"))
+	USoundBase* InteractSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="열릴 때 소리. SoundData에서 설정"))
 	USoundBase* OpenSound = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door", meta=(ToolTip="닫힐 때 소리. SoundData에서 설정"))
 	USoundBase* CloseSound = nullptr;
 
 	bool  bWantsOpen = false;

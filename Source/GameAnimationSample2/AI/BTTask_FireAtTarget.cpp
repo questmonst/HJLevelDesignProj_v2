@@ -81,7 +81,7 @@ EBTNodeResult::Type UBTTask_FireAtTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	}
 
 	// 사거리 밖이면 쏘지 않는다 — 실패시키면 상위 Sequence가 끊겨 다시 접근 단계로 돌아간다
-	if (FVector::Dist(Enemy->GetActorLocation(), AimLocation) > Enemy->GetAttackRange())
+	if (!bIgnoreAttackRange && FVector::Dist(Enemy->GetActorLocation(), AimLocation) > Enemy->GetAttackRange())
 	{
 		return bFailWhenOutOfRange ? EBTNodeResult::Failed : EBTNodeResult::Succeeded;
 	}

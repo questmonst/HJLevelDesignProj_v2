@@ -4,11 +4,18 @@
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "LevelInteractionData.h"
 
 ALevelSwitch::ALevelSwitch()
 {
 	SwitchMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SwitchMesh"));
 	SwitchMesh->SetupAttachment(Root);
+}
+
+void ALevelSwitch::BeginPlay()
+{
+	if (SoundData) UseSound = SoundData->InteractSound;
+	Super::BeginPlay();
 }
 
 void ALevelSwitch::Interact(APlayerCharacter* Player)

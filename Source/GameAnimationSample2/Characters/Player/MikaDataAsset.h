@@ -146,6 +146,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="0", ToolTip="조준 시작·해제 때 허리 틀기 보간 속도. 클수록 빠르게 (0이면 즉시)"))
 	float AimWaistBlendSpeed = 10.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ToolTip="Q로 왼쪽 기울이기 중 허리를 옆으로 기울이는 각도(도). 방향이 반대면 부호를 바꿀 것"))
+	float AimLeanRollAngle = -15.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|AimWaist", meta=(ClampMin="0", ToolTip="허리 기울이기 보간 속도. 클수록 빠르게"))
+	float AimLeanBlendSpeed = 8.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta=(ToolTip="기본 카메라 소켓 좌우 오프셋 (양수=오른쪽, cm)"))
 	float DefaultSocketOffsetY = 60.f;
 
