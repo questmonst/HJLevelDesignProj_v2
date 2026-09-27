@@ -83,11 +83,19 @@ void UWeaponSlotsWidget::Refresh()
 	const APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwningPlayerPawn());
 	const TArray<AWeaponBase*>* Inventory = Player ? &Player->GetWeaponInventory() : nullptr;
 	const AWeaponBase* Current = Player ? Player->GetCurrentWeapon() : nullptr;
+	const int32 UsableSlots = Player ? Player->GetMaxWeaponSlots() : SlotTexts.Num();
 
 	for (int32 i = 0; i < SlotTexts.Num(); ++i)
 	{
 		UTextBlock* Text = SlotTexts[i];
 		if (!Text) continue;
+
+		// 플레이어가 들 수 있는 수보다 많은 칸은 숨긴다 (MikaData › MaxWeaponSlots)
+		if (i >= UsableSlots)
+		{
+			Text->SetVisibility(ESlateVisibility::Collapsed);
+			continue;
+		}
 
 		const AWeaponBase* Weapon = (Inventory && Inventory->IsValidIndex(i)) ? (*Inventory)[i] : nullptr;
 		if (Weapon)

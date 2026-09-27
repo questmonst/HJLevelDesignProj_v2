@@ -244,6 +244,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon", meta=(ToolTip="시작할 때 들고 있는 무기 (순서대로 슬롯 1, 2, 3). 무기 BP를 넣는다 (메시가 BP에 있어서 WeaponData만으로는 못 만든다)"))
 	TArray<TSubclassOf<AWeaponBase>> DefaultWeaponClasses;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon", meta=(ClampMin="1", ClampMax="8", ToolTip="들 수 있는 무기 최대 수. 시작 무기 목록이 이보다 길면 앞에서부터 이만큼만 들고 시작"))
+	int32 MaxWeaponSlots = 3;
+
 	// --- Punch ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Punch", meta=(ToolTip="펀치 쿨타임 (초)"))

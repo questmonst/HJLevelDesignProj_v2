@@ -12,6 +12,10 @@
 	],
 	"Plugins": [
 		{
+			"Name": "WaveformEditor",
+			"Enabled": true
+		},
+		{
 			"Name": "ModelingToolsEditorMode",
 			"Enabled": true,
 			"TargetAllowList": [

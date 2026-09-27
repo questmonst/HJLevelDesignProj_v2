@@ -11,10 +11,12 @@ class UWidgetComponent;
 class UUserWidget;
 class UEnemyHealthBarWidget;
 class ADamageNumberActor;
+class ACharacterBase;
 
 // WBP·다른 시스템이 바인딩할 수 있는 체력/피격 이벤트 (SSOT: 체력은 CurrentHealth 하나)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, CurrentHealth, float, MaxHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDamagedSignature, float, Amount, FVector, WorldLocation);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiedSignature, ACharacterBase*, DeadCharacter);
 
 UCLASS(Blueprintable, BlueprintType, meta=(PrioritizeCategories="Character|Stats"))
 class GAMEANIMATIONSAMPLE2_API ACharacterBase : public ACharacter, public IGenericTeamAgentInterface
@@ -231,6 +233,10 @@ public:
 	// 피격 방향 표시용 — 공격이 날아온 월드 위치 (쏜 사람 위치, 폭발이면 폭심)
 	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
 	FOnDamagedSignature OnDamagedFrom;
+
+	// 사망 순간 한 번 (스포너가 남은 적 수를 셀 때 등)
+	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
+	FOnDiedSignature OnDied;
 
 	// --- Barrier (방어막) ---
 	// 방어막이 있는 동안: 피해가 체력 대신 방어막으로 가고(배율만큼 줄어서), 헤드샷을 받지 않는다.

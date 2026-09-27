@@ -506,3 +506,9 @@
 - [x] (빌드 완료 2026-09-27) 같은 종류 떨어진 무기 → 탄만 흡수(`MaxReserveAmmo`, 0이면 초기 예비탄), 빈 총은 Destroy. 무기 슬롯 HUD `UWeaponSlotsWidget`(코드로 칸 생성). 반동 회복 `RecoilMaxRecoveryTime`(기본 1초). 레이저 재장전 중 끔
 - [x] (2026-09-27) `ABP_AREnemy` 앉기/일어서기 전환 상태 `StandToCrouch`/`CrouchToStand` (시퀀스 ← `GetStandToCrouchAnim`/`GetCrouchToStandAnim`, 자동 전환 규칙). NOT 규칙용 `Standing` 변수(= NOT Crouching). 백업 `ABP_AREnemy_backup_20260927_2000.uasset.bak`
   - 주의: monolith `set_transition_rule`의 expression은 bool 변수를 못 쓴다 → 반전 bool 변수를 EventGraph에서 만들어 `kind:bool`로
+- [x] (빌드 완료 2026-09-27) 레벨 상호작용 — `IInteractable`/`ILevelSignalReceiver`(Environment/LevelInteraction.h), 공용 바탕 `ALevelInteractableBase`(청/적 상태·상태 조명 선택·감지 영역), `ALevelSwitch`, `ALevelDoor`(자동/수동 E), `AEnemySpawner`(전멸 신호). 연결은 보내는 쪽 `SignalTargets`/`ClearedSignalTargets`에 스포이트 — 레벨 BP 수정 불필요. BP: `V2GamePlay/BP_V2_*` (메시는 기본 도형 임시)
+  - 입력: E=`C_IA_Use`(상호작용), F=`C_IA_Interaction`(무기 줍기), Q=`C_IA_Lean`. 안내는 `UActionPromptWidget` ← `GetActionPromptText()` (E > Q)
+  - `ACharacterBase::OnDied` 델리게이트 추가 (스포너 전멸 판정)
+- [x] (2026-09-27) 스트레이핑 사격 — `BTTask_FindStrafeLocation` + `BT_AREnemy` Combat › `Selector_Fire` [Random Chance(Strafe) Simple Parallel(Fire At Target | Wait→Find Strafe→Move To)] / 일반 Fire At Target. BB `StrafeLocation`. 백업 `BT_AREnemy_backup_20260927_2130.uasset.bak`
+- [x] (2026-09-27) 적 탄약: `EnemyData_AR.bInfiniteReserveAmmo`가 꺼져 있어 탄이 떨어지면 영영 못 쏘던 것 → 켬. 재장전 때 모자란 만큼만 채워 예비탄은 0까지 감소
+- 주의: 5.7 IMC는 `mappings`가 비어 보이고 실제 데이터는 `default_key_mappings.mappings` (Python `map_key`로 추가 가능)

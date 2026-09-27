@@ -29,7 +29,7 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WeaponSlots", meta=(ClampMin="1", ClampMax="8", ToolTip="표시할 칸 수 (플레이어 최대 무기 슬롯과 맞출 것)"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WeaponSlots", meta=(ClampMin="1", ClampMax="8", ToolTip="만들어 둘 칸 수 (최대치). 실제로 보이는 칸은 플레이어의 MaxWeaponSlots만큼"))
 	int32 SlotCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WeaponSlots", meta=(ToolTip="칸 하나의 표시 형식. {0} = 무기 이름"))

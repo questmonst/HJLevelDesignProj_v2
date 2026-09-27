@@ -550,4 +550,5 @@ void ACharacterBase::Die()
 	if (bIsDead) return;
 	bIsDead = true;
 	OnDeath();
+	OnDied.Broadcast(this);
 }

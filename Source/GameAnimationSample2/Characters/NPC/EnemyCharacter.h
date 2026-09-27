@@ -220,6 +220,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "Enemy|AI")
     UBehaviorTree* GetBehaviorTree() const { return BehaviorTree; }
 
+    // 스포너가 BT를 교체할 때 — 빙의 전(스폰 완료 전)에 불러야 적용된다
+    void SetBehaviorTree(UBehaviorTree* NewTree) { BehaviorTree = NewTree; }
+
     UFUNCTION(BlueprintPure, Category = "Enemy|AI")
     bool GetIsAlerted() const { return bIsAlerted; }
 

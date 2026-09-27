@@ -304,6 +304,30 @@ protected:
 	void ApplyDefaultSocketOffset();
 
 	void UpdateCoverPeek(float DeltaTime);
+
+	// 왼쪽 기울이기 — 조준 중 엄폐물이 오른쪽에 있으면 안내만 띄우고(bCanLeanLeft), Q를 누르면 카메라를 왼쪽으로.
+	// 조준을 풀면 초기화
+	bool bLeanLeft    = false;
+	bool bCanLeanLeft = false;
+	void LeanLeft();
+
+	// --- 상호작용 (E) ---
+	// 스위치·수동문이 자기 영역에 플레이어가 들어오면 후보로 등록한다. 가장 가까운 사용 가능한 것에 E가 적용된다
+	TArray<TWeakObjectPtr<AActor>> InteractCandidates;
+	void TryInteract();
+
+public:
+	// HUD 안내 문구 — 지금 할 수 있는 행동이 있으면 그 문구, 없으면 빈 텍스트 (UActionPromptWidget이 읽는다).
+	// 우선순위: 상호작용(E) > 왼쪽 기울이기(Q)
+	FText GetActionPromptText() const;
+
+	void AddInteractCandidate(AActor* Interactable);
+	void RemoveInteractCandidate(AActor* Interactable);
+
+	// 지금 E를 누르면 상호작용할 대상 (없으면 nullptr)
+	AActor* GetFocusedInteractable() const;
+
+protected:
 	void UpdateAimSpinePitch(float DeltaTime);
 	void UpdateCrosshairSpread(float DeltaTime);
 	void UpdateRecoil(float DeltaTime);

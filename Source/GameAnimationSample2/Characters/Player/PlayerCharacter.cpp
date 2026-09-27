@@ -18,6 +18,7 @@
 #include "Components/ArrowComponent.h"
 #include "Animation/AnimMontage.h"
 #include "HUDDataAsset.h"
+#include "LevelInteraction.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -188,6 +189,63 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	Bind(TEXT("Throw"),    ETriggerEvent::Started,   &APlayerCharacter::StartGrenadeThrow);
 	Bind(TEXT("Throw"),    ETriggerEvent::Completed, &APlayerCharacter::ReleaseGrenadeThrow);
 	Bind(TEXT("Interact"), ETriggerEvent::Started,   &APlayerCharacter::TryPickupNearbyWeapon);
+	Bind(TEXT("Lean"),     ETriggerEvent::Started,   &APlayerCharacter::LeanLeft);
+	Bind(TEXT("Use"),      ETriggerEvent::Started,   &APlayerCharacter::TryInteract);
+}
+
+void APlayerCharacter::LeanLeft()
+{
+	if (bCanLeanLeft) bLeanLeft = true;
+}
+
+void APlayerCharacter::AddInteractCandidate(AActor* Interactable)
+{
+	if (Interactable) InteractCandidates.AddUnique(Interactable);
+}
+
+void APlayerCharacter::RemoveInteractCandidate(AActor* Interactable)
+{
+	InteractCandidates.Remove(Interactable);
+}
+
+AActor* APlayerCharacter::GetFocusedInteractable() const
+{
+	AActor* Best = nullptr;
+	float BestDistSq = TNumericLimits<float>::Max();
+	for (const TWeakObjectPtr<AActor>& Weak : InteractCandidates)
+	{
+		AActor* Actor = Weak.Get();
+		const IInteractable* Interactable = Cast<IInteractable>(Actor);
+		if (!Interactable || !Interactable->CanInteract(this)) continue;
+
+		const float DistSq = FVector::DistSquared(Actor->GetActorLocation(), GetActorLocation());
+		if (DistSq < BestDistSq)
+		{
+			BestDistSq = DistSq;
+			Best = Actor;
+		}
+	}
+	return Best;
+}
+
+void APlayerCharacter::TryInteract()
+{
+	if (IInteractable* Interactable = Cast<IInteractable>(GetFocusedInteractable()))
+	{
+		Interactable->Interact(this);
+	}
+}
+
+FText APlayerCharacter::GetActionPromptText() const
+{
+	if (!HUDData) return FText::GetEmpty();
+
+	if (const IInteractable* Interactable = Cast<IInteractable>(GetFocusedInteractable()))
+	{
+		return FText::Format(HUDData->InteractPromptFormat, Interactable->GetInteractPrompt());
+	}
+	if (bCanLeanLeft) return HUDData->LeanLeftPromptText;
+	return FText::GetEmpty();
 }
 
 const UInputAction* APlayerCharacter::FindActionInIMC(const FString& NameContains) const
@@ -322,7 +380,12 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 	float TargetZ = NormalSocketOffsetZ;
 
 	const bool bGrenadePOV = IsGrenadePOVActive();
-	if (bIsAiming || bGrenadePOV)
+	bCanLeanLeft = false;
+	if (!bIsAiming && !bGrenadePOV)
+	{
+		bLeanLeft = false;   // 조준을 풀면 왼쪽 기울이기 초기화
+	}
+	else
 	{
 		// 조준 중 카메라 추가 이동 (오른쪽·위) — 아래 엄폐 좌우 이동은 이 위치 기준으로 더해진다.
 		// 수류탄 전용 시점이 켜져 있으면 그 값을 쓴다
@@ -340,9 +403,15 @@ void APlayerCharacter::UpdateCoverPeek(float DeltaTime)
 		bool bRightCover = GetWorld()->LineTraceSingleByChannel(RightHit, Origin, Origin + Right * CoverTraceDistance, ECC_WorldStatic, Params);
 
 		if (bLeftCover && !bRightCover)
+		{
 			TargetY += CoverPeekOffset;
+		}
 		else if (bRightCover && !bLeftCover)
-			TargetY -= CoverPeekOffset;
+		{
+			// 엄폐물 왼쪽으로 내다보기는 자동으로 하지 않는다 — Q를 눌렀을 때만 (그 전엔 안내만 띄운다)
+			if (bLeanLeft) TargetY -= CoverPeekOffset;
+			else           bCanLeanLeft = true;
+		}
 	}
 
 	SpringArmComponent->SocketOffset.Y = FMath::FInterpTo(

@@ -68,6 +68,10 @@ void AMikaCharacter::BeginPlay()
 	{
 		DefaultWeaponClasses = MikaData->DefaultWeaponClasses;
 	}
+	if (MikaData)
+	{
+		MaxWeaponSlots = MikaData->MaxWeaponSlots;
+	}
 
 	Super::BeginPlay();
 

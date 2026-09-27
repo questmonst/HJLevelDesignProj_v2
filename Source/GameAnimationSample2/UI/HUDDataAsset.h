@@ -67,6 +67,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ClampMin="0", ToolTip="히트마커 소리 볼륨 배율"))
 	float HitSoundVolume = 1.f;
 
+	// --- 행동 안내 (UActionPromptWidget) ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prompt", meta=(ToolTip="조준 중 엄폐물이 오른쪽에 있을 때 띄우는 안내"))
+	FText LeanLeftPromptText = FText::FromString(TEXT("Q키를 눌러 왼쪽으로 기울이기"));
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prompt", meta=(ToolTip="스위치·수동문 안내 형식. {0} = 대상의 행동 이름 (예: 스위치 누르기)"))
+	FText InteractPromptFormat = FText::FromString(TEXT("E키: {0}"));
+
 	// --- 적 발견 ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Alert|Sound", meta=(ToolTip="적이 플레이어를 발견했을 때 소리 (시야에 새로 들어온 순간). 비우면 없음"))

@@ -235,10 +235,12 @@ bool AEnemyCharacter::ReloadWeapon()
     if (!EnemyWeapon || EnemyWeapon->IsReloading()) return false;
     if (EnemyWeapon->GetCurrentAmmo() >= EnemyWeapon->GetMagSize()) return false;
 
-    // 무한 탄약: 장전 직전에 예비탄을 탄창 하나 분량으로 채워 AWeaponBase::Reload의 조건을 통과시킨다
-    if (bInfiniteReserveAmmo && EnemyWeapon->GetReserveAmmo() < EnemyWeapon->GetMagSize())
+    // 무한 탄약: 예비탄이 이번 장전에 모자랄 때만 모자란 만큼 채운다.
+    // 그래서 예비탄은 쏜 만큼 계속 줄어 0에서 멈추고(떨군 총에서 줍는 탄이 줄어든다), 장전은 언제나 된다
+    const int32 Needed = EnemyWeapon->GetMagSize() - EnemyWeapon->GetCurrentAmmo();
+    if (bInfiniteReserveAmmo && EnemyWeapon->GetReserveAmmo() < Needed)
     {
-        EnemyWeapon->SetReserveAmmo(EnemyWeapon->GetMagSize());
+        EnemyWeapon->SetReserveAmmo(Needed);
     }
 
     StopFiring();
