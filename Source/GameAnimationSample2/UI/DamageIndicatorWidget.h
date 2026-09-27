@@ -72,7 +72,8 @@ protected:
 	void BuildLayout();
 	void ApplyBrushes();
 
-	// 월드 위치 → 카메라 기준 좌우 각도(도, 오른쪽 +). 0이면 정면
+	// 월드 위치 → 화면 중앙 기준 표시 각도(도, 12시 = 0, 시계방향 +).
+	// 카메라 앞이면 화면에 보이는 적 쪽을, 뒤면 수평 방향을 가리킨다
 	float GetRelativeYaw(const FVector& Source) const;
 
 	UFUNCTION()

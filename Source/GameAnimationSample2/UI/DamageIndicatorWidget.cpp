@@ -100,6 +100,17 @@ float UDamageIndicatorWidget::GetRelativeYaw(const FVector& Source) const
 	FRotator CamRot;
 	PC->GetPlayerViewPoint(CamLoc, CamRot);
 
+	// 카메라 기준 좌표 (X 앞, Y 오른쪽, Z 위)
+	const FVector Local = CamRot.UnrotateVector(Source - CamLoc);
+
+	// 카메라 앞쪽: 화면 중앙 → 화면에 투영된 적 위치 방향.
+	// 원근 투영은 Y/X, Z/X로 같은 비율이 곱해지므로 각도는 atan2(Y, Z)와 같다
+	if (Local.X > KINDA_SMALL_NUMBER && !FVector2D(Local.Y, Local.Z).IsNearlyZero())
+	{
+		return FMath::RadiansToDegrees(FMath::Atan2(Local.Y, Local.Z));
+	}
+
+	// 카메라 뒤쪽: 투영이 뒤집히므로 수평 방향으로 가리킨다 (정면 = 위, 뒤 = 아래)
 	const FVector ToSource = (Source - CamLoc).GetSafeNormal2D();
 	if (ToSource.IsNearlyZero()) return 0.f;
 	return FMath::FindDeltaAngleDegrees(CamRot.Yaw, ToSource.Rotation().Yaw);
