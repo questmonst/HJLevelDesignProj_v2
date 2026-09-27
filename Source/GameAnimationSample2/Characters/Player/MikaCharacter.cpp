@@ -62,6 +62,13 @@ AMikaCharacter::AMikaCharacter()
 
 void AMikaCharacter::BeginPlay()
 {
+	// 시작 무기는 부모 BeginPlay에서 스폰되므로 그 전에 넣는다.
+	// DA 목록이 비어 있으면 BP에 달린 기존 목록을 그대로 쓴다 (옮기는 동안 무기 없이 시작하지 않게)
+	if (MikaData && MikaData->DefaultWeaponClasses.Num() > 0)
+	{
+		DefaultWeaponClasses = MikaData->DefaultWeaponClasses;
+	}
+
 	Super::BeginPlay();
 
 	if (MikaData)

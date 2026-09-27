@@ -11,6 +11,7 @@ class AGrenadeBase;
 class UNiagaraSystem;
 class USoundBase;
 class UMaterialInterface;
+class AWeaponBase;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UMikaDataAsset : public UDataAsset
@@ -239,6 +240,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon", meta=(ToolTip="무기 교체 딜레이 (초). 이 시간 후 새 무기가 장착됨"))
 	float WeaponSwapDelay = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon", meta=(ToolTip="시작할 때 들고 있는 무기 (순서대로 슬롯 1, 2, 3). 무기 BP를 넣는다 (메시가 BP에 있어서 WeaponData만으로는 못 만든다)"))
+	TArray<TSubclassOf<AWeaponBase>> DefaultWeaponClasses;
 
 	// --- Punch ---
 
