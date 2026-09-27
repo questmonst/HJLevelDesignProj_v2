@@ -7,6 +7,7 @@
 #include "CrosshairWidget.generated.h"
 
 class UWidgetAnimation;
+class UTextBlock;
 
 /**
  * 크로스헤어 HUD.
@@ -38,6 +39,23 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
+
+	// --- 무기 표시 ---
+	// BP 그래프가 이벤트(조준·줍기·시작)에서만 갱신하면 그 사이에 값이 낡고,
+	// 갱신 전에는 디자이너에 적어둔 자리표시 문구("Now/Max")가 그대로 보인다.
+	// 매 프레임 현재 무기에서 읽어 채우고, 무기가 없으면 숨긴다.
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Crosshair|Weapon", meta=(BindWidgetOptional))
+	UTextBlock* Ammos = nullptr;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Crosshair|Weapon", meta=(BindWidgetOptional, ToolTip="현재 무기 이름을 표시할 텍스트. 같은 이름으로 위젯을 만들면 자동 연결"))
+	UTextBlock* WeaponName = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crosshair|Weapon", meta=(ToolTip="잔탄 표시 형식. {0}=현재 탄약, {1}=탄창 크기, {2}=예비 탄약"))
+	FText AmmoFormat = FText::FromString(TEXT("{0} / {1}"));
+
+	void UpdateWeaponTexts();
 
 	UFUNCTION()
 	void HandleHitConfirmed(bool bHeadshot);

@@ -2,7 +2,9 @@
 
 #include "CrosshairWidget.h"
 #include "Animation/WidgetAnimation.h"
+#include "Components/TextBlock.h"
 #include "PlayerCharacter.h"
+#include "WeaponBase.h"
 #include "Kismet/GameplayStatics.h"
 
 void UCrosshairWidget::NativeConstruct()
@@ -26,6 +28,43 @@ void UCrosshairWidget::NativeDestruct()
 		Player->OnEnemyKilled.RemoveDynamic(this, &UCrosshairWidget::HandleEnemyKilled);
 	}
 	Super::NativeDestruct();
+}
+
+void UCrosshairWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)
+{
+	Super::NativeTick(Geometry, DeltaTime);
+	UpdateWeaponTexts();
+}
+
+void UCrosshairWidget::UpdateWeaponTexts()
+{
+	if (!Ammos && !WeaponName) return;
+
+	const APlayerCharacter* Player = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+	const AWeaponBase* Weapon = Player ? Player->GetCurrentWeapon() : nullptr;
+
+	// 무기가 없으면 자리표시 문구가 남지 않도록 통째로 숨긴다 (맨손·사망 직후 등)
+	if (!Weapon)
+	{
+		if (Ammos)      Ammos->SetVisibility(ESlateVisibility::Hidden);
+		if (WeaponName) WeaponName->SetVisibility(ESlateVisibility::Hidden);
+		return;
+	}
+
+	if (Ammos)
+	{
+		Ammos->SetVisibility(ESlateVisibility::HitTestInvisible);
+		Ammos->SetText(FText::Format(AmmoFormat,
+			FText::AsNumber(Weapon->GetCurrentAmmo()),
+			FText::AsNumber(Weapon->GetMagSize()),
+			FText::AsNumber(Weapon->GetReserveAmmo())));
+	}
+
+	if (WeaponName)
+	{
+		WeaponName->SetVisibility(ESlateVisibility::HitTestInvisible);
+		WeaponName->SetText(Weapon->GetWeaponDisplayName());
+	}
 }
 
 void UCrosshairWidget::HandleHitConfirmed(bool bHeadshot)

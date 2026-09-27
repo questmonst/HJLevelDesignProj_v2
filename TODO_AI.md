@@ -309,7 +309,64 @@
     이걸 안 해서 `M_UI_RadialCooldown`·`M_UI_ChargeArc` 두 개가 연달아 검정인 채로 며칠 갔다
   - Custom 노드에 색을 넣을 때는 항상 `AppendVector(RGB, A)`를 거칠 것
 
-- [ ] **몽타주 슬롯을 `DefaultSlot`으로 통일 (보류 — 레벨 디자인 후)**
+- [x] (빌드 완료 2026-09-26) 적 ABP 두 슬롯 분리 + 잔탄·무기 이름 C++ 갱신
+  - **적 히트 모션을 상체만으로** 만들려면 레이어드 블렌드가 필요한데, 그러면 그 슬롯의 *모든* 몽타주가
+    상체만 된다. 사망·기상은 전신이어야 하므로 **슬롯을 둘로 나누는 것 외에 방법이 없다**
+  - `ABP_AREnemy` 최종 구조 (백업: `ABP_AREnemy_backup_20260926_2058.uasset.bak`):
+    ```
+    Locomotion → LocalToComp → LookAt → CompToLocal → Slot 'DefaultSlot' → SaveCached 'EnemyBase'
+    Use 'EnemyBase' ───────────────────────── Base ┐
+    Use 'EnemyBase' → Slot 'UpperBody' ───── Blend ┘ LayeredBoneBlend(spine_01, Mesh Space Rotation) → 출력
+    ```
+  - 슬롯 배치: `DefaultSlot`(전신) = 사망 5종·기상 / `UpperBody`(상체) = 피격 4종·재장전
+  - **부수 효과: 재장전도 상체만이 되어 걸어가며 장전한다** (전에는 하체까지 멈췄다)
+  - 포즈 출력이 두 곳에 쓰이므로 **SaveCached/UseCached가 필수** (포즈 출력은 입력 하나에만 연결된다)
+  - `UCrosshairWidget`이 매 프레임 현재 무기에서 잔탄·이름을 읽어 채운다.
+    BP 이벤트(조준·줍기·시작)에서만 갱신하면 그 사이 값이 낡고, 갱신 전엔 디자이너 자리표시 문구가 그대로 보인다.
+    `Ammos`(기존)·`WeaponName`(신규)를 `BindWidgetOptional`로 연결, 무기가 없으면 둘 다 숨김
+
+## 다음 세션 할 일 (2026-09-26 접수, 우선순위 순 아님)
+
+- [ ] **1. 잔탄 표시를 "현재 탄창 / 전체 보유 탄수"로**
+  - 지금은 `AmmoFormat = "{0} / {1}"` = 현재/탄창크기. `{2}`가 예비 탄약이라
+    포맷만 `"{0} / {2}"`로 바꾸면 되는지, 아니면 "전체 = 예비 + 현재"로 계산해 새 인자를 넣을지 확인 필요
+  - `UCrosshairWidget::UpdateWeaponTexts()` 한 곳만 고치면 됨
+
+- [ ] **2. 적 무기별 애니 세트 (Hip / Ironsight) + Idle**
+  - 샷건류 = Hip, AR류 = Ironsight. **DA만으로는 부족하고 ABP 정리가 같이 필요하다**:
+    현재 `ABP_AREnemy`의 Locomotion 상태 머신이 애니를 직접 물고 있어서, 세트를 바꾸려면
+    ① 상태별 시퀀스를 변수로 빼거나(Sequence Player의 애니를 동적으로) ② 세트별 상태를 복제하고 bool로 분기
+  - **추천: `UEnemyDataAsset`에 `EEnemyWeaponStance`(Hip/Ironsight) + 각 상태용 애니 묶음**을 두고
+    ABP는 Blend Poses by enum으로 한 번만 분기. Idle도 그 묶음에 포함
+  - BT는 건드릴 필요 없음 (자세는 장착 무기가 정하는 것이지 행동이 아님)
+
+- [ ] **3. 헤드샷 범위(`HeadHitRadius`)·`HeadBoneKeyword`를 `WeaponDataAsset`으로 이동**
+  - 지금은 `AWeaponBase`에만 있어 **무기 BP에서만** 편집 가능 → 프로젝트 규칙(DA + BeginPlay 복사) 위반
+  - `HeadshotDamageMultiplier`는 이미 DA에 있으니 같은 칸에 모을 것
+
+- [ ] **4. 파괴 가능한 엄폐물**
+  - `ADestructibleCover`(체력·펀치 즉사·지연 제거) 이미 있음 → BP 자식 만들어 배치하면 기본 동작
+  - 파괴 연출은 Chaos Geometry Collection까지 (2단계). VFX 1단계는 건너뛸 수 있음 (사용자 판단)
+
+- [ ] **5. 방어막(쉴드) 적 + 피격 SFX**
+  - 방어막: 지속 중 **헤드샷 무효 + 대미지 반감**, 체력 대신 방어막이 깎임.
+    일정 시간 피격이 없으면 회복. **플레이어에겐 없음** (적 전용)
+  - 엄폐물 파괴 시 깨지는 연출
+  - **파괴 가능 엄폐물·방어막 피격 SFX를 `UHUDDataAsset`에 추가** (기존 Hit/Headshot/Kill 사운드 옆)
+  - 구현 위치 후보: `ACharacterBase`에 방어막을 넣으면 플레이어도 갖게 되므로,
+    `AEnemyCharacter` 또는 별도 컴포넌트(`UShieldComponent`)가 맞다
+
+- [ ] **6. 피격 방향 표시 UI (damage indicator)**
+  - 플레이어가 맞았을 때 공격자 방향으로 호/화살표 표시. `ACharacterBase::OnDamaged`가 이미
+    `(Amount, WorldLocation)`을 방송하므로 그걸 구독해 화면 각도로 변환
+  - 위젯은 **사용자가 디자이너에서 배치** (코드 트리 금지 — 반복된 교훈)
+
+- [ ] **7. 수류탄 조준 시 별도 POV**
+  - 지금은 `StartGrenadeThrow`가 `StartAim()`을 그대로 불러 조준 FOV·암 길이를 재사용
+  - `MikaDataAsset`에 `GrenadeFOV` / `GrenadeSpringArmLength` / `GrenadeSocketOffset`를 두고
+    `bIsPreparingThrow`일 때 그 값으로 보간 (미카 Tick의 카메라 분기에 케이스 추가)
+
+- [~] **몽타주 슬롯 정리 — 적 ABP 완료 / 미카 ABP 보류**
   - 현재 **두 ABP 모두 `UpperBody` 슬롯 하나**만 있다:
     - `ABP_AREnemy`: 레이어드 없이 출력 포즈로 직결 → **UpperBody가 사실상 전신**
     - `ABP_Riflegirl2_mika`: bool 분기로 상체만/전신 선택 (ADR-009)
