@@ -114,6 +114,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats", meta=(ClampMin="0", ToolTip="대미지 편차(±). WeaponData에서 설정"))
 	float DamageVariance = 0.f;
 
+	// AI 사격 직전: 쏘는 캐릭터가 "빗나가게 쏴라"고 하면 조준 회전을 그쪽으로 바꾸고,
+	// 탄이 통과해야 할 액터(타겟)를 돌려준다. 아니면 nullptr (공격 토큰 — ACharacterBase::GetWeaponMissAim)
+	AActor* ApplyMissAim(const APawn* OwnerPawn, const FVector& From, FRotator& InOutRot) const;
+
 	// 이번 발의 대미지 — Damage ± DamageVariance
 	float RollDamage() const { return FMath::Max(0.f, Damage + FMath::FRandRange(-DamageVariance, DamageVariance)); }
 

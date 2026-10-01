@@ -8,11 +8,14 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "AIController.h"
 #include "WeaponBase.h"
+#include "AttackTokenSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 UBTTask_FireAtTarget::UBTTask_FireAtTarget()
 {
 	NodeName     = TEXT("Fire At Target");
 	bNotifyTick  = true;
+	bNotifyTaskFinished = true;   // 어떤 경로로 끝나든 토큰 반납·후보 해제
 	bCreateNodeInstance = false;
 
 	TargetKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_FireAtTarget, TargetKey), AActor::StaticClass());
@@ -94,6 +97,21 @@ EBTNodeResult::Type UBTTask_FireAtTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	Mem->RemainingTime = FMath::Max(0.1f, Burst + FMath::FRandRange(-DurationDeviation, DurationDeviation));
 	Mem->RestTime      = FMath::Max(0.f,  Rest  + FMath::FRandRange(-DurationDeviation, DurationDeviation));
 	Mem->bResting      = false;
+	Mem->BurstDuration = Mem->RemainingTime;
+	Mem->bTokenBurst   = false;
+	Mem->TelegraphLeft = 0.f;
+
+	// 공격 토큰: 일단 빗나가는 사격(위협)으로 시작하고, 관리자가 토큰을 주면 TickTask에서 명중 버스트로 바꾼다.
+	// 타겟을 직접 겨누는 사격만 후보가 된다 (마지막 목격 위치로 쏘는 제압 사격·보스는 제외)
+	Enemy->SetTelegraphing(false);
+	Enemy->SetAccurateFire(false);
+	if (!bVectorKey && !Enemy->bIsBoss)
+	{
+		if (UAttackTokenSubsystem* Director = Enemy->GetWorld()->GetSubsystem<UAttackTokenSubsystem>())
+		{
+			Director->RegisterCandidate(Enemy);
+		}
+	}
 
 	// 새로 교전을 시작하는 경우에만 겨누는 시간을 준다 (연사 도중에는 끊지 않는다).
 	// 진행 상황은 폰이 들고 있어서, 태스크가 중간에 끊겼다 다시 들어와도 이어서 센다.
@@ -137,6 +155,54 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 	}
 
 	FBTFireAtTargetMemory* Mem = CastInstanceNodeMemory<FBTFireAtTargetMemory>(NodeMemory);
+	UAttackTokenSubsystem* Director = Enemy->GetWorld()->GetSubsystem<UAttackTokenSubsystem>();
+
+	// 공격 토큰을 받았다 — 쏘던 걸(또는 쉬던 걸) 멈추고 레이저로 예고한 뒤 명중 버스트를 새로 시작한다
+	if (!Mem->bTokenBurst && Enemy->HasAttackToken() && Director)
+	{
+		const UCombatDirectorData& Rules = Director->GetData();
+		Enemy->StopFiring();
+		Mem->bTokenBurst   = true;
+		Mem->TelegraphLeft = Rules.TelegraphTime;
+		Mem->RemainingTime = Mem->BurstDuration;
+		Mem->bResting      = false;
+		Mem->bFiring       = false;
+		Mem->AimTime       = 0.f;
+		Enemy->SetTelegraphing(true);
+		if (Rules.TelegraphSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(Enemy, Rules.TelegraphSound, Enemy->GetActorLocation());
+		}
+	}
+
+	if (Mem->bTokenBurst)
+	{
+		// 관리자가 토큰을 회수했다(시야 상실·탄 떨어짐 등) — 명중 버스트를 접고 쉬러 간다
+		if (!Enemy->HasAttackToken())
+		{
+			Enemy->StopFiring();
+			Enemy->SetTelegraphing(false);
+			Enemy->SetAccurateFire(false);
+			Mem->bTokenBurst = false;
+			Mem->bFiring     = true;    // 겨누기 대기로 되돌아가지 않게
+			Mem->bResting    = true;
+			return;
+		}
+
+		// 레이저 예고 중 — 끝나면 정확히 쏘기 시작
+		if (!Mem->bFiring)
+		{
+			Mem->TelegraphLeft -= DeltaSeconds;
+			if (Mem->TelegraphLeft > 0.f) return;
+
+			Enemy->SetTelegraphing(false);
+			Enemy->SetAccurateFire(true);
+			Mem->bFiring = true;
+			Enemy->FireAtTarget();
+			Enemy->OnAttack();
+			return;
+		}
+	}
 
 	// 겨누는 중 — 다 겨누면 그때 쏘기 시작한다 (판정은 폰이 기억하는 진행 상황 기준)
 	if (Mem->AimTime > 0.f && !Mem->bFiring)
@@ -175,6 +241,14 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 	if (Mem->RemainingTime <= 0.f)
 	{
 		Enemy->StopFiring();
+
+		// 명중 버스트가 끝났으면 토큰을 반납한다 (쉬는 동안 다른 적이 받을 수 있게)
+		if (Mem->bTokenBurst)
+		{
+			Mem->bTokenBurst = false;
+			Enemy->SetAccurateFire(false);
+			if (Director) Director->ReleaseToken(Enemy);
+		}
 		if (Mem->RestTime <= 0.f)
 		{
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
@@ -203,6 +277,23 @@ EBTNodeResult::Type UBTTask_FireAtTarget::AbortTask(UBehaviorTreeComponent& Owne
 		}
 	}
 	return EBTNodeResult::Aborted;
+}
+
+void UBTTask_FireAtTarget::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+{
+	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
+
+	// 성공·실패·중단 어느 쪽이든: 예고·명중 상태를 풀고 토큰을 반납한다
+	AAIController* AICon = OwnerComp.GetAIOwner();
+	AEnemyCharacter* Enemy = AICon ? Cast<AEnemyCharacter>(AICon->GetPawn()) : nullptr;
+	if (!Enemy) return;
+
+	Enemy->SetTelegraphing(false);
+	Enemy->SetAccurateFire(false);
+	if (UAttackTokenSubsystem* Director = Enemy->GetWorld()->GetSubsystem<UAttackTokenSubsystem>())
+	{
+		Director->UnregisterCandidate(Enemy);
+	}
 }
 
 void UBTTask_FireAtTarget::Finish(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type Result) const

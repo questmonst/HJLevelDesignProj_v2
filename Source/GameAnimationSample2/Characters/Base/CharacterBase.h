@@ -238,6 +238,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
 	FOnDiedSignature OnDied;
 
+	// 무기가 AI 사격 직전에 묻는다 — 이번 탄을 일부러 빗나가게 쏴야 하면 true.
+	// OutDirection: From에서 쏠 방향, OutIgnoredTarget: 탄이 통과할 액터(맞지 않게). 적(공격 토큰)이 덮어쓴다
+	virtual bool GetWeaponMissAim(const FVector& From, FVector& OutDirection, AActor*& OutIgnoredTarget) const { return false; }
+
 	// --- Barrier (방어막) ---
 	// 방어막이 있는 동안: 피해가 체력 대신 방어막으로 가고(배율만큼 줄어서), 헤드샷을 받지 않는다.
 	// 한동안 안 맞으면 차오른다. MaxBarrier = 0이면 방어막 없음 (플레이어·적 공통)

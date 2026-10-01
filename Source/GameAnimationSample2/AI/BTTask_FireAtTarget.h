@@ -31,6 +31,7 @@ public:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;   // 토큰 반납·후보 해제
 	virtual uint16 GetInstanceMemorySize() const override;
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;   // 키 타입(Object/Vector) 확정
 	virtual FString GetStaticDescription() const override;
@@ -84,4 +85,9 @@ struct FBTFireAtTargetMemory
 	float RestTime = 0.f;
 	bool bResting = false;
 	bool bFiring = false;       // 실제로 사격을 시작했는지
+
+	// 공격 토큰 — 받으면 쏘던 걸 멈추고 레이저 예고(TelegraphLeft) 뒤 명중 버스트를 새로 시작한다
+	bool  bTokenBurst   = false;
+	float TelegraphLeft = 0.f;
+	float BurstDuration = 0.f;  // 명중 버스트 길이 (이번 실행에서 정한 사격 시간)
 };

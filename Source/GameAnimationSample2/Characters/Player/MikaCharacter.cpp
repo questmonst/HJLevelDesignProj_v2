@@ -21,6 +21,7 @@
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Components/AudioComponent.h"
+#include "AttackTokenSubsystem.h"
 
 // Vefects 팩은 월드 공간 이미터가 많아 컴포넌트 스케일이 전부 먹지 않는다 — 노출된 User.Scale Overall이 있으면 그걸 쓴다
 static const FName HandVFXScaleParam(TEXT("User.Scale Overall"));
@@ -71,6 +72,12 @@ void AMikaCharacter::BeginPlay()
 	if (MikaData)
 	{
 		MaxWeaponSlots = MikaData->MaxWeaponSlots;
+
+		// 적 공격 토큰 규칙을 관리자에게 넘긴다 (비어 있으면 관리자가 기본값을 쓴다)
+		if (UAttackTokenSubsystem* Director = GetWorld()->GetSubsystem<UAttackTokenSubsystem>())
+		{
+			Director->SetData(MikaData->CombatDirectorData);
+		}
 	}
 
 	Super::BeginPlay();

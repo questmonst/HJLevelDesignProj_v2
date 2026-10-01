@@ -516,3 +516,5 @@
 - [x] (빌드 완료 2026-09-27) 죽은 적 퍼셉션이 발견 소리를 내던 문제 — `OnTargetPerceptionUpdated`에서 사망 시 무시
 - [x] (2026-09-27) 홀드 적이 안 쏘던 원인: `BP_AREnemy_Hold`의 BT가 옛 `HJ_Resources/.../BT_Enemy_Holder` → `BT_AR_Hold`로 교체. `Fire At Target.bIgnoreAttackRange`(홀드용) 추가·켬
 - [x] (빌드 완료 2026-09-27) `AHealPickup` + `UHealPickupData`(DA_HealPickup), BP_V2_HealPickup(초록 십자, NS_Heal_Loop). 상호작용 DA: `UInteractColorData`/`UInteractSoundData`/`UInteractDoorSoundData` (Data/Interact). 수동문 기본은 열어 둔 채(`bCloseWhenPlayerLeaves` false)
+- [x] (빌드 완료 2026-10-01) **공격 토큰 1단계** — `UAttackTokenSubsystem`(월드 서브시스템) + `UCombatDirectorData`(DA_CombatDirector, MikaData › Combat). 사격 중인 적(Fire At Target 후보) 중 점수 높은 순으로 토큰을 준다. 토큰을 받으면 태스크가 쏘던 걸 멈추고 레이저 예고(TelegraphTime) → 명중 버스트 → 반납. 토큰 없는 탄은 타겟 옆(MissOffset)을 겨누고 타겟을 통과(`ACharacterBase::GetWeaponMissAim` → `AWeaponBase::ApplyMissAim`). 레이저 = 토큰 예고 표시. 보스는 항상 명중. `EnemyData › TokenWeight`. 런타임 `SetMaxTokensOverride`
+  - 2단계(보류): `Has Attack Token` 데코레이터로 BT 분기 (토큰 없으면 스트레이핑·엄폐·제압). 레벨 신호로 MaxTokens 바꾸는 액터

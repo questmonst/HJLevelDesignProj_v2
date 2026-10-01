@@ -3,6 +3,7 @@
 #include "EnemyCharacter.h"
 #include "EnemyAIController.h"
 #include "EnemyDataAsset.h"
+#include "AttackTokenSubsystem.h"
 #include "Perception/AISense_Damage.h"
 #include "WeaponBase.h"
 #include "Engine/OverlapResult.h"
@@ -101,6 +102,7 @@ void AEnemyCharacter::ApplyEnemyData()
     LaserComp->SetStaticMesh(EnemyData->LaserMesh);
     LaserLengthScale     = EnemyData->LaserLengthScale;
     LaserThickness       = EnemyData->LaserThickness;
+    TokenWeight          = EnemyData->TokenWeight;
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -151,7 +153,8 @@ void AEnemyCharacter::Tick(float DeltaTime)
 
 bool AEnemyCharacter::ShouldShowLaser() const
 {
-    // 공격 대기(조준·사격 사이 휴식) 중에만 — 쏘는 중·재장전 중엔 끈다
+    // 레이저 = "이 적이 곧 맞는 탄을 쏜다". 공격 토큰을 받고 예고하는 동안에만 켠다 (쏘기 시작하면 끈다)
+    if (!bTelegraphing) return false;
     if (bIsDead || IsIncapacitated() || bIsFiringBurst || !EnemyWeapon || EnemyWeapon->IsReloading()) return false;
 
     const AAIController* AICon = Cast<AAIController>(GetController());
@@ -159,6 +162,36 @@ bool AEnemyCharacter::ShouldShowLaser() const
     return BB
         && BB->GetValueAsObject(BBKey_TargetActor) != nullptr
         && BB->GetValueAsBool(BBKey_bCanSeeTarget);
+}
+
+bool AEnemyCharacter::GetWeaponMissAim(const FVector& From, FVector& OutDirection, AActor*& OutIgnoredTarget) const
+{
+    if (IsAccurateFire()) return false;
+
+    const AAIController* AICon = Cast<AAIController>(GetController());
+    AActor* Target = AICon ? AICon->GetFocusActor() : nullptr;
+    if (!Target) return false;
+
+    // 타겟을 향하는 선에 수직인 원 위의 한 점을 겨눈다 — 탄이 옆을 스쳐 지나가게.
+    // 발밑(바닥에 박히는 탄)은 피하려고 아래쪽 절반은 위로 뒤집는다
+    const UAttackTokenSubsystem* Director = GetWorld()->GetSubsystem<UAttackTokenSubsystem>();
+    const UCombatDirectorData& D = Director ? Director->GetData() : *GetDefault<UCombatDirectorData>();
+
+    const FVector TargetLoc = Target->GetActorLocation();
+    const FVector ToTarget  = (TargetLoc - From).GetSafeNormal();
+    FVector Right = FVector::CrossProduct(FVector::UpVector, ToTarget).GetSafeNormal();
+    if (Right.IsNearlyZero()) Right = FVector::RightVector;
+    const FVector Up = FVector::CrossProduct(ToTarget, Right);
+
+    const float Angle  = FMath::FRandRange(0.f, 2.f * PI);
+    const float Radius = FMath::FRandRange(D.MissOffsetMin, FMath::Max(D.MissOffsetMin, D.MissOffsetMax));
+    const FVector MissPoint = TargetLoc
+        + Right * FMath::Cos(Angle) * Radius
+        + Up    * FMath::Abs(FMath::Sin(Angle)) * Radius;
+
+    OutDirection     = (MissPoint - From).GetSafeNormal();
+    OutIgnoredTarget = Target;   // 플레이어가 그쪽으로 움직여도 맞지 않게 통과시킨다
+    return true;
 }
 
 void AEnemyCharacter::UpdateLaser()

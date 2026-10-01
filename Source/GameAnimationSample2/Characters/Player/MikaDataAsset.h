@@ -12,6 +12,7 @@ class UNiagaraSystem;
 class USoundBase;
 class UMaterialInterface;
 class AWeaponBase;
+class UCombatDirectorData;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UMikaDataAsset : public UDataAsset
@@ -241,6 +242,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade", meta=(ToolTip="최대 수류탄 보유 개수"))
 	int32 MaxGrenadeCount = 4;
+
+	// --- Combat ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat", meta=(ToolTip="적 공격 토큰 규칙 (DA_CombatDirector): 동시에 명중 사격할 수 있는 적 수, 레이저 예고 시간 등. 비우면 기본값(토큰 1개)"))
+	UCombatDirectorData* CombatDirectorData = nullptr;
 
 	// --- Weapon ---
 

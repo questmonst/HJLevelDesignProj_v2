@@ -109,7 +109,14 @@ protected:
     // 사격 중인지 (FireAtTarget ~ StopFiring). 연사 무기는 무기 타이머가 쏘므로 폰이 따로 기억한다
     bool bIsFiringBurst = false;
 
-    // 플레이어를 보고 있고 공격 대기 중일 때만 레이저를 켠다 (사격·재장전 중엔 끔)
+    bool bHasAttackToken = false;   // 관리자가 준 토큰
+    bool bTelegraphing   = false;   // 토큰을 받고 레이저로 예고 중 (아직 안 쏨)
+    bool bAccurateFire   = false;   // 명중 버스트 중
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat", meta=(ToolTip="공격 토큰 우선순위 가중치. EnemyData에서 설정"))
+    float TokenWeight = 1.f;
+
+    // 공격 토큰을 받고 예고하는 동안에만 레이저를 켠다 — 레이저 = 곧 맞는 탄이 온다
     bool ShouldShowLaser() const;
     void UpdateLaser();
 
@@ -271,6 +278,24 @@ public:
 
     // 마지막으로 사격을 시작한 시각 — "새로 교전을 시작했는지" 판정에 쓴다 (조준 대기)
     float GetLastFireTime() const { return LastFireTime; }
+
+    // --- 공격 토큰 (UAttackTokenSubsystem) ---
+    // 토큰을 가진 적만 정확히 쏜다. 나머지는 플레이어 옆을 겨눠 일부러 빗나가게 쏘고, 그 탄은 플레이어를 통과한다.
+    // 보스는 토큰과 무관하게 항상 정확히 쏜다
+
+    // 관리자가 토큰을 주거나 회수할 때
+    void SetAttackToken(bool bHas) { bHasAttackToken = bHas; }
+    bool HasAttackToken() const { return bHasAttackToken; }
+
+    // Fire At Target 태스크가 정한다: 레이저 예고 중 / 명중 사격 중
+    void SetTelegraphing(bool bOn) { bTelegraphing = bOn; }
+    void SetAccurateFire(bool bOn) { bAccurateFire = bOn; }
+    bool IsAccurateFire() const { return bAccurateFire || bIsBoss; }
+
+    float GetTokenWeight() const { return TokenWeight; }
+
+    // 무기가 호출 — 빗나가게 쏴야 하면 true와 함께 조준 방향·통과시킬 대상을 준다
+    virtual bool GetWeaponMissAim(const FVector& From, FVector& OutDirection, AActor*& OutIgnoredTarget) const override;
 
     // 타겟을 인지한 동안에는 이동 방향이 아니라 컨트롤러(포커스) 방향으로 몸을 돌린다.
     // 이게 없으면 감지만 하고 플레이어 쪽을 쳐다보지 않는다.

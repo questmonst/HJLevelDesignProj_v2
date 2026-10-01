@@ -335,6 +335,17 @@ void AWeaponBase::ReportHitToPlayer(const FHitResult& Hit, bool bHeadshot, bool 
 	Player->NotifyHitConfirmed(bHeadshot, bBarriered);
 }
 
+AActor* AWeaponBase::ApplyMissAim(const APawn* OwnerPawn, const FVector& From, FRotator& InOutRot) const
+{
+	const ACharacterBase* Shooter = Cast<ACharacterBase>(OwnerPawn);
+	FVector MissDir;
+	AActor* Ignored = nullptr;
+	if (!Shooter || !Shooter->GetWeaponMissAim(From, MissDir, Ignored)) return nullptr;
+
+	InOutRot = MissDir.Rotation();
+	return Ignored;
+}
+
 void AWeaponBase::HitscanFire()
 {
 	APawn* OwnerPawn       = Cast<APawn>(GetOwner());
@@ -355,13 +366,17 @@ void AWeaponBase::HitscanFire()
 	else return;
 
 	const bool    bIsPlayer  = Cast<APlayerController>(OwnerCtrl) != nullptr;
+
+	// 공격 토큰이 없는 적은 타겟 옆을 겨누고, 그 탄은 타겟을 통과한다 (절대 안 맞는다)
+	AActor* MissIgnored = bIsPlayer ? nullptr : ApplyMissAim(OwnerPawn, CamLoc, CamRot);
+
 	const FVector TraceStart = bIsPlayer ? CamLoc + CamRot.Vector() * TraceStartOffset : CamLoc;
 	const FVector BaseDir    = CamRot.Vector();
-
 
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.AddIgnoredActor(GetOwner());
+	if (MissIgnored) Params.AddIgnoredActor(MissIgnored);
 
 	// 퍼짐 콘: PelletCount > 1이고 SpreadAngle > 0일 때만 계산
 	const float SpreadTan  = (PelletCount > 1 && PelletSpreadAngle > 0.f)
@@ -476,6 +491,10 @@ void AWeaponBase::ProjectileFire()
 	else return;
 
 	const bool    bIsPlayerProj  = Cast<APlayerController>(OwnerCtrl) != nullptr;
+
+	// 공격 토큰이 없는 적은 타겟 옆을 겨누고, 그 투사체는 타겟을 통과한다
+	AActor* MissIgnored = bIsPlayerProj ? nullptr : ApplyMissAim(OwnerPawn, CamLoc, CamRot);
+
 	const FVector TraceStartProj = bIsPlayerProj ? CamLoc + CamRot.Vector() * TraceStartOffset : CamLoc;
 	const FVector BaseDir        = CamRot.Vector();
 
@@ -525,6 +544,7 @@ void AWeaponBase::ProjectileFire()
 			Projectile->SetDamage(RollDamage());
 			Projectile->AddIgnoredActor(this);
 			Projectile->AddIgnoredActor(GetOwner());
+			if (MissIgnored) Projectile->AddIgnoredActor(MissIgnored);
 			if (ProjectileSpeedOverride > 0.f)
 				Projectile->OverrideSpeed(ProjectileSpeedOverride);
 		}

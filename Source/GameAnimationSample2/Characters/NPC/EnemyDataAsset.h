@@ -156,8 +156,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion", meta=(ToolTip="상체(ABP Look At)가 조준하는 높이 보정(cm). 0 = 타겟 캡슐 중심(총알이 향하는 곳). +면 위, -면 아래"))
 	float LookAtHeightOffset = 0.f;
 
+	// --- 공격 토큰 ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Token", meta=(ClampMin="0", ToolTip="공격 토큰(명중 사격 차례) 우선순위 가중치. 클수록 자주 받는다 (저격 2, 쉴드 0.5 등). 0이면 절대 못 받는다"))
+	float TokenWeight = 1.f;
+
 	// --- Laser ---
-	// 적이 플레이어를 보고 공격 대기 중일 때(조준 대기·사격 사이 휴식. 사격·재장전 중엔 끔) 총구 → 조준점에 레이저를 그린다
+	// 공격 토큰을 받은 적이 명중 사격 전에 예고하는 동안 총구 → 조준점에 레이저를 그린다 (레이저 = 곧 맞는 탄이 온다)
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Laser", meta=(ToolTip="레이저 메시. 원점에서 +X로 뻗은 막대 (예: /Engine/VREditor/LaserPointer/LaserPointerMesh). 비우면 레이저 없음"))
 	UStaticMesh* LaserMesh = nullptr;
