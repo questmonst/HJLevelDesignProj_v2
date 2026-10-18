@@ -545,3 +545,6 @@
   - [x] (2026-10-18) **2단계 전체 리타겟 완료:** `RTG_Quinn2Mika` 루트 회전 초기화 후 팩 퀸 애니 466개 → `mika/RifleActionPack/Anims/RM/<폴더>`(루트 이동량 있는 원본 238) · `Anims/IP/<폴더>`(제자리 228), 이름 `*_mika`. 루트 보정은 `Content/Python/fix_mika_root_keep_motion.py`(트랙 유지, 크기 100·이동량×100 — 출발·정지 이동량 보존, 퀸 대비 0.68배로 미카 키 비율과 일치). 전수 검사: 루트 크기 100, 팔 접힘 0개, 골반 23.8~68.9cm
   - 일괄 리타겟은 Monolith HTTP(`localhost:9316/mcp`, tools/call animation_query batch_retarget_animations)로 폴더별 자동 실행 가능. 시험 잔해 `Anims/_RootFixTest`(2개)는 지워도 됨
   - 다음: 3단계 `BP_Mika_V2`(BP_Mika 자식) + `ABP_Mika_V2`(기존 ABP 복제, 이동 블렌드 스페이스 교체)
+  - [x] (2026-10-18) **3단계:** `RifleActionPack/ABP_Mika_V2`(기존 ABP 복제) — 블렌드 스페이스 4개 교체 `BlendSpaces/BS_MikaV2_AimMove`(2D 8방향, 대기0·걷기100·조깅200), `BS_MikaV2_AimMoveCrouch`(대기0·걷기110·조깅200, 옆=FL/FR), `BS_MikaV2_Move`(1D 걷기100·조깅200·달리기340·전력질주430), `BS_MikaV2_MoveCrouch`(110·200). 대기·앉기 대기 시퀀스, AimTurn/AimTurn_1의 AimIdle 상태 교체(AimTurn_1은 기존에 서 있는 조준 대기였던 것을 앉은 조준 대기로). `V2Character/BP_Mika_V2`(BP_Mika 자식, 메시 AnimClass만 V2). `MyHJGameMode` 기본 폰 → BP_Mika_V2 (되돌리려면 BP_Mika로)
+  - 그대로 둔 것: 조준 회전 애니(기존 반복형, 팩은 1회성 각도 회전이라 4단계 제자리 회전 처리 때 교체), 공중(AirLoco) 상태(팩 점프는 통짜 동작이라 별도 설계 필요)
+  - 확인 필요: 미카 이동 속도(MikaData Walk 400·Sprint 700·Aim 250)가 새 애니 원래 속도(달리기 339·전력질주 430·조준 조깅 200)보다 빨라 발 미끄러짐 가능 → 속도를 애니에 맞추거나 블렌드 스페이스 샘플 위치를 미카 속도로 옮겨 재생 속도를 올리는 방식 중 선택
