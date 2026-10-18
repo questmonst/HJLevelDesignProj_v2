@@ -461,6 +461,10 @@ public:
 
 	float LastSpottedSoundTime = -1000.f;
 
+	// 적중 소리 최소 간격 (HUDData->HitSoundMinInterval) — 재생해도 되면 시간을 기록하고 true
+	bool CanPlayHitSound();
+	float LastHitSoundTime = -1000.f;
+
 	UFUNCTION(BlueprintPure, Category = "Character|Grenade")
 	int32 GetGrenadeCount() const { return GrenadeCount; }
 

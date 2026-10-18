@@ -6,7 +6,11 @@
 #include "Perception/AISense_Hearing.h"
 #include "GrenadeBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "AudioDevice.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundConcurrency.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "PlayerCharacter.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -105,8 +109,20 @@ void AWeaponBase::BeginPlay()
 		FireSound               = WeaponData->FireSound;
 		DryFireSound            = WeaponData->DryFireSound;
 		ReloadSound             = WeaponData->ReloadSound;
+		PlayerSoundVolume       = WeaponData->PlayerSoundVolume;
+		EnemySoundVolume        = WeaponData->EnemySoundVolume;
+		FireVolumeRandom        = WeaponData->FireVolumeRandom;
+		FirePitchRandom         = WeaponData->FirePitchRandom;
+		PlayerSoundAttenuation  = WeaponData->PlayerSoundAttenuation;
+		EnemySoundAttenuation   = WeaponData->EnemySoundAttenuation;
+		PlayerFireConcurrency   = WeaponData->PlayerFireConcurrency;
+		EnemyFireConcurrency    = WeaponData->EnemyFireConcurrency;
 		HitVFX                  = WeaponData->HitVFX;
+		HitVFXScale             = WeaponData->HitVFXScale;
+		CharacterHitVFX         = WeaponData->CharacterHitVFX;
+		CharacterHitVFXScale    = WeaponData->CharacterHitVFXScale;
 		MuzzleVFX               = WeaponData->MuzzleVFX;
+		MuzzleSmokeVFX          = WeaponData->MuzzleSmokeVFX;
 		MuzzleVFXScale          = WeaponData->MuzzleVFXScale;
 		FireNoiseRange          = WeaponData->FireNoiseRange;
 		FireNoiseLoudness       = WeaponData->FireNoiseLoudness;
@@ -131,8 +147,7 @@ void AWeaponBase::StartFire()
 {
 	if (!CanFire())
 	{
-		if (DryFireSound)
-			UGameplayStatics::PlaySoundAtLocation(this, DryFireSound, GetActorLocation());
+		PlayWeaponSound(DryFireSound, GetActorLocation(), false);
 		return;
 	}
 
@@ -140,8 +155,7 @@ void AWeaponBase::StartFire()
 	{
 		if (bFireCooldown)
 		{
-			if (DryFireSound)
-				UGameplayStatics::PlaySoundAtLocation(this, DryFireSound, GetActorLocation());
+			PlayWeaponSound(DryFireSound, GetActorLocation(), false);
 			return;
 		}
 
@@ -215,6 +229,44 @@ void AWeaponBase::ResetSemiFireCooldown()
 	bFireCooldown = false;
 }
 
+void AWeaponBase::PlayWeaponSound(USoundBase* Sound, const FVector& Location, bool bFireSound)
+{
+	if (!Sound || !GEngine || !GEngine->UseSound()) return;
+	UWorld* World = GetWorld();
+	if (!World || !World->bAllowAudioPlayback || World->IsNetMode(NM_DedicatedServer)) return;
+
+	// 같은 무기 DA를 플레이어와 적이 같이 쓰므로 쏜 사람 기준으로 고른다 (주인 없는 떨어진 무기는 적 쪽)
+	const bool bPlayer = Cast<APlayerCharacter>(GetOwner()) != nullptr;
+	float Volume = bPlayer ? PlayerSoundVolume : EnemySoundVolume;
+	float Pitch  = 1.f;
+
+	// UGameplayStatics::PlaySoundAtLocation은 동시 재생 제한을 하나만 받는다 — "총 하나당 N개 + 전체 M개"를
+	// 겹쳐 걸려고 직접 컴포넌트를 만든다. 이 무기가 주인이라 "주인별 제한"은 총 하나 단위로 걸린다
+	FAudioDevice::FCreateComponentParams Params(World, this);
+	Params.SetLocation(Location);
+	Params.AttenuationSettings = bPlayer ? PlayerSoundAttenuation : EnemySoundAttenuation;
+	if (bFireSound)
+	{
+		Volume *= 1.f + FMath::FRandRange(-FireVolumeRandom, FireVolumeRandom);
+		Pitch   = 1.f + FMath::FRandRange(-FirePitchRandom, FirePitchRandom);
+		for (USoundConcurrency* Concurrency : bPlayer ? PlayerFireConcurrency : EnemyFireConcurrency)
+		{
+			if (Concurrency) Params.ConcurrencySet.Add(Concurrency);
+		}
+	}
+
+	if (UAudioComponent* Audio = FAudioDevice::CreateComponent(Sound, Params))
+	{
+		Audio->SetWorldLocation(Location);
+		Audio->SetVolumeMultiplier(Volume);
+		Audio->SetPitchMultiplier(Pitch);
+		Audio->bAllowSpatialization    = Params.ShouldUseAttenuation();
+		Audio->bAutoDestroy            = true;
+		Audio->bStopWhenOwnerDestroyed = false;
+		Audio->Play();
+	}
+}
+
 void AWeaponBase::Fire()
 {
 	if (!CanFire())
@@ -240,15 +292,28 @@ void AWeaponBase::Fire()
 		}
 	}
 
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleTransform.GetLocation());
-	}
+	PlayWeaponSound(FireSound, MuzzleTransform.GetLocation(), true);
 
 	if (MuzzleVFX)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), MuzzleVFX,
+		// 이전 화염은 지우고 매 발 새로 붙인다 (재생 중인 시스템의 리셋은 연사 간격에선 다시 터지지 않았다)
+		if (IsValid(MuzzleVFXComponent)) MuzzleVFXComponent->DestroyComponent();
+		MuzzleVFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			MuzzleVFX, WeaponMesh, MuzzleSocketName, FVector::ZeroVector, FRotator::ZeroRotator,
+			FVector(MuzzleVFXScale), EAttachLocation::SnapToTarget, true, ENCPoolMethod::None);
+		if (MuzzleVFXComponent)
+		{
+			// 무기 메시 스케일(WeaponMeshScale)과 무관하게 MuzzleVFXScale 그대로
+			MuzzleVFXComponent->SetUsingAbsoluteScale(true);
+			MuzzleVFXComponent->SetWorldScale3D(FVector(MuzzleVFXScale));
+		}
+	}
+
+	// 연기는 이전 연기가 다 흩어진 뒤에만 새로 — 연사해도 쌓이지 않는다. 총에 붙이지 않고 그 자리에 남긴다
+	if (MuzzleSmokeVFX && !(MuzzleSmokeComponent.IsValid() && MuzzleSmokeComponent->IsActive()))
+	{
+		MuzzleSmokeComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), MuzzleSmokeVFX,
 			MuzzleTransform.GetLocation(),
 			MuzzleTransform.GetRotation().Rotator(),
 			FVector(MuzzleVFXScale));
@@ -408,9 +473,12 @@ void AWeaponBase::HitscanFire()
 
 		if (Hit.bBlockingHit)
 		{
-			if (HitVFX)
-				UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitVFX,
-					Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			// 캐릭터는 전용 피격 이펙트(비우면 없음), 벽·엄폐물 등은 HitVFX
+			const bool bHitCharacter = Cast<ACharacter>(Hit.GetActor()) != nullptr;
+			if (UNiagaraSystem* ImpactVFX = bHitCharacter ? CharacterHitVFX : HitVFX)
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactVFX,
+					Hit.ImpactPoint, Hit.ImpactNormal.Rotation(),
+					FVector(bHitCharacter ? CharacterHitVFXScale : HitVFXScale));
 
 			if (Hit.GetActor())
 			{
@@ -605,10 +673,7 @@ void AWeaponBase::Reload()
 	StopFire();
 	OnReloadStart();
 
-	if (ReloadSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, GetActorLocation());
-	}
+	PlayWeaponSound(ReloadSound, GetActorLocation(), false);
 
 	if (APlayerCharacter* PC = Cast<APlayerCharacter>(GetOwner()))
 	{

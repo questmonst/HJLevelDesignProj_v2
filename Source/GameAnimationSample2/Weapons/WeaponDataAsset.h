@@ -9,6 +9,8 @@
 
 class UNiagaraSystem;
 class AGrenadeBase;
+class USoundAttenuation;
+class USoundConcurrency;
 
 UENUM(BlueprintType)
 enum class EWeaponFireMode : uint8
@@ -180,15 +182,53 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta=(ToolTip="재장전 시작 시 재생할 사운드"))
 	USoundBase* ReloadSound = nullptr;
 
+	// 같은 무기 DA를 플레이어와 적이 같이 쓰므로, 소리 크기·거리 감쇠·동시 재생 제한은 쏜 사람 기준으로 나눈다
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ClampMin="0", ToolTip="플레이어가 들고 있을 때 무기 소리(발사·빈 격발·장전) 볼륨 배율"))
+	float PlayerSoundVolume = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ClampMin="0", ToolTip="적이 들고 있을 때 무기 소리 볼륨 배율. 내 총보다 살짝 작게 두면 내 총이 묻히지 않는다"))
+	float EnemySoundVolume = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ClampMin="0", ClampMax="0.5", ToolTip="발사음 볼륨 무작위 폭(±비율). 0.05면 매 발 95~105%. 같은 소리 반복의 피로를 줄인다. 0이면 고정"))
+	float FireVolumeRandom = 0.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ClampMin="0", ClampMax="0.5", ToolTip="발사음 피치 무작위 폭(±비율). 0.05면 매 발 95~105%. 0이면 고정"))
+	float FirePitchRandom = 0.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ToolTip="플레이어 무기 소리의 거리 감쇠. 비우면 사운드 에셋 자체 설정 (SA_WeaponPlayer = 사실상 줄지 않음)"))
+	USoundAttenuation* PlayerSoundAttenuation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ToolTip="적 무기 소리의 거리 감쇠. 비우면 사운드 에셋 자체 설정 (SA_WeaponEnemy = 10m까지 그대로, 60m에서 거의 안 들림, 멀수록 둔해짐)"))
+	USoundAttenuation* EnemySoundAttenuation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ToolTip="플레이어 발사음 동시 재생 제한. 여러 개 겹쳐 걸 수 있다. 비우면 사운드 에셋 자체 설정 (SC_PlayerGun = 총 하나당 2개, 새 발이 오래된 발 꼬리를 끊는다)"))
+	TArray<TObjectPtr<USoundConcurrency>> PlayerFireConcurrency;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Mix", meta=(ToolTip="적 발사음 동시 재생 제한. 여러 개 겹쳐 걸 수 있다 (SC_EnemyGun_PerGun = 총 하나당 2개, SC_EnemyGun_Total = 적 총 전체 6개, 먼 것부터 끊음)"))
+	TArray<TObjectPtr<USoundConcurrency>> EnemyFireConcurrency;
+
 	// --- VFX ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="히트스캔 탄착점에 스폰할 나이아가라 시스템"))
 	UNiagaraSystem* HitVFX = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="히트스캔 탄착 VFX 스케일"))
+	float HitVFXScale = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="히트스캔으로 캐릭터(적·플레이어)를 맞혔을 때 스폰할 나이아가라 시스템. 캐릭터에는 HitVFX 대신 이걸 쓴다. 비우면 캐릭터 피격 이펙트 없음"))
+	UNiagaraSystem* CharacterHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="캐릭터 피격 VFX 스케일"))
+	float CharacterHitVFXScale = 1.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="발사 시 총구에 스폰할 나이아가라 시스템 (머즐 플래시)"))
 	UNiagaraSystem* MuzzleVFX = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="머즐 VFX 스케일"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="발사 시 총구에 남길 연기 나이아가라 시스템. 이전 연기가 아직 남아 있으면 새로 만들지 않는다 (연사해도 쌓이지 않게). 총구 화염은 매 발 이전 것을 지우고 새로. 비우면 연기 없음"))
+	UNiagaraSystem* MuzzleSmokeVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="머즐 VFX 스케일 (화염·연기 공통)"))
 	float MuzzleVFXScale = 1.f;
 
 	// --- Perception ---

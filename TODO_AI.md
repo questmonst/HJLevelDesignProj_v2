@@ -527,3 +527,8 @@
 - [x] (빌드 완료 2026-10-18) 스포너 재시작 규칙: `UCheckpointSubsystem::OnPlayerRespawned`(사망 재시작 때 방송). 전멸=유지, 진행 중=적 제거 후 (시작 시각 ≤ 체크포인트 시각이면 즉시 재스폰 / 이후면 시작 전으로). BeginPlay 스폰은 항상 재스폰. BP 함수 `StartSpawning/DespawnAll/ResetSpawner/HasStarted/IsCleared`. 끄기 신호=적 정리
 - [x] (빌드 완료 2026-10-18) 밟는 트리거 `ALevelTriggerVolume`(BP_V2_TriggerVolume): 들어오면 SignalTargets에 신호, 체크포인트 이후 발동분은 재시작 때 다시 밟을 수 있게
   - 남은 것: 스위치 재시작 되돌리기, 레벨에 직접 배치한 적은 재시작 규칙 밖
+
+- [x] (빌드 완료 2026-10-18) 사운드·이펙트 과다 정리: 감쇠 `SA_WeaponPlayer`/`SA_WeaponEnemy`/`SA_SFX`, 동시 재생 `SC_PlayerGun`/`SC_EnemyGun_PerGun`/`SC_EnemyGun_Total`/`SC_Impact` (V2Sound/Mix). 무기 소리는 `AWeaponBase::PlayWeaponSound`가 쏜 사람(플레이어/적) 기준으로 볼륨·감쇠·동시 재생 제한을 고른다 — 제한을 여러 겹 걸려고 `FAudioDevice::CreateComponent`를 직접 씀(무기가 주인 → 총 하나 단위 제한). 탄착음은 탄이 바로 사라지므로 `PlaySoundAtLocation`+제한 1개. 명중 소리 `HUDData.HitSoundMinInterval`(헤드샷·처치는 무시). 마스터 리미터 `SEP_MasterLimiter` → `SM_Master` (DefaultEngine.ini `AudioSettings.MasterSubmix`). 머즐·탄착 VFX 0.7배
+  - 참고: 히트스캔 총은 탄착음이 없음(시각용 탄은 충돌 꺼짐). Vefects 큐는 자체 감쇠(`SA_GlobalAttenuation`)가 있어 문·스위치 등 새 효과음에는 `SA_SFX`를 사운드 에셋에 지정할 것
+- [x] (빌드 완료 2026-10-18) 총구 이펙트 화염/연기 분리: `V2Weapon/FX/NS_V2_Gunshot_Flash·Smoke`, `NS_V2_Arrow_Flash·Smoke` (Vefects `*_Cast` 복제, 연기 = `Wind_*` 이미터만). 화염 = 매 발 이전 컴포넌트를 지우고 총구 소켓에 새로 붙임(재생 중 `ResetSystem`은 연사 간격에서 다시 안 터짐). 연기 = 무기 DA `MuzzleSmokeVFX`, 이전 연기가 남아 있으면 건너뜀(월드 고정)
+- [x] (빌드 완료 2026-10-18) 캐릭터 피격 이펙트 분리: 무기 DA·탄환 DA `CharacterHitVFX`/`CharacterHitVFXScale` — `ACharacter`에 맞으면 HitVFX 대신 사용, 비우면 없음. **아직 비어 있음 → 사용자가 이펙트 지정**

@@ -843,17 +843,26 @@ void APlayerCharacter::NotifyHitConfirmed(bool bHeadshot, bool bBarriered)
 	{
 		USoundBase* Sound = bHeadshot ? HUDData->HeadshotSound : HUDData->HitSound;
 		if (bBarriered && HUDData->BarrierHitSound) Sound = HUDData->BarrierHitSound;
+		// 헤드샷은 항상, 나머지는 최소 간격 안이면 건너뛴다 (연사 중 매 발 울리지 않게)
 		// 2D로 재생 — 거리와 무관하게 항상 같은 크기로 들린다
-		if (Sound) UGameplayStatics::PlaySound2D(this, Sound, HUDData->HitSoundVolume);
+		if (Sound && (CanPlayHitSound() || bHeadshot)) UGameplayStatics::PlaySound2D(this, Sound, HUDData->HitSoundVolume);
 	}
 }
 
 void APlayerCharacter::NotifyCoverHit()
 {
-	if (HUDData && HUDData->CoverHitSound)
+	if (HUDData && HUDData->CoverHitSound && CanPlayHitSound())
 	{
 		UGameplayStatics::PlaySound2D(this, HUDData->CoverHitSound, HUDData->HitSoundVolume);
 	}
+}
+
+bool APlayerCharacter::CanPlayHitSound()
+{
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastHitSoundTime < HUDData->HitSoundMinInterval) return false;
+	LastHitSoundTime = Now;
+	return true;
 }
 
 void APlayerCharacter::NotifyEnemyKilled()

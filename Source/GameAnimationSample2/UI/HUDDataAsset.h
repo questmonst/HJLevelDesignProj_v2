@@ -67,6 +67,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ClampMin="0", ToolTip="히트마커 소리 볼륨 배율"))
 	float HitSoundVolume = 1.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitMarker|Sound", meta=(ClampMin="0", ToolTip="일반·방어막·엄폐물 적중 소리의 최소 간격(초). 연사 중 매 발 울리지 않게 이 시간 안의 적중 소리는 건너뛴다. 헤드샷·처치 소리는 간격과 무관하게 항상 재생. 0이면 매 발"))
+	float HitSoundMinInterval = 0.08f;
+
 	// --- 행동 안내 (UActionPromptWidget) ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prompt", meta=(ToolTip="조준 중 엄폐물이 오른쪽에 있을 때 띄우는 안내"))

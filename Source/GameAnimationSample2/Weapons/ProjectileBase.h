@@ -10,6 +10,8 @@
 class UNiagaraSystem;
 class UNiagaraComponent;
 class USoundBase;
+class USoundAttenuation;
+class USoundConcurrency;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API AProjectileBase : public AActor
@@ -56,6 +58,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Audio", meta=(ToolTip="충돌 시 재생할 사운드 에셋"))
 	USoundBase* HitSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Audio", meta=(ToolTip="탄착음 거리 감쇠. 비우면 사운드 에셋 자체 설정. DataAsset에서 설정"))
+	USoundAttenuation* HitSoundAttenuation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Audio", meta=(ToolTip="탄착음 동시 재생 제한. 비우면 사운드 에셋 자체 설정. DataAsset에서 설정"))
+	USoundConcurrency* HitSoundConcurrency = nullptr;
+
 	// --- VFX ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|VFX", meta=(ToolTip="비행 중 투사체에 붙일 나이아가라 시스템 (트레일 등)"))
@@ -69,6 +77,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|VFX", meta=(ToolTip="히트 VFX 스케일"))
 	float HitVFXScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|VFX", meta=(ToolTip="캐릭터에 맞았을 때 이펙트. 비우면 없음. DataAsset에서 설정"))
+	UNiagaraSystem* CharacterHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|VFX", meta=(ToolTip="캐릭터 피격 VFX 스케일. DataAsset에서 설정"))
+	float CharacterHitVFXScale = 1.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile|VFX", meta=(ToolTip="비행 중 활성화된 나이아가라 VFX 컴포넌트"))
 	UNiagaraComponent* FlightVFXComponent;

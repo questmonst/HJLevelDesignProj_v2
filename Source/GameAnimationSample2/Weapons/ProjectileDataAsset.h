@@ -7,6 +7,8 @@
 #include "ProjectileDataAsset.generated.h"
 
 class UNiagaraSystem;
+class USoundAttenuation;
+class USoundConcurrency;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UProjectileDataAsset : public UDataAsset
@@ -39,6 +41,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta=(ToolTip="충돌 시 재생할 사운드 에셋"))
 	USoundBase* HitSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta=(ToolTip="탄착음 거리 감쇠. 비우면 사운드 에셋 자체 설정 (SA_SFX = 5m까지 그대로, 30m에서 거의 안 들림)"))
+	USoundAttenuation* HitSoundAttenuation = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta=(ToolTip="탄착음 동시 재생 제한. 비우면 사운드 에셋 자체 설정 (SC_Impact = 전체 4개, 오래된 것부터 끊음)"))
+	USoundConcurrency* HitSoundConcurrency = nullptr;
+
 	// --- VFX ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="비행 중 투사체에 붙일 나이아가라 시스템 (트레일 등)"))
@@ -52,4 +60,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="히트 VFX 스케일"))
 	float HitVFXScale = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="캐릭터(적·플레이어)에 맞았을 때 스폰할 나이아가라 시스템. 캐릭터에는 HitVFX 대신 이걸 쓴다. 비우면 캐릭터 피격 이펙트 없음"))
+	UNiagaraSystem* CharacterHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX", meta=(ToolTip="캐릭터 피격 VFX 스케일"))
+	float CharacterHitVFXScale = 1.f;
 };

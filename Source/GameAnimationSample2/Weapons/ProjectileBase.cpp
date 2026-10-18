@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "GameFramework/Character.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -50,10 +51,14 @@ void AProjectileBase::BeginPlay()
 		bRadialDamage   = ProjectileData->bRadialDamage;
 		DamageRadius    = ProjectileData->DamageRadius;
 		HitSound        = ProjectileData->HitSound;
+		HitSoundAttenuation = ProjectileData->HitSoundAttenuation;
+		HitSoundConcurrency = ProjectileData->HitSoundConcurrency;
 		FlightVFX       = ProjectileData->FlightVFX;
 		FlightVFXScale  = ProjectileData->FlightVFXScale;
 		HitVFX          = ProjectileData->HitVFX;
 		HitVFXScale     = ProjectileData->HitVFXScale;
+		CharacterHitVFX      = ProjectileData->CharacterHitVFX;
+		CharacterHitVFXScale = ProjectileData->CharacterHitVFXScale;
 
 		ProjectileMovement->InitialSpeed           = InitialSpeed;
 		ProjectileMovement->MaxSpeed               = InitialSpeed;
@@ -95,16 +100,19 @@ void AProjectileBase::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 
 	if (HitSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, HitSound, Hit.ImpactPoint);
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, Hit.ImpactPoint, FRotator::ZeroRotator,
+			1.f, 1.f, 0.f, HitSoundAttenuation, HitSoundConcurrency);
 	}
 
-	if (HitVFX)
+	// 캐릭터는 전용 피격 이펙트(비우면 없음), 벽·엄폐물 등은 HitVFX
+	const bool bHitCharacter = Cast<ACharacter>(OtherActor) != nullptr;
+	if (UNiagaraSystem* ImpactVFX = bHitCharacter ? CharacterHitVFX : HitVFX)
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), HitVFX,
+			GetWorld(), ImpactVFX,
 			Hit.ImpactPoint,
 			Hit.ImpactNormal.Rotation(),
-			FVector(HitVFXScale));
+			FVector(bHitCharacter ? CharacterHitVFXScale : HitVFXScale));
 	}
 
 	OnProjectileHit(OtherActor, Hit);
