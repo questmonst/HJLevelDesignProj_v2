@@ -17,6 +17,7 @@
 #include "MotionWarpingComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
 #include "HUDDataAsset.h"
 #include "LevelInteraction.h"
 #include "CheckpointSpotlight.h"
@@ -304,6 +305,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		CurrentFallSpeed = 0.f;
 	}
+	UpdateAirAnimTime();
 	// 공중에서는 지상 로코모션 속도를 0으로 — 달리다 점프해도 공중 모션이 그대로 나온다
 	const float HorizontalSpeed = GetVelocity().Size2D();
 	LocoGroundSpeed = (bFreezeLocoSpeedInAir && bIsFalling) ? 0.f : HorizontalSpeed;
@@ -319,6 +321,39 @@ void APlayerCharacter::Tick(float DeltaTime)
 	const bool bLandPose = bIsLandingSoon || (!bIsFalling && bInLandHold);
 	// 켜질 땐 즉시(예측을 놓쳐도 착지 프레임에 바로 전신), 꺼질 땐 부드럽게
 	LandPoseAlpha = bLandPose ? 1.f : FMath::FInterpTo(LandPoseAlpha, 0.f, DeltaTime, AirPoseBlendSpeed);
+}
+
+void APlayerCharacter::UpdateAirAnimTime()
+{
+	if (!bIsFalling) return;
+
+	// 공중 모션 하나를 시간 대신 상하 속도로 재생한다.
+	// 도약(위로 점프 속도) → 최고점(0) → 도약 높이로 돌아옴(아래로 점프 속도) → 마지막 하강 자세(AirAnimEndFallSpeed)
+	// 점프 높이·중력을 바꿔도 자세가 실제 궤적을 따라가고, 낭떠러지에서 떨어질 땐 최고점 자세부터 시작한다
+	const float JumpSpeed = FMath::Max(GetCharacterMovement()->JumpZVelocity, 1.f);
+	const float VZ        = GetVelocity().Z;
+	if (VZ >= 0.f)
+	{
+		AirAnimTime = FMath::GetMappedRangeValueClamped(FVector2D(JumpSpeed, 0.f), FVector2D(AirAnimTakeoffTime, AirAnimApexTime), VZ);
+	}
+	else if (VZ >= -JumpSpeed)
+	{
+		AirAnimTime = FMath::GetMappedRangeValueClamped(FVector2D(0.f, -JumpSpeed), FVector2D(AirAnimApexTime, AirAnimGroundTime), VZ);
+	}
+	else
+	{
+		const float EndSpeed = FMath::Max(AirAnimEndFallSpeed, JumpSpeed + 1.f);
+		AirAnimTime = FMath::GetMappedRangeValueClamped(FVector2D(-JumpSpeed, -EndSpeed), FVector2D(AirAnimGroundTime, AirAnimEndTime), VZ);
+	}
+
+	// 착지 클립도 떨어지는 속도로 미리 고른다 — 착지 예측(bIsLandingSoon)이 닿기 전에 Land 상태로 넘어가기 때문
+	if (LandAnimations.Num() > 0)
+	{
+		int32 Index = 0;
+		while (Index < LandAnimSpeedThresholds.Num() && CurrentFallSpeed >= LandAnimSpeedThresholds[Index]) ++Index;
+		LandAnimIndex = FMath::Min(Index, LandAnimations.Num() - 1);
+		LandAnimation = LandAnimations[LandAnimIndex];   // 착지 유지 시간도 고른 클립 길이로
+	}
 }
 
 bool APlayerCharacter::IsLandPoseInterrupted() const
@@ -433,8 +468,13 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 	const float ActorYaw   = GetActorRotation().Yaw;
 	AimYaw = FMath::UnwindDegrees(ControlYaw - ActorYaw);
 
-	if (GetVelocity().SizeSquared2D() > 1.f)
+	// 회전 몽타주는 발 디딤 루트 모션으로 속도가 생기므로, 그동안은 이동 입력으로 움직이는지 판단한다
+	const bool bMoving = ActiveTurnMontage
+		? !GetCharacterMovement()->GetCurrentAcceleration().IsNearlyZero()
+		: GetVelocity().SizeSquared2D() > 1.f;
+	if (bMoving)
 	{
+		StopTurnInPlaceMontage();
 		SetActorRotation(FRotator(0.f, ControlYaw, 0.f));
 		AimYaw          = 0.f;
 		bIsTurningRight = false;
@@ -462,8 +502,16 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 		return;
 	}
 
-	if (AimYaw >  TurnRightThreshold) { bIsTurningRight = true; return; }
-	if (AimYaw < -TurnLeftThreshold)  { bIsTurningLeft  = true; return; }
+	// 회전 몽타주 재생 중 — 루트 모션 회전이 몸을 돌린다 (AimYaw는 위에서 매 프레임 다시 계산)
+	if (ActiveTurnMontage)
+	{
+		const UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+		if (Anim && Anim->Montage_IsPlaying(ActiveTurnMontage)) return;
+		StopTurnInPlaceMontage();
+	}
+
+	if (AimYaw >  TurnRightThreshold) { if (!TryPlayTurnInPlaceMontage()) bIsTurningRight = true; return; }
+	if (AimYaw < -TurnLeftThreshold)  { if (!TryPlayTurnInPlaceMontage()) bIsTurningLeft  = true; return; }
 
 	if (SoftTurnSpeed > 0.f && FMath::Abs(AimYaw) > 0.1f)
 	{
@@ -476,6 +524,51 @@ void APlayerCharacter::UpdateAimTurn(float DeltaTime)
 
 		AimYaw = FMath::UnwindDegrees(ControlYaw - NewRot.Yaw);
 	}
+}
+
+bool APlayerCharacter::TryPlayTurnInPlaceMontage()
+{
+	if (bIsCrouched) return false;   // 앉기용 회전 몽타주는 없다 — 기존 방식
+
+	const TArray<TObjectPtr<UAnimMontage>>& Montages = AimYaw > 0.f ? TurnInPlaceRightMontages : TurnInPlaceLeftMontages;
+	if (Montages.Num() == 0) return false;
+
+	// 45·90·135·180도 중 벌어진 각도에 가장 가까운 것
+	const int32 Index = FMath::Clamp(FMath::RoundToInt(FMath::Abs(AimYaw) / 45.f) - 1, 0, Montages.Num() - 1);
+	UAnimMontage* Montage = Montages[Index];
+	if (!Montage || PlayAnimMontage(Montage) <= 0.f) return false;
+
+	ActiveTurnMontage = Montage;
+	bFullBodyMontage  = true;   // 발을 디뎌야 하므로 전신 (ABP 전신 분기)
+	return true;
+}
+
+void APlayerCharacter::StopTurnInPlaceMontage()
+{
+	if (!ActiveTurnMontage) return;
+
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (Anim && Anim->Montage_IsPlaying(ActiveTurnMontage))
+	{
+		Anim->Montage_Stop(0.2f, ActiveTurnMontage);
+	}
+
+	// 회피처럼 다른 전신 몽타주가 끼어들었으면 bFullBodyMontage는 그쪽이 관리한다
+	bool bOtherMontagePlaying = false;
+	if (Anim)
+	{
+		for (const FAnimMontageInstance* Instance : Anim->MontageInstances)
+		{
+			if (Instance && Instance->Montage != ActiveTurnMontage && Instance->IsActive() && !Instance->IsStopped())
+			{
+				bOtherMontagePlaying = true;
+				break;
+			}
+		}
+	}
+	if (!bOtherMontagePlaying) bFullBodyMontage = false;
+
+	ActiveTurnMontage = nullptr;
 }
 
 void APlayerCharacter::UpdateCrosshairSpread(float DeltaTime)
@@ -751,6 +844,7 @@ void APlayerCharacter::StopAim()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->MaxWalkSpeed              = WalkSpeed;
 	Allow(ECharacterAction::Sprint);
+	StopTurnInPlaceMontage();
 	bIsTurningRight = false;
 	bIsTurningLeft  = false;
 	AimYaw          = 0.f;

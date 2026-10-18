@@ -264,7 +264,21 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character|TurnInPlace", meta=(ToolTip="ABP에서 AimTurnL 애니메이션 트리거"))
 	bool bIsTurningLeft = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="조준 제자리 왼쪽 회전 몽타주 (45·90·135·180도). 비우면 기존 방식. MikaData에서 설정"))
+	TArray<TObjectPtr<UAnimMontage>> TurnInPlaceLeftMontages;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="조준 제자리 오른쪽 회전 몽타주 (45·90·135·180도). MikaData에서 설정"))
+	TArray<TObjectPtr<UAnimMontage>> TurnInPlaceRightMontages;
+
+	// 재생 중인 제자리 회전 몽타주 (루트 모션 회전이 몸을 돌린다)
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveTurnMontage = nullptr;
+
 	void UpdateAimTurn(float DeltaTime);
+
+	// 벌어진 각도에 가장 가까운 회전 몽타주를 재생. 몽타주가 없거나 앉아 있으면 false (기존 방식으로)
+	bool TryPlayTurnInPlaceMontage();
+	void StopTurnInPlaceMontage();
 
 	// --- Cover Peek ---
 
@@ -733,6 +747,38 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="착지 클립을 몇 초 지점부터 재생할지. ABP Land 상태 Start Position에 바인딩. MikaData에서 설정"))
 	float LandAnimStartTime = 0.05f;
+
+	// --- 공중 모션을 상하 속도로 재생 (V2 ABP) ---
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="공중 모션 재생 위치(초). 상하 속도로 정해진다. ABP 공중 상태 Sequence Evaluator의 Explicit Time에 연결"))
+	float AirAnimTime = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Fall", meta=(ToolTip="떨어지는 속도로 고른 착지 클립 번호 (LandAnimations). ABP Land 상태 Blend Poses by Int에 연결"))
+	int32 LandAnimIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="공중 모션에서 발이 땅을 떠나는 시점(초). MikaData에서 설정"))
+	float AirAnimTakeoffTime = 0.13f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="공중 모션 최고점 시점(초). MikaData에서 설정"))
+	float AirAnimApexTime = 0.55f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="공중 모션에서 도약 높이로 돌아오는 시점(초). MikaData에서 설정"))
+	float AirAnimGroundTime = 0.96f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="공중 모션 마지막 하강 자세 시점(초). MikaData에서 설정"))
+	float AirAnimEndTime = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ClampMin="0", ToolTip="이 낙하 속도(cm/s)에서 마지막 하강 자세에 도달. MikaData에서 설정"))
+	float AirAnimEndFallSpeed = 900.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="낙하 속도별 착지 클립 (가벼운 것 → 무거운 것). 비우면 LandAnimation 하나. MikaData에서 설정"))
+	TArray<TObjectPtr<UAnimSequenceBase>> LandAnimations;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Fall", meta=(ToolTip="착지 클립을 넘기는 낙하 속도(cm/s), 오름차순. MikaData에서 설정"))
+	TArray<float> LandAnimSpeedThresholds;
+
+	// 공중 모션 재생 위치와 착지 클립 선택 (낙하 중 매 프레임)
+	void UpdateAirAnimTime();
 
 	// 착지 모션이 끝나는 시점 (재생 속도·시작 지점 반영). 이 시간이 지나면 바로 지상 로코모션으로 돌아간다
 	UFUNCTION(BlueprintPure, Category = "Character|Fall")

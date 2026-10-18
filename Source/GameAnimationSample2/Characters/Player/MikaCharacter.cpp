@@ -131,6 +131,8 @@ void AMikaCharacter::BeginPlay()
 		TurnLeftThreshold          = MikaData->TurnLeftThreshold;
 		TurnRotationSpeed          = MikaData->TurnRotationSpeed;
 		SoftTurnSpeed              = MikaData->SoftTurnSpeed;
+		TurnInPlaceLeftMontages    = MikaData->TurnInPlaceLeftMontages;
+		TurnInPlaceRightMontages   = MikaData->TurnInPlaceRightMontages;
 		// Fall
 		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
 		LandPoseMinSpeed           = MikaData->LandPoseMinSpeed;
@@ -142,6 +144,13 @@ void AMikaCharacter::BeginPlay()
 		bFreezeLocoSpeedInAir      = MikaData->bFreezeLocoSpeedInAir;
 		LandAnimation              = MikaData->LandAnimation;
 		LandAnimStartTime          = MikaData->LandAnimStartTime;
+		AirAnimTakeoffTime         = MikaData->AirAnimTakeoffTime;
+		AirAnimApexTime            = MikaData->AirAnimApexTime;
+		AirAnimGroundTime          = MikaData->AirAnimGroundTime;
+		AirAnimEndTime             = MikaData->AirAnimEndTime;
+		AirAnimEndFallSpeed        = MikaData->AirAnimEndFallSpeed;
+		LandAnimations             = MikaData->LandAnimations;
+		LandAnimSpeedThresholds    = MikaData->LandAnimSpeedThresholds;
 		// Grenade / Weapon
 		// 비어 있으면 BP_Mika에 직접 넣어둔 값을 유지 (DA 이전 전 기존 설정 보호)
 		if (MikaData->GrenadeClass) GrenadeClass = MikaData->GrenadeClass;

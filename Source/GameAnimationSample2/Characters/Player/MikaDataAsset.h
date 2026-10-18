@@ -198,6 +198,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TurnInPlace", meta=(ToolTip="임계값 미만일 때 카메라를 부드럽게 따라가는 속도 (도/초). 0이면 비활성화"))
 	float SoftTurnSpeed = 60.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TurnInPlace", meta=(ToolTip="조준 제자리 왼쪽 회전 몽타주 (루트 모션 회전). 45·90·135·180도 순서. 넣으면 벌어진 각도에 가장 가까운 몽타주로 발을 디디며 돌고, 비우면 기존 방식(반복 회전 애니 + 액터 회전). 앉아 있을 땐 항상 기존 방식"))
+	TArray<TObjectPtr<UAnimMontage>> TurnInPlaceLeftMontages;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TurnInPlace", meta=(ToolTip="조준 제자리 오른쪽 회전 몽타주. 45·90·135·180도 순서"))
+	TArray<TObjectPtr<UAnimMontage>> TurnInPlaceRightMontages;
+
 	// --- Fall ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ToolTip="하드 랜딩 판정 최소 낙하 속도 (cm/s). 이 이상 속도로 착지하면 경착지 애니메이션 재생"))
@@ -229,6 +235,29 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ClampMin="0", ToolTip="착지 클립을 몇 초 지점부터 재생할지. ABP Land 상태 Start Position에 바인딩됨 (발 닿기 직전부터 재생)"))
 	float LandAnimStartTime = 0.05f;
+
+	// 공중 모션 하나를 시간 대신 상하 속도로 재생 — ABP 공중 상태의 Sequence Evaluator가 AirAnimTime을 읽는다 (V2 ABP)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ClampMin="0", ToolTip="공중 모션에서 발이 땅을 떠나는 시점(초). 점프 직후(위로 점프 속도)에 이 자세"))
+	float AirAnimTakeoffTime = 0.13f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ClampMin="0", ToolTip="공중 모션의 최고점 시점(초). 상하 속도 0일 때 이 자세. 낭떠러지에서 떨어질 때도 여기서 시작"))
+	float AirAnimApexTime = 0.55f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ClampMin="0", ToolTip="공중 모션에서 몸이 도약 높이로 돌아오는 시점(초). 아래로 점프 속도만큼 떨어질 때 이 자세"))
+	float AirAnimGroundTime = 0.96f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ClampMin="0", ToolTip="공중 모션의 마지막 하강 자세 시점(초). 더 빨리 떨어지면 이 자세를 유지"))
+	float AirAnimEndTime = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ClampMin="0", ToolTip="이 낙하 속도(cm/s)에서 마지막 하강 자세(AirAnimEndTime)에 도달"))
+	float AirAnimEndFallSpeed = 900.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ToolTip="낙하 속도별 착지 클립 (가벼운 것 → 무거운 것). 넣으면 LandAnimation 대신 떨어지는 속도로 골라 쓴다. ABP Land 상태는 LandAnimIndex로 분기"))
+	TArray<TObjectPtr<UAnimSequenceBase>> LandAnimations;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall|AirByVelocity", meta=(ToolTip="착지 클립을 넘기는 낙하 속도(cm/s), 오름차순. 예: 500, 800, 1100 → 500 미만 0번, 800 미만 1번, 1100 미만 2번, 그 이상 3번"))
+	TArray<float> LandAnimSpeedThresholds;
 
 	// --- Grenade ---
 
