@@ -309,6 +309,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	// 공중에서는 지상 로코모션 속도를 0으로 — 달리다 점프해도 공중 모션이 그대로 나온다
 	const float HorizontalSpeed = GetVelocity().Size2D();
 	LocoGroundSpeed = (bFreezeLocoSpeedInAir && bIsFalling) ? 0.f : HorizontalSpeed;
+	UpdateLocoWarping();
 
 	// 착지 직후에도 잠시 공중 포즈를 유지해 착지 모션이 끝까지 재생되게 한다 (점프 모션을 느리게 틀면 그만큼 길게).
 	// 단, 플레이어가 이동·행동을 시작하면 그 자리에서 끊는다 — 안 그러면 착지 포즈에 갇힌다
@@ -353,6 +354,27 @@ void APlayerCharacter::UpdateAirAnimTime()
 		while (Index < LandAnimSpeedThresholds.Num() && CurrentFallSpeed >= LandAnimSpeedThresholds[Index]) ++Index;
 		LandAnimIndex = FMath::Min(Index, LandAnimations.Num() - 1);
 		LandAnimation = LandAnimations[LandAnimIndex];   // 착지 유지 시간도 고른 클립 길이로
+	}
+}
+
+void APlayerCharacter::UpdateLocoWarping()
+{
+	// 이동 애니의 원래 속도보다 빠르면, 재생 속도로 일부(최대 LocoMaxPlayRate)를 메우고 나머지는 보폭으로 메운다
+	const float AnimMaxSpeed = bIsCrouched ? CrouchLocoAnimMaxSpeed : (bIsAiming ? AimLocoAnimMaxSpeed : LocoAnimMaxSpeed);
+	float Ratio = 1.f;
+	if (AnimMaxSpeed > 0.f && !bIsFalling)
+	{
+		const float MaxRatio = FMath::Max(LocoMaxPlayRate, 1.f) * FMath::Max(LocoMaxStrideScale, 1.f);
+		Ratio = FMath::Clamp(LocoGroundSpeed / AnimMaxSpeed, 1.f, MaxRatio);
+	}
+	LocoPlayRate    = FMath::Min(Ratio, FMath::Max(LocoMaxPlayRate, 1.f));
+	LocoStrideScale = Ratio / LocoPlayRate;
+
+	// 보폭은 실제 이동 방향으로 늘린다 (메시 공간) — 조준 옆걸음에서도 맞는 방향으로
+	const FVector Velocity2D(GetVelocity().X, GetVelocity().Y, 0.f);
+	if (!Velocity2D.IsNearlyZero())
+	{
+		LocoStrideDirection = GetMesh()->GetComponentTransform().InverseTransformVectorNoScale(Velocity2D).GetSafeNormal();
 	}
 }
 
@@ -536,7 +558,7 @@ bool APlayerCharacter::TryPlayTurnInPlaceMontage()
 	// 45·90·135·180도 중 벌어진 각도에 가장 가까운 것
 	const int32 Index = FMath::Clamp(FMath::RoundToInt(FMath::Abs(AimYaw) / 45.f) - 1, 0, Montages.Num() - 1);
 	UAnimMontage* Montage = Montages[Index];
-	if (!Montage || PlayAnimMontage(Montage) <= 0.f) return false;
+	if (!Montage || PlayAnimMontage(Montage, TurnInPlacePlayRate) <= 0.f) return false;
 
 	ActiveTurnMontage = Montage;
 	bFullBodyMontage  = true;   // 발을 디뎌야 하므로 전신 (ABP 전신 분기)

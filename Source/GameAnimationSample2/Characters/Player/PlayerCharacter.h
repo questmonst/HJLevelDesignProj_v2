@@ -270,6 +270,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ToolTip="조준 제자리 오른쪽 회전 몽타주 (45·90·135·180도). MikaData에서 설정"))
 	TArray<TObjectPtr<UAnimMontage>> TurnInPlaceRightMontages;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|TurnInPlace", meta=(ClampMin="0.1", ToolTip="제자리 회전 몽타주 재생 속도 배율 (루트 모션 회전도 같이 빨라진다). MikaData에서 설정"))
+	float TurnInPlacePlayRate = 2.f;
+
 	// 재생 중인 제자리 회전 몽타주 (루트 모션 회전이 몸을 돌린다)
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> ActiveTurnMontage = nullptr;
@@ -779,6 +782,34 @@ public:
 
 	// 공중 모션 재생 위치와 착지 클립 선택 (낙하 중 매 프레임)
 	void UpdateAirAnimTime();
+
+	// --- 이동 애니보다 빠를 때 보정 (V2 ABP) ---
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Locomotion", meta=(ToolTip="이동 블렌드 스페이스 재생 속도 배율. ABP 블렌드 스페이스 Play Rate에 연결"))
+	float LocoPlayRate = 1.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Locomotion", meta=(ToolTip="보폭 배율. ABP Stride Warping의 Stride Scale에 연결"))
+	float LocoStrideScale = 1.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Character|Locomotion", meta=(ToolTip="보폭 방향 (메시 공간 이동 방향). ABP Stride Warping의 Stride Direction에 연결"))
+	FVector LocoStrideDirection = FVector::ForwardVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Locomotion", meta=(ClampMin="0", ToolTip="비조준 이동 애니 최고 원래 속도(cm/s). 0이면 보정 끔. MikaData에서 설정"))
+	float LocoAnimMaxSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Locomotion", meta=(ClampMin="0", ToolTip="조준 이동 애니 최고 원래 속도(cm/s). MikaData에서 설정"))
+	float AimLocoAnimMaxSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Locomotion", meta=(ClampMin="0", ToolTip="앉아 이동 애니 최고 원래 속도(cm/s). MikaData에서 설정"))
+	float CrouchLocoAnimMaxSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Locomotion", meta=(ClampMin="1", ToolTip="재생 속도로 메우는 최대 배율. MikaData에서 설정"))
+	float LocoMaxPlayRate = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Locomotion", meta=(ClampMin="1", ToolTip="보폭 배율 최대치. MikaData에서 설정"))
+	float LocoMaxStrideScale = 1.5f;
+
+	void UpdateLocoWarping();
 
 	// 착지 모션이 끝나는 시점 (재생 속도·시작 지점 반영). 이 시간이 지나면 바로 지상 로코모션으로 돌아간다
 	UFUNCTION(BlueprintPure, Category = "Character|Fall")

@@ -133,6 +133,12 @@ void AMikaCharacter::BeginPlay()
 		SoftTurnSpeed              = MikaData->SoftTurnSpeed;
 		TurnInPlaceLeftMontages    = MikaData->TurnInPlaceLeftMontages;
 		TurnInPlaceRightMontages   = MikaData->TurnInPlaceRightMontages;
+		TurnInPlacePlayRate        = MikaData->TurnInPlacePlayRate;
+		LocoAnimMaxSpeed           = MikaData->LocoAnimMaxSpeed;
+		AimLocoAnimMaxSpeed        = MikaData->AimLocoAnimMaxSpeed;
+		CrouchLocoAnimMaxSpeed     = MikaData->CrouchLocoAnimMaxSpeed;
+		LocoMaxPlayRate            = MikaData->LocoMaxPlayRate;
+		LocoMaxStrideScale         = MikaData->LocoMaxStrideScale;
 		// Fall
 		HardLandingSpeedThreshold  = MikaData->HardLandingSpeedThreshold;
 		LandPoseMinSpeed           = MikaData->LandPoseMinSpeed;

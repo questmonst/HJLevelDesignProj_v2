@@ -204,6 +204,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TurnInPlace", meta=(ToolTip="조준 제자리 오른쪽 회전 몽타주. 45·90·135·180도 순서"))
 	TArray<TObjectPtr<UAnimMontage>> TurnInPlaceRightMontages;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TurnInPlace", meta=(ClampMin="0.1", ToolTip="제자리 회전 몽타주 재생 속도 배율. 루트 모션 회전도 같이 빨라진다 (2 = 두 배 빠르게 돈다)"))
+	float TurnInPlacePlayRate = 2.f;
+
+	// --- 이동 애니보다 빠를 때 보정 (V2 ABP: 블렌드 스페이스 Play Rate + Stride Warping) ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion|Warping", meta=(ClampMin="0", ToolTip="비조준 이동 블렌드 스페이스의 가장 빠른 애니 원래 속도(cm/s). 이보다 빨리 움직이면 재생 속도·보폭을 늘려 발 미끄러짐을 막는다. 0이면 보정 끔"))
+	float LocoAnimMaxSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion|Warping", meta=(ClampMin="0", ToolTip="조준 이동 블렌드 스페이스의 가장 빠른 애니 원래 속도(cm/s). 0이면 보정 끔"))
+	float AimLocoAnimMaxSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion|Warping", meta=(ClampMin="0", ToolTip="앉아 이동 블렌드 스페이스의 가장 빠른 애니 원래 속도(cm/s). 0이면 보정 끔"))
+	float CrouchLocoAnimMaxSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion|Warping", meta=(ClampMin="1", ToolTip="애니보다 빠를 때 재생 속도로 메우는 최대 배율. 넘는 만큼은 보폭(Stride Warping)으로 메운다. 1이면 보폭만"))
+	float LocoMaxPlayRate = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Locomotion|Warping", meta=(ClampMin="1", ToolTip="보폭 배율 최대치. 너무 크면 다리가 과하게 벌어진다"))
+	float LocoMaxStrideScale = 1.5f;
+
 	// --- Fall ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fall", meta=(ToolTip="하드 랜딩 판정 최소 낙하 속도 (cm/s). 이 이상 속도로 착지하면 경착지 애니메이션 재생"))
