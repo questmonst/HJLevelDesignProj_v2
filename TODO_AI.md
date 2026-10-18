@@ -532,3 +532,16 @@
   - 참고: 히트스캔 총은 탄착음이 없음(시각용 탄은 충돌 꺼짐). Vefects 큐는 자체 감쇠(`SA_GlobalAttenuation`)가 있어 문·스위치 등 새 효과음에는 `SA_SFX`를 사운드 에셋에 지정할 것
 - [x] (빌드 완료 2026-10-18) 총구 이펙트 화염/연기 분리: `V2Weapon/FX/NS_V2_Gunshot_Flash·Smoke`, `NS_V2_Arrow_Flash·Smoke` (Vefects `*_Cast` 복제, 연기 = `Wind_*` 이미터만). 화염 = 매 발 이전 컴포넌트를 지우고 총구 소켓에 새로 붙임(재생 중 `ResetSystem`은 연사 간격에서 다시 안 터짐). 연기 = 무기 DA `MuzzleSmokeVFX`, 이전 연기가 남아 있으면 건너뜀(월드 고정)
 - [x] (빌드 완료 2026-10-18) 캐릭터 피격 이펙트 분리: 무기 DA·탄환 DA `CharacterHitVFX`/`CharacterHitVFXScale` — `ACharacter`에 맞으면 HitVFX 대신 사용, 비우면 없음. **아직 비어 있음 → 사용자가 이펙트 지정**
+- [ ] (진행 중 2026-10-18) **미카 V2 (FemaleAnimRiflePack)** — 계획: 1 리타겟 시험 → 2 전체 리타겟 → 3 `BP_Mika_V2`(BP_Mika 자식, 메시 AnimClass만 교체) + `ABP_Mika_V2`(기존 ABP 복제, 이동부만 교체) → 4 출발·정지·전환(거리 맞춤) → 5 추가 동작
+  - 1단계 완료: `mika/RifleActionPack/RTG_Quinn2Mika`(RTG_Manny2Mika_v2 복제, 소스 미리보기만 팩 SKM_Quinn — 리그 재지정 금지: 체인 자동 매핑 함정). 시험 애니 5개 `RifleActionPack/Test/*_mika`, 루트 트랙 제거로 1/100 축소 해결
+  - 주의: 루트 트랙 제거 시 출발·정지 애니의 이동량(루트 이동)도 사라진다 → 4단계 거리 맞춤은 리타겟 전 원본에서 거리 커브를 굽거나(커브는 리타겟 시 복사됨) 루트 크기 키만 100으로 고치는 방식 필요
+  - 손 간격(조준 대기 0프레임): 기존 미카 24.5cm(앞쪽 방향), 새 리타겟 29.2cm(옆으로 약 45도 틀어짐), 원본 퀸 36.9cm → 왼손이 총 손잡이에서 벗어났을 가능성. 눈으로 확인 후 왼손 IK 여부 결정
+  - 기준 자세: 자동 맞춤(ChainToChain)은 팔이 몸에 씹힘(Test2) → 예전 수동 7본 자세로 되돌림. **사용자가 RTG_Quinn2Mika 리타겟 포즈를 직접 맞춘 뒤** 2단계 진행. 덮어쓰기(overwrite) 일괄 리타겟은 열린 애니가 있으면 에디터 크래시 → 항상 새 폴더로
+  - 정리 대상(사용자 삭제): `RifleActionPack/Test/*_mika1`(크래시 잔해), 자세 확정 후 `Test`·`Test2` 폴더
+  - **원인 확정(2026-10-18 예약 탐색):** 자동 맞춤이 루트 `survivor_teenangst_ARM`에 넣은 리타겟 포즈 회전이 **정규화 안 된 쿼터니언**(크기 0.99856). 내보내기(`IKRetargetBatchOperation` → `UpdateLocalTransformsBelowBone`)에서 이게 팔 체인 로컬 위치를 0으로 만들어 위팔·아래팔이 접힘(어깨→팔꿈치 길이 0) → 손이 어깨 위로·몸에 씹힘. 미리보기는 애님 노드 경로(`ConvertComponentPosesToLocalPoses` + 기준 크기 복사)라 정상으로 보임
+  - 근거: 복제본 실험(Investigate/Exp1~11). 팔·척추·손가락·체인 이동 모드는 무관, **루트 보정만 0으로 한 Exp11**에서 팔 길이 정상(5.19/18.84/14.53), 왼손 z 86.4 < 어깨 91.2(퀸과 같은 방향), 양손 간격 약 21cm
+  - 해결: `RTG_Quinn2Mika` 리타겟 포즈에서 **루트 본 회전만 초기화**(사용자 작업). 앞으로 자동 맞춤 후엔 항상 루트 보정 초기화. 두 단계 리타겟·실시간 굽기는 불필요
+  - 정리 대상(사용자 삭제): `RifleActionPack/Investigate/`(복제 RTG 11개+결과), `RTG_Quinn2Mika_NoRootOp`, `Test`~`Test5`
+  - [x] (2026-10-18) **2단계 전체 리타겟 완료:** `RTG_Quinn2Mika` 루트 회전 초기화 후 팩 퀸 애니 466개 → `mika/RifleActionPack/Anims/RM/<폴더>`(루트 이동량 있는 원본 238) · `Anims/IP/<폴더>`(제자리 228), 이름 `*_mika`. 루트 보정은 `Content/Python/fix_mika_root_keep_motion.py`(트랙 유지, 크기 100·이동량×100 — 출발·정지 이동량 보존, 퀸 대비 0.68배로 미카 키 비율과 일치). 전수 검사: 루트 크기 100, 팔 접힘 0개, 골반 23.8~68.9cm
+  - 일괄 리타겟은 Monolith HTTP(`localhost:9316/mcp`, tools/call animation_query batch_retarget_animations)로 폴더별 자동 실행 가능. 시험 잔해 `Anims/_RootFixTest`(2개)는 지워도 됨
+  - 다음: 3단계 `BP_Mika_V2`(BP_Mika 자식) + `ABP_Mika_V2`(기존 ABP 복제, 이동 블렌드 스페이스 교체)
