@@ -35,6 +35,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Token", meta=(ToolTip="토큰을 받는 순간(레이저가 켜질 때) 그 적 위치에서 나는 경고음"))
 	USoundBase* TelegraphSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Token", meta=(ClampMin="0", ToolTip="동시에 사격하는 적 수 (빗나가는 위협 사격 포함, 토큰 가진 적도 여기에 들어간다). 자리를 못 받은 적은 쏘지 않고 겨누기만 하며 차례를 기다린다. 0이면 제한 없음"))
+	int32 MaxShooters = 0;
+
 	// --- 빗나가는 탄 ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss", meta=(ClampMin="0", ToolTip="토큰 없는 적이 겨누는 점이 플레이어에서 떨어진 최소 거리(cm)"))
@@ -78,6 +81,10 @@ public:
 	// 명중 버스트가 끝났을 때 (또는 태스크가 중단됐을 때)
 	void ReleaseToken(AEnemyCharacter* Enemy);
 
+	// 위협 사격 자리 (MaxShooters) — 쏘기 직전에 받고, 버스트가 끝나면 반납한다. 제한이 없으면 항상 true
+	bool TryAcquireShootSlot(AEnemyCharacter* Enemy);
+	void ReleaseShootSlot(AEnemyCharacter* Enemy);
+
 	// 클라이맥스 연출용 — 토큰 수를 런타임에 바꾼다 (음수면 DA 값으로 복귀)
 	UFUNCTION(BlueprintCallable, Category = "Combat|Token")
 	void SetMaxTokensOverride(int32 NewMax) { MaxTokensOverride = NewMax; }
@@ -91,6 +98,7 @@ private:
 
 	TArray<TWeakObjectPtr<AEnemyCharacter>> Candidates;
 	TArray<TWeakObjectPtr<AEnemyCharacter>> Holders;
+	TArray<TWeakObjectPtr<AEnemyCharacter>> Shooters;   // 위협 사격 자리를 가진 적 (토큰 보유자는 따로 센다)
 
 	// 적별 기록: 마지막으로 토큰을 반납한 시각, 후보가 된 시각(기다린 시간 계산)
 	TMap<TWeakObjectPtr<AEnemyCharacter>, float> LastReleaseTime;

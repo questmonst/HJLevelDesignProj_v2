@@ -7,6 +7,8 @@
 #include "EnemyCharacter.h"
 #include "BTTask_FireAtTarget.generated.h"
 
+struct FBTFireAtTargetMemory;
+
 // 적이 블랙보드 타겟(액터 또는 위치)을 향해 "사격 → 휴식"을 한 번 수행하는 BT 태스크.
 //
 // 사격 자체는 AEnemyCharacter::FireAtTarget()이 이미 하고 있으므로, 이 태스크는
@@ -75,6 +77,9 @@ protected:
 
 private:
 	void Finish(UBehaviorTreeComponent& OwnerComp, EBTNodeResult::Type Result) const;
+
+	// 위협 사격 시작 — 사격 자리를 받으면 쏘고 true, 못 받으면 겨누기만(bWaitingSlot) 하고 false
+	static bool TryStartThreatFire(AEnemyCharacter* Enemy, FBTFireAtTargetMemory* Mem);
 };
 
 // 노드 인스턴스 대신 메모리 구조체 사용 (같은 BT를 쓰는 적끼리 상태 공유 방지)
@@ -90,4 +95,7 @@ struct FBTFireAtTargetMemory
 	bool  bTokenBurst   = false;
 	float TelegraphLeft = 0.f;
 	float BurstDuration = 0.f;  // 명중 버스트 길이 (이번 실행에서 정한 사격 시간)
+
+	// 동시 사격 수 제한(MaxShooters) — 자리를 못 받으면 쏘지 않고 겨누기만 하며 매 틱 다시 요청한다
+	bool  bWaitingSlot  = false;
 };

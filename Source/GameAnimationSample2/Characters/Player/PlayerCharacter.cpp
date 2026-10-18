@@ -19,6 +19,9 @@
 #include "Animation/AnimMontage.h"
 #include "HUDDataAsset.h"
 #include "LevelInteraction.h"
+#include "CheckpointSpotlight.h"
+#include "DeathScreenWidget.h"
+#include "Camera/PlayerCameraManager.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -885,7 +888,6 @@ void APlayerCharacter::ResetHardLanding()
 
 void APlayerCharacter::OnDeath_Implementation()
 {
-	// TODO(체크포인트 재시작 미구현): 사망 연출·재시작 흐름이 생기면 여기서 호출
 	StopFire();
 	GetCharacterMovement()->StopMovementImmediately();
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
@@ -893,4 +895,72 @@ void APlayerCharacter::OnDeath_Implementation()
 		DisableInput(PC);
 	}
 	OnDeathEffect();
+
+	// 잠깐 쓰러진 모습을 보여준 뒤 사망 화면 → "다시 시작"이 RespawnAtCheckpoint
+	GetWorldTimerManager().SetTimer(DeathScreenTimerHandle, this, &APlayerCharacter::ShowDeathScreen,
+		FMath::Max(DeathScreenDelay, 0.01f), false);
+}
+
+void APlayerCharacter::ShowDeathScreen()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !IsDead()) return;
+
+	if (!DeathScreen)
+	{
+		TSubclassOf<UDeathScreenWidget> WidgetClass = DeathScreenClass ? DeathScreenClass : TSubclassOf<UDeathScreenWidget>(UDeathScreenWidget::StaticClass());
+		DeathScreen = CreateWidget<UDeathScreenWidget>(PC, WidgetClass);
+	}
+	if (!DeathScreen) return;
+
+	DeathScreen->AddToViewport(100);
+	PC->SetShowMouseCursor(true);
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(DeathScreen->TakeWidget());
+	PC->SetInputMode(Mode);
+}
+
+void APlayerCharacter::RespawnAtCheckpoint()
+{
+	GetWorldTimerManager().ClearTimer(DeathScreenTimerHandle);
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (DeathScreen)
+	{
+		DeathScreen->RemoveFromParent();
+	}
+	if (PC)
+	{
+		PC->SetShowMouseCursor(false);
+		PC->SetInputMode(FInputModeGameOnly());
+	}
+
+	// 낙사 구역과 같은 규칙: 마지막 체크포인트 → 플레이어 스타트
+	UCheckpointSubsystem* Checkpoints = GetWorld()->GetSubsystem<UCheckpointSubsystem>();
+	if (Checkpoints)
+	{
+		FVector  Location;
+		FRotator Rotation;
+		if (Checkpoints->FindRespawnPoint(this, PC, Location, Rotation))
+		{
+			SetActorLocationAndRotation(Location, Rotation, false, nullptr, ETeleportType::TeleportPhysics);
+			if (PC) PC->SetControlRotation(Rotation);
+		}
+	}
+
+	GetCharacterMovement()->StopMovementImmediately();
+	StopAnimMontage();
+	Revive();
+
+	// 스포너·트리거가 상태를 되돌린다 (진행 중이던 전투 정리 → 체크포인트 기준으로 다시 스폰)
+	if (Checkpoints) Checkpoints->NotifyPlayerRespawned();
+
+	if (PC)
+	{
+		EnableInput(PC);
+		if (RespawnFadeInTime > 0.f && PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->StartCameraFade(1.f, 0.f, RespawnFadeInTime, FColor::Black);
+		}
+	}
 }

@@ -518,3 +518,12 @@
 - [x] (빌드 완료 2026-09-27) `AHealPickup` + `UHealPickupData`(DA_HealPickup), BP_V2_HealPickup(초록 십자, NS_Heal_Loop). 상호작용 DA: `UInteractColorData`/`UInteractSoundData`/`UInteractDoorSoundData` (Data/Interact). 수동문 기본은 열어 둔 채(`bCloseWhenPlayerLeaves` false)
 - [x] (빌드 완료 2026-10-01) **공격 토큰 1단계** — `UAttackTokenSubsystem`(월드 서브시스템) + `UCombatDirectorData`(DA_CombatDirector, MikaData › Combat). 사격 중인 적(Fire At Target 후보) 중 점수 높은 순으로 토큰을 준다. 토큰을 받으면 태스크가 쏘던 걸 멈추고 레이저 예고(TelegraphTime) → 명중 버스트 → 반납. 토큰 없는 탄은 타겟 옆(MissOffset)을 겨누고 타겟을 통과(`ACharacterBase::GetWeaponMissAim` → `AWeaponBase::ApplyMissAim`). 레이저 = 토큰 예고 표시. 보스는 항상 명중. `EnemyData › TokenWeight`. 런타임 `SetMaxTokensOverride`
   - 2단계(보류): `Has Attack Token` 데코레이터로 BT 분기 (토큰 없으면 스트레이핑·엄폐·제압). 레벨 신호로 MaxTokens 바꾸는 액터
+- [x] (빌드 완료 2026-10-18) 공격 토큰 2단계 일부: 동시 사격 수 `MaxShooters`(DA_CombatDirector, 토큰 보유자 포함, 0=무제한, 현재 3). 자리를 못 받은 적은 버스트 동안 겨누기만 하고 매 틱 재요청, 버스트 끝에 반납
+- [x] (빌드 완료 2026-10-18) 체크포인트 스포트라이트 `ACheckpointSpotlight` + `UCheckpointSubsystem` + `UCheckpointData`(DA_CheckpointSpotlight). 플레이어가 조명 아래 영역에 들어오면 현재 체크포인트(조명 밝아짐). `CheckpointOrder`+`bOnlyForward`로 되돌아가도 리스폰 지점 유지. 낙사 구역 `AFallResetTrigger` 확장: ResetTarget → 마지막 체크포인트 → 플레이어 스타트 순, 카메라 방향도 맞춤, `FallDamage`. BP: `BP_V2_Checkpoint`, `BP_V2_FallZone`
+  - 남은 것: 낙사 구역에 떨어진 적 처리(지금은 무시), 리스폰 시 미카 대시·펀치 상태 정리(필요하면), 사망 시 체크포인트 리스폰
+- [x] (빌드 완료 2026-10-18) 사망 → 체크포인트 재시작: `UDeathScreenWidget`(코드로 화면 생성, WBP_DeathScreen) — 사망 `DeathScreenDelay` 뒤 표시, "체크포인트에서 다시 시작" → `APlayerCharacter::RespawnAtCheckpoint()`(이동 → `ACharacterBase::Revive()` 체력·방어막 가득 → 입력 복구 → 페이드 인). 리스폰 위치는 `UCheckpointSubsystem::FindRespawnPoint()`로 낙사 구역과 공용. MikaData › Respawn
+  - 남은 것(요청 시): 부활 직후 잠깐 무적
+- [x] (빌드 완료 2026-10-18) 체크포인트 빛줄기(엔진 Cone, 스포트라이트 높이·OuterConeAngle에 자동 맞춤) + 바닥 링(Plane). 머티리얼 `V2GamePlay/Materials/M_CheckpointBeam`(Unlit Additive, 로컬Z 그라데이션×프레넬×DepthFade) / `M_CheckpointRing`(UV 링). DA_CheckpointSpotlight에 빛줄기·링 밝기·반지름. 체크포인트 첫 활성 시 `SignalTargets`에 신호
+- [x] (빌드 완료 2026-10-18) 스포너 재시작 규칙: `UCheckpointSubsystem::OnPlayerRespawned`(사망 재시작 때 방송). 전멸=유지, 진행 중=적 제거 후 (시작 시각 ≤ 체크포인트 시각이면 즉시 재스폰 / 이후면 시작 전으로). BeginPlay 스폰은 항상 재스폰. BP 함수 `StartSpawning/DespawnAll/ResetSpawner/HasStarted/IsCleared`. 끄기 신호=적 정리
+- [x] (빌드 완료 2026-10-18) 밟는 트리거 `ALevelTriggerVolume`(BP_V2_TriggerVolume): 들어오면 SignalTargets에 신호, 체크포인트 이후 발동분은 재시작 때 다시 밟을 수 있게
+  - 남은 것: 스위치 재시작 되돌리기, 레벨에 직접 배치한 적은 재시작 규칙 밖

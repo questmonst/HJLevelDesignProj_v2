@@ -22,6 +22,7 @@ class UTraversalComponent;
 class UAnimMontage;
 class UAnimSequenceBase;
 class UMotionWarpingComponent;
+class UDeathScreenWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGrenadeThrowReadyChangedSignature, bool, bReady);
 
@@ -767,6 +768,28 @@ protected:
 
 public:
 	// 플레이어는 사망해도 Destroy하지 않는다 — HUD 위젯(크로스헤어 등)이 파괴된 캐릭터를 읽어 에러가 나고,
-	// 체크포인트 재시작 시 같은 캐릭터를 되살려 쓰기 위해서다. 지금은 입력·사격·이동만 멈춘다.
+	// 체크포인트 재시작 시 같은 캐릭터를 되살려 쓰기 위해서다. 입력·사격·이동을 멈추고 사망 화면을 띄운다.
 	virtual void OnDeath_Implementation() override;
+
+	// 사망 화면의 "다시 시작" — 마지막 체크포인트(없으면 플레이어 스타트)로 옮기고 되살린다
+	UFUNCTION(BlueprintCallable, Category = "Character|Respawn")
+	void RespawnAtCheckpoint();
+
+protected:
+	// --- 사망·재시작 (MikaData에서 설정) ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Respawn", meta=(ToolTip="사망 화면 위젯 (WBP_DeathScreen). 비우면 기본 모양. MikaData에서 설정"))
+	TSubclassOf<UDeathScreenWidget> DeathScreenClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Respawn", meta=(ClampMin="0", ToolTip="쓰러진 뒤 사망 화면이 뜨기까지(초). MikaData에서 설정"))
+	float DeathScreenDelay = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character|Respawn", meta=(ClampMin="0", ToolTip="다시 시작할 때 화면이 밝아지는 시간(초). MikaData에서 설정"))
+	float RespawnFadeInTime = 0.5f;
+
+	UPROPERTY(Transient)
+	UDeathScreenWidget* DeathScreen = nullptr;
+
+	FTimerHandle DeathScreenTimerHandle;
+	void ShowDeathScreen();
 };

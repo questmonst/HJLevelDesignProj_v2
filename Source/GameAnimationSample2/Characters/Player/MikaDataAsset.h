@@ -13,6 +13,7 @@ class USoundBase;
 class UMaterialInterface;
 class AWeaponBase;
 class UCombatDirectorData;
+class UDeathScreenWidget;
 
 UCLASS(Blueprintable, BlueprintType)
 class GAMEANIMATIONSAMPLE2_API UMikaDataAsset : public UDataAsset
@@ -247,6 +248,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat", meta=(ToolTip="적 공격 토큰 규칙 (DA_CombatDirector): 동시에 명중 사격할 수 있는 적 수, 레이저 예고 시간 등. 비우면 기본값(토큰 1개)"))
 	UCombatDirectorData* CombatDirectorData = nullptr;
+
+	// --- Respawn ---
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Respawn", meta=(ToolTip="사망 화면 위젯 (WBP_DeathScreen, 부모 DeathScreenWidget). 비우면 기본 모양"))
+	TSubclassOf<UDeathScreenWidget> DeathScreenClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Respawn", meta=(ClampMin="0", ToolTip="쓰러진 뒤 사망 화면이 뜨기까지(초)"))
+	float DeathScreenDelay = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Respawn", meta=(ClampMin="0", ToolTip="다시 시작할 때 화면이 밝아지는 시간(초)"))
+	float RespawnFadeInTime = 0.5f;
 
 	// --- Weapon ---
 

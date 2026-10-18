@@ -224,6 +224,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Character|Stats")
 	float Heal(float Amount);
 
+	// 되살리기 — 사망 상태를 풀고 체력·방어막을 가득 채운다 (체크포인트 재시작). 위치 이동은 부르는 쪽 몫
+	UFUNCTION(BlueprintCallable, Category = "Character|Stats")
+	virtual void Revive();
+
 	UPROPERTY(BlueprintAssignable, Category = "Character|Combat")
 	FOnHealthChangedSignature OnHealthChanged;
 

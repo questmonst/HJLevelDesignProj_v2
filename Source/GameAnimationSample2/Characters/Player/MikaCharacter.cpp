@@ -120,6 +120,9 @@ void AMikaCharacter::BeginPlay()
 		AimWaistMinTargetDistance  = MikaData->AimWaistMinTargetDistance;
 		bAimWaistFollowInvert      = MikaData->bAimWaistFollowInvert;
 		AimWaistBlendSpeed         = MikaData->AimWaistBlendSpeed;
+		DeathScreenClass           = MikaData->DeathScreenClass;
+		DeathScreenDelay           = MikaData->DeathScreenDelay;
+		RespawnFadeInTime          = MikaData->RespawnFadeInTime;
 		AimLeanRollAngle           = MikaData->AimLeanRollAngle;
 		AimLeanBlendSpeed          = MikaData->AimLeanBlendSpeed;
 			AimSpineInterpSpeed        = MikaData->AimSpineInterpSpeed;

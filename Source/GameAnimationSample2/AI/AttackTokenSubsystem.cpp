@@ -33,7 +33,25 @@ void UAttackTokenSubsystem::RegisterCandidate(AEnemyCharacter* Enemy)
 void UAttackTokenSubsystem::UnregisterCandidate(AEnemyCharacter* Enemy)
 {
 	ReleaseToken(Enemy);
+	ReleaseShootSlot(Enemy);
 	Candidates.Remove(Enemy);
+}
+
+bool UAttackTokenSubsystem::TryAcquireShootSlot(AEnemyCharacter* Enemy)
+{
+	const int32 MaxShooters = GetData().MaxShooters;
+	if (MaxShooters <= 0 || !Enemy) return true;
+	if (Shooters.Contains(Enemy)) return true;
+
+	// 토큰 보유자도 "쏘는 적"으로 센다
+	if (Shooters.Num() + Holders.Num() >= MaxShooters) return false;
+	Shooters.Add(Enemy);
+	return true;
+}
+
+void UAttackTokenSubsystem::ReleaseShootSlot(AEnemyCharacter* Enemy)
+{
+	Shooters.Remove(Enemy);
 }
 
 void UAttackTokenSubsystem::ReleaseToken(AEnemyCharacter* Enemy)
@@ -120,6 +138,10 @@ void UAttackTokenSubsystem::Tick(float DeltaTime)
 	}
 
 	Candidates.RemoveAll([](const TWeakObjectPtr<AEnemyCharacter>& E) { return !E.IsValid(); });
+	Shooters.RemoveAll([](const TWeakObjectPtr<AEnemyCharacter>& E)
+	{
+		return !E.IsValid() || E->IsDead() || E->IsIncapacitated();
+	});
 	for (auto It = LastReleaseTime.CreateIterator(); It; ++It) { if (!It.Key().IsValid()) It.RemoveCurrent(); }
 	for (auto It = WaitingSince.CreateIterator();    It; ++It) { if (!It.Key().IsValid()) It.RemoveCurrent(); }
 
@@ -146,6 +168,7 @@ void UAttackTokenSubsystem::Tick(float DeltaTime)
 		if (!Best) break;
 
 		Holders.Add(Best);
+		ReleaseShootSlot(Best);   // 토큰 보유자는 따로 센다 — 위협 사격 자리를 비워 다른 적에게
 		Best->SetAttackToken(true);
 	}
 }

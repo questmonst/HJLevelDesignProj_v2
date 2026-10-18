@@ -7,6 +7,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "CheckpointSpotlight.h"
 
 AFallResetTrigger::AFallResetTrigger()
 {
@@ -31,7 +33,6 @@ void AFallResetTrigger::OnTriggerOverlap(UPrimitiveComponent* OverlappedComp, AA
     bool bFromSweep, const FHitResult& SweepResult)
 {
     if (bIsTeleporting) return;
-    if (!ResetTarget)   return;
 
     ACharacter* Player = Cast<ACharacter>(OtherActor);
     if (!Player) return;
@@ -58,15 +59,37 @@ void AFallResetTrigger::OnTriggerOverlap(UPrimitiveComponent* OverlappedComp, AA
 
 void AFallResetTrigger::DoTeleport(ACharacter* Player, APlayerController* PC)
 {
+    // 1) 이 구역 전용 지점 → 2) 마지막 체크포인트 → 3) 플레이어 스타트
+    FVector  Location = FVector::ZeroVector;
+    FRotator Rotation = FRotator::ZeroRotator;
+    bool bHasTarget = false;
+
     if (ResetTarget)
     {
-        Player->SetActorTransform(
-            ResetTarget->GetActorTransform(), false, nullptr, ETeleportType::TeleportPhysics);
+        Location   = ResetTarget->GetActorLocation();
+        Rotation   = ResetTarget->GetActorRotation();
+        bHasTarget = true;
+    }
+    else if (const UCheckpointSubsystem* Checkpoints = GetWorld()->GetSubsystem<UCheckpointSubsystem>())
+    {
+        bHasTarget = Checkpoints->FindRespawnPoint(Player, PC, Location, Rotation);
+    }
+
+    if (bHasTarget)
+    {
+        const FRotator Facing(0.f, Rotation.Yaw, 0.f);
+        Player->SetActorLocationAndRotation(Location, Facing, false, nullptr, ETeleportType::TeleportPhysics);
+        if (PC) PC->SetControlRotation(Facing);   // 카메라도 리스폰 지점이 보는 쪽으로
     }
 
     if (bResetVelocity)
     {
         Player->GetCharacterMovement()->StopMovementImmediately();
+    }
+
+    if (FallDamage > 0.f)
+    {
+        UGameplayStatics::ApplyDamage(Player, FallDamage, nullptr, this, nullptr);
     }
 
     if (PC && FadeInDuration > 0.f)

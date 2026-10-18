@@ -125,14 +125,29 @@ EBTNodeResult::Type UBTTask_FireAtTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	if (bVectorKey) AICon->SetFocalPoint(AimLocation);
 	else if (AActor* FocusTarget = Cast<AActor>(BB->GetValueAsObject(TargetKey.SelectedKeyName))) AICon->SetFocus(FocusTarget);
 
+	Mem->bWaitingSlot = false;
 	if (Mem->AimTime <= 0.f)
 	{
 		Mem->bFiring = true;
-		Enemy->FireAtTarget();
-		Enemy->OnAttack();   // BP 훅: 사격 몽타주·머즐 이펙트 등
+		TryStartThreatFire(Enemy, Mem);
 	}
 
 	return EBTNodeResult::InProgress;
+}
+
+bool UBTTask_FireAtTarget::TryStartThreatFire(AEnemyCharacter* Enemy, FBTFireAtTargetMemory* Mem)
+{
+	// 보스는 자리와 무관하게 쏜다
+	UAttackTokenSubsystem* Director = Enemy->GetWorld()->GetSubsystem<UAttackTokenSubsystem>();
+	if (!Enemy->bIsBoss && Director && !Director->TryAcquireShootSlot(Enemy))
+	{
+		Mem->bWaitingSlot = true;
+		return false;
+	}
+	Mem->bWaitingSlot = false;
+	Enemy->FireAtTarget();
+	Enemy->OnAttack();   // BP 훅: 사격 몽타주·머즐 이펙트 등
+	return true;
 }
 
 void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -168,6 +183,7 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 		Mem->bResting      = false;
 		Mem->bFiring       = false;
 		Mem->AimTime       = 0.f;
+		Mem->bWaitingSlot  = false;
 		Enemy->SetTelegraphing(true);
 		if (Rules.TelegraphSound)
 		{
@@ -213,8 +229,7 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 		{
 			Mem->AimTime = 0.f;
 			Mem->bFiring = true;
-			Enemy->FireAtTarget();
-			Enemy->OnAttack();
+			TryStartThreatFire(Enemy, Mem);
 		}
 		return;
 	}
@@ -224,6 +239,12 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 		Mem->RestTime -= DeltaSeconds;
 		if (Mem->RestTime <= 0.f) FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		return;
+	}
+
+	// 사격 자리를 기다리는 중 — 겨누기만 하다가 자리가 나면 그때부터 쏜다 (버스트 시간은 계속 흐른다)
+	if (Mem->bWaitingSlot)
+	{
+		TryStartThreatFire(Enemy, Mem);
 	}
 
 	// 사격 도중 탄창이 비면 휴식 없이 즉시 재장전 분기로
@@ -242,13 +263,15 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 	{
 		Enemy->StopFiring();
 
-		// 명중 버스트가 끝났으면 토큰을 반납한다 (쉬는 동안 다른 적이 받을 수 있게)
+		// 명중 버스트가 끝났으면 토큰을, 위협 버스트면 사격 자리를 반납한다 (쉬는 동안 다른 적이 받게)
 		if (Mem->bTokenBurst)
 		{
 			Mem->bTokenBurst = false;
 			Enemy->SetAccurateFire(false);
 			if (Director) Director->ReleaseToken(Enemy);
 		}
+		if (Director) Director->ReleaseShootSlot(Enemy);
+		Mem->bWaitingSlot = false;
 		if (Mem->RestTime <= 0.f)
 		{
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
@@ -259,7 +282,7 @@ void UBTTask_FireAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 	}
 
 	// 연사 무기는 무기 타이머가 쏘고 있다. 단발·점사 무기만 준비될 때마다 다시 당긴다
-	if (!Weapon->IsAutoFire() && Weapon->IsFireReady())
+	if (!Mem->bWaitingSlot && !Weapon->IsAutoFire() && Weapon->IsFireReady())
 	{
 		Enemy->FireAtTarget();
 		Enemy->OnAttack();

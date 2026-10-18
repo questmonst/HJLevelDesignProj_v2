@@ -92,6 +92,15 @@ float ACharacterBase::Heal(float Amount)
 	return Healed;
 }
 
+void ACharacterBase::Revive()
+{
+	bIsDead        = false;
+	CurrentHealth  = MaxHealth;
+	CurrentBarrier = MaxBarrier;
+	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+	OnBarrierChanged.Broadcast(CurrentBarrier, MaxBarrier);
+}
+
 void ACharacterBase::TakeDamageCustom_Implementation(float Amount)
 {
 	CurrentHealth = FMath::Clamp(CurrentHealth - Amount, 0.0f, MaxHealth);

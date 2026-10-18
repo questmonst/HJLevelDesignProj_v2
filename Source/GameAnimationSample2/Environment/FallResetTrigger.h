@@ -10,13 +10,15 @@ class UBoxComponent;
 class AFallResetTarget;
 
 /**
- * 낙사 리셋 트리거.
- * 이 액터의 콜리전에 플레이어가 닿으면 연결된 AFallResetTarget 위치로 순간이동.
+ * 낙사 구역 (리셋 트리거).
+ * 이 액터의 콜리전에 플레이어가 닿으면 화면이 어두워졌다가 리스폰 지점으로 순간이동한다.
  *
- * 사용법:
- *   1. 레벨에 FallResetTrigger 배치 (낙사 구역 아래 등)
- *   2. Detail 패널에서 ResetTarget에 FallResetTarget 액터 연결
- *   3. 필요시 FadeOutDuration, FadeInDuration 조정
+ * 리스폰 지점 우선순위:
+ *   1. ResetTarget이 지정돼 있으면 그곳 (특정 구간 전용 리셋)
+ *   2. 아니면 마지막으로 켠 체크포인트(ACheckpointSpotlight)
+ *   3. 체크포인트가 없으면 플레이어 스타트
+ *
+ * 사용법: 낙사 구역 아래에 배치하고 박스 크기를 맞춘다. 보통은 ResetTarget을 비워 두고 체크포인트를 따른다
  */
 UCLASS()
 class GAMEANIMATIONSAMPLE2_API AFallResetTrigger : public AActor
@@ -32,7 +34,7 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FallReset", meta=(ToolTip="낙사 감지 박스 컴포넌트"))
     UBoxComponent* TriggerBox;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="이동할 목표 위치 액터"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="이 구역 전용 리스폰 지점. 비우면 마지막 체크포인트(없으면 플레이어 스타트)"))
     AFallResetTarget* ResetTarget;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="텔레포트 전 화면 페이드 아웃 시간 (초). 0이면 즉시"))
@@ -43,6 +45,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ToolTip="텔레포트 시 속도 초기화 여부"))
     bool bResetVelocity = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FallReset", meta=(ClampMin="0", ToolTip="떨어질 때 받는 피해. 0이면 피해 없이 돌아오기만 한다"))
+    float FallDamage = 0.f;
 
 private:
     bool bIsTeleporting = false;

@@ -3,6 +3,8 @@
 #include "EnemySpawner.h"
 #include "Components/ArrowComponent.h"
 #include "EnemyCharacter.h"
+#include "WeaponBase.h"
+#include "CheckpointSpotlight.h"
 #include "TimerManager.h"
 
 AEnemySpawner::AEnemySpawner()
@@ -19,19 +21,65 @@ AEnemySpawner::AEnemySpawner()
 void AEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	if (bSpawnOnBeginPlay) StartSpawning();
+
+	if (UCheckpointSubsystem* Checkpoints = GetWorld()->GetSubsystem<UCheckpointSubsystem>())
+	{
+		Checkpoints->OnPlayerRespawned.AddUObject(this, &AEnemySpawner::HandlePlayerRespawned);
+	}
+	if (bSpawnOnBeginPlay)
+	{
+		StartSpawning();
+		StartTime = -1000.f;   // 게임 시작부터 있던 전투 — 다시 시작하면 언제나 처음부터 다시
+	}
 }
 
 void AEnemySpawner::ReceiveLevelSignal(bool bOn, AActor* Source)
 {
 	if (bOn) StartSpawning();
+	else     DespawnAll();
 }
 
 void AEnemySpawner::StartSpawning()
 {
 	if (bStarted || !EnemyClass) return;
-	bStarted = true;
+	bStarted  = true;
+	StartTime = GetWorld()->GetTimeSeconds();
 	SpawnNext();
+}
+
+void AEnemySpawner::DespawnAll()
+{
+	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+	for (ACharacterBase* Alive : AliveEnemies)
+	{
+		AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(Alive);
+		if (!Enemy) continue;
+		Enemy->OnDied.RemoveDynamic(this, &AEnemySpawner::HandleEnemyDied);
+		if (AWeaponBase* Weapon = Enemy->GetEnemyWeapon()) Weapon->Destroy();   // 손에 든 총도 같이
+		Enemy->Destroy();
+	}
+	AliveEnemies.Reset();
+}
+
+void AEnemySpawner::ResetSpawner()
+{
+	DespawnAll();
+	SpawnedSoFar = 0;
+	bStarted     = false;
+	bCleared     = false;
+	StartTime    = -1.f;
+}
+
+void AEnemySpawner::HandlePlayerRespawned()
+{
+	if (bCleared || !bStarted) return;
+
+	const UCheckpointSubsystem* Checkpoints = GetWorld()->GetSubsystem<UCheckpointSubsystem>();
+	const bool bStartedBeforeCheckpoint = Checkpoints && StartTime <= Checkpoints->GetCheckpointTime();
+
+	ResetSpawner();
+	// 체크포인트 이전(또는 체크포인트가 깨운) 전투는 바로 다시, 이후에 시작한 전투는 트리거를 기다린다
+	if (bStartedBeforeCheckpoint) StartSpawning();
 }
 
 void AEnemySpawner::ScheduleNext()
